@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FONT, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
 
 export const metadata = {
   title: "Crews — myswarms",
@@ -25,7 +25,7 @@ export default function CrewsIndex() {
             <div
               style={{
                 fontSize: FONT.md,
-                fontWeight: 600,
+                fontWeight: FONT_WEIGHT.semibold,
                 color: "var(--ct-text-strong)",
                 marginBottom: SPACING.xs,
               }}

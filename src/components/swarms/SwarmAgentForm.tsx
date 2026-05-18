@@ -8,7 +8,7 @@ import {
   type ModelProvider,
   AgentRoleSchema,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface SwarmAgentFormProps {
   initialAgent?: AgentInput;
@@ -121,7 +121,7 @@ const labelStyle: React.CSSProperties = {
 };
 const labelText: React.CSSProperties = {
   fontSize: FONT.xs,
-  fontWeight: 600,
+  fontWeight: FONT_WEIGHT.semibold,
   letterSpacing: LETTER_SPACING.tight,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",

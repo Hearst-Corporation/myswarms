@@ -2,9 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
-// H6 : aucun magic number à migrer ici — toute la mise en forme est portée
-// par les classes .ct-seg-btn (cockpit.css).
+import { FONT, SPACING } from "@/lib/ui/tokens";
 
 interface BottomBarSwarmActionsProps {
   swarmId: string;
@@ -46,7 +44,7 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: SPACING.xs }}>
       <button
         type="button"
         className="ct-seg-btn primary"
@@ -60,7 +58,7 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
         <div
           role="alert"
           style={{
-            fontSize: 11,
+            fontSize: FONT.xxs,
             color: "var(--ct-alert-error-text)",
             maxWidth: 240,
             textAlign: "right",

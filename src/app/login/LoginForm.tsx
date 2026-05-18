@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  SPACING,
+  RADIUS,
+  FONT,
+  FONT_WEIGHT,
+  LETTER_SPACING,
+  LINE_HEIGHT,
+} from "@/lib/ui/tokens";
 
 /**
  * Formulaire de connexion email/password Supabase.
@@ -47,31 +55,31 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
         <div
           role="alert"
           style={{
-            marginBottom: 16,
-            padding: "10px 14px",
-            borderRadius: 8,
-            background: "rgba(239,68,68,0.12)",
-            border: "1px solid rgba(239,68,68,0.35)",
-            color: "rgba(252,165,165,0.92)",
-            fontSize: 13,
-            lineHeight: 1.5,
+            marginBottom: SPACING.lg,
+            padding: `${SPACING.s}px ${SPACING.md}px`,
+            borderRadius: RADIUS.md,
+            background: "var(--ct-alert-error-bg)",
+            border: "1px solid var(--ct-alert-error-border)",
+            color: "var(--ct-alert-error-text)",
+            fontSize: FONT.base,
+            lineHeight: LINE_HEIGHT.tight,
           }}
         >
           {error}
         </div>
       )}
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: SPACING.lg }}>
         <label
           htmlFor="email"
           style={{
             display: "block",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
+            fontSize: FONT.xxs,
+            fontWeight: FONT_WEIGHT.bold,
+            letterSpacing: LETTER_SPACING.tight,
             textTransform: "uppercase",
             color: "var(--ct-text-muted)",
-            marginBottom: 6,
+            marginBottom: SPACING.xxs,
           }}
         >
           Adresse e-mail
@@ -86,12 +94,12 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
           placeholder="vous@exemple.com"
           style={{
             width: "100%",
-            padding: "10px 14px",
-            borderRadius: 8,
+            padding: `${SPACING.s}px ${SPACING.md}px`,
+            borderRadius: RADIUS.md,
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border-strong)",
             color: "var(--ct-text-primary)",
-            fontSize: 14,
+            fontSize: FONT.md,
             outline: "none",
             fontFamily: "inherit",
             transition: "border-color 180ms",
@@ -105,17 +113,17 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
         />
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: SPACING.xl }}>
         <label
           htmlFor="password"
           style={{
             display: "block",
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: "0.1em",
+            fontSize: FONT.xxs,
+            fontWeight: FONT_WEIGHT.bold,
+            letterSpacing: LETTER_SPACING.tight,
             textTransform: "uppercase",
             color: "var(--ct-text-muted)",
-            marginBottom: 6,
+            marginBottom: SPACING.xxs,
           }}
         >
           Mot de passe
@@ -130,12 +138,12 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
           placeholder="••••••••"
           style={{
             width: "100%",
-            padding: "10px 14px",
-            borderRadius: 8,
+            padding: `${SPACING.s}px ${SPACING.md}px`,
+            borderRadius: RADIUS.md,
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border-strong)",
             color: "var(--ct-text-primary)",
-            fontSize: 14,
+            fontSize: FONT.md,
             outline: "none",
             fontFamily: "inherit",
             transition: "border-color 180ms",
@@ -152,22 +160,8 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
       <button
         type="submit"
         disabled={loading}
-        style={{
-          width: "100%",
-          padding: "11px 20px",
-          borderRadius: 8,
-          background: loading
-            ? "var(--ct-surface-3)"
-            : "var(--ct-accent-strong)",
-          border: "none",
-          color: loading ? "var(--ct-text-muted)" : "#ffffff",
-          fontSize: 14,
-          fontWeight: 700,
-          fontFamily: "inherit",
-          cursor: loading ? "not-allowed" : "pointer",
-          transition: "background 180ms",
-          letterSpacing: "0.02em",
-        }}
+        className="ct-seg-btn primary"
+        style={{ width: "100%" }}
       >
         {loading ? "Connexion…" : "Se connecter"}
       </button>

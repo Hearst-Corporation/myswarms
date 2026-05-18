@@ -19,7 +19,7 @@ import { BuilderToolsTab } from "./BuilderToolsTab";
 import { ArchitectModal } from "./ArchitectModal";
 import type { SwarmSpecResponse } from "@/lib/forms/swarmSchemas";
 import { isValidUuid } from "@/lib/utils/uuid";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
 
 type BuilderMode = "create" | "edit";
 type Tab = "overview" | "agents" | "tasks" | "tools" | "preview";
@@ -42,10 +42,6 @@ const EMPTY_SWARM: SwarmInputRaw = {
   tasks: [],
   tool_bindings: [],
 };
-
-// Hauteur max du panneau preview JSON — var CSS définie par stream B1 dans cockpit.css ;
-// fallback const locale si var non définie en isolation.
-const MAX_H = 480;
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "overview", label: "Overview" },
@@ -395,7 +391,7 @@ export function SwarmBuilder({
               color: "var(--ct-text-primary)",
               fontFamily: "monospace",
               overflow: "auto",
-              maxHeight: MAX_H,
+              maxHeight: SIZE.previewMaxH,
             }}
           >
             {previewJson}
@@ -455,7 +451,7 @@ const labelStyle: React.CSSProperties = {
 };
 const labelText: React.CSSProperties = {
   fontSize: FONT.xs,
-  fontWeight: 600,
+  fontWeight: FONT_WEIGHT.semibold,
   letterSpacing: LETTER_SPACING.tight,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",

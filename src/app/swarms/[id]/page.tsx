@@ -196,7 +196,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                       borderBottom: "1px solid var(--ct-border-soft)",
                     }}
                   >
-                    <div style={{ fontWeight: 600 }}>{a.name}</div>
+                    <div style={{ fontWeight: FONT_WEIGHT.semibold }}>{a.name}</div>
                     <div
                       style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}
                     >
@@ -221,7 +221,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                       borderBottom: "1px solid var(--ct-border-soft)",
                     }}
                   >
-                    <div style={{ fontWeight: 600 }}>{t.name}</div>
+                    <div style={{ fontWeight: FONT_WEIGHT.semibold }}>{t.name}</div>
                     <div
                       style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}
                     >
@@ -332,10 +332,10 @@ const tdStyle: React.CSSProperties = {
 const archivedBadgeStyle: CSSProperties = {
   background: "var(--ct-accent-soft)",
   color: "var(--ct-accent-strong)",
-  padding: `${SPACING.xs}px ${SPACING.md}px`,
-  borderRadius: RADIUS.sm,
+  padding: `${SPACING.xs}px ${SPACING.s}px`,
+  borderRadius: RADIUS.full,
   fontSize: FONT.sm,
-  fontWeight: 700,
-  letterSpacing: "0.12em",
+  fontWeight: FONT_WEIGHT.bold,
+  letterSpacing: LETTER_SPACING.mid,
   textTransform: "uppercase" as const,
 };

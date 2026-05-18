@@ -1,4 +1,4 @@
-import { FONT, SPACING, RADIUS } from "@/lib/ui/tokens";
+import { FONT, SPACING, RADIUS, FONT_WEIGHT, SHADOW } from "@/lib/ui/tokens";
 import type { TimelineMarker } from "@/lib/crews/chiefTypes";
 
 interface Props {
@@ -8,8 +8,6 @@ interface Props {
 // Hauteur fixe d'une ligne de timeline (px).
 const ROW_H = 56;
 
-// Glow du marqueur "now" — pas de token exact, const locale documentée.
-const NOW_GLOW = "0 0 8px 2px rgba(255,180,84,0.5)";
 
 function dotColor(variant: TimelineMarker["variant"]): string {
   switch (variant) {
@@ -24,7 +22,7 @@ function dotColor(variant: TimelineMarker["variant"]): string {
 
 function dotBoxShadow(variant: TimelineMarker["variant"]): string | undefined {
   if (variant === "now") {
-    return NOW_GLOW;
+    return SHADOW.nowGlow;
   }
   return undefined;
 }
@@ -125,7 +123,7 @@ export function DayTimeline({ markers }: Props) {
                   ? "var(--ct-text-muted)"
                   : "var(--ct-text-faint)",
               whiteSpace: "nowrap",
-              fontWeight: marker.variant === "now" ? 600 : 400,
+              fontWeight: marker.variant === "now" ? FONT_WEIGHT.semibold : FONT_WEIGHT.regular,
             }}
           >
             {marker.label}

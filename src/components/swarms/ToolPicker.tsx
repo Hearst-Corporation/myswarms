@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Tool, ToolBindingInput } from "@/lib/forms/swarmSchemas";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface ToolPickerProps {
   availableTools: Tool[];
@@ -83,7 +83,7 @@ export function ToolPicker({
           <div
             style={{
               fontSize: FONT.xs,
-              fontWeight: 700,
+              fontWeight: FONT_WEIGHT.bold,
               letterSpacing: LETTER_SPACING.wide,
               textTransform: "uppercase",
               color: "var(--ct-text-muted)",
@@ -122,7 +122,7 @@ export function ToolPicker({
                     fontFamily: "inherit",
                   }}
                 >
-                  <div style={{ fontWeight: 600, fontSize: FONT.base }}>
+                  <div style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT.base }}>
                     {tool.name}
                   </div>
                   {tool.description ? (

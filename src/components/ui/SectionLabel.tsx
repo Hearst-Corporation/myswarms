@@ -1,9 +1,9 @@
-import { FONT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
 import type { CSSProperties } from "react";
 
 const style: CSSProperties = {
   fontSize: FONT.xs,
-  fontWeight: 700,
+  fontWeight: FONT_WEIGHT.bold,
   letterSpacing: LETTER_SPACING.wide,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",

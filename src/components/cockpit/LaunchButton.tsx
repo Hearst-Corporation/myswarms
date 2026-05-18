@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { SPACING } from "@/lib/ui/tokens";
+import { FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
 
 type EngineStatus = "up" | "down" | "starting" | "unknown";
 
@@ -81,7 +81,7 @@ export function LaunchButton() {
       title={status === "up" ? "Engine running" : "Click to start engine"}
       style={{
         color: dotColor,
-        fontWeight: status === "down" ? 700 : undefined,
+        fontWeight: status === "down" ? FONT_WEIGHT.bold : undefined,
         cursor: status === "up" ? "default" : "pointer",
         gap: SPACING.xs,
         minWidth: "var(--ct-launch-btn-min-w)",

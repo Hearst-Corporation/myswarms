@@ -1,6 +1,3 @@
-// H6 : aucun magic number à migrer ici — toute la mise en forme est portée
-// par les classes .ct-kpi-grid / .ct-kpi-card / .ct-kpi-label / .ct-kpi-value
-// (cockpit.css).
 
 interface KPI {
   label: string;

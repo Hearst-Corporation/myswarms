@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface SwarmTaskFormProps {
   initialTask?: TaskInput;
@@ -159,11 +159,11 @@ export function SwarmTaskForm({
 const labelStyle: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: SPACING.xs + 2,
+  gap: SPACING.xxs,
 };
 const labelText: React.CSSProperties = {
   fontSize: FONT.xs,
-  fontWeight: 600,
+  fontWeight: FONT_WEIGHT.semibold,
   letterSpacing: LETTER_SPACING.tight,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",

@@ -1,4 +1,4 @@
-import { SPACING, FONT, RADIUS } from "@/lib/ui/tokens";
+import { SPACING, FONT, RADIUS, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT } from "@/lib/ui/tokens";
 import type { DiffItem } from "@/lib/crews/chiefTypes";
 
 interface Props {
@@ -19,7 +19,7 @@ function parseBold(text: string): React.ReactNode {
   return parts.map((part, i) => {
     if (i % 2 === 1) {
       return (
-        <strong key={i} style={{ color: "var(--cos-warn)", fontWeight: 700 }}>
+        <strong key={i} style={{ color: "var(--cos-warn)", fontWeight: FONT_WEIGHT.bold }}>
           {part}
         </strong>
       );
@@ -30,15 +30,7 @@ function parseBold(text: string): React.ReactNode {
 
 export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
   return (
-    <div
-      style={{
-        background: "var(--ct-surface-1)",
-        border: "1px solid var(--ct-border)",
-        borderRadius: RADIUS.lg,
-        padding: `${SPACING.lx}px ${SPACING.xl}px`,
-        boxShadow: "var(--ct-shadow-depth)",
-      }}
-    >
+    <div className="ct-card">
       {/* Header */}
       <div
         style={{
@@ -51,8 +43,8 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
         <span
           style={{
             fontSize: FONT.xs,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
+            fontWeight: FONT_WEIGHT.bold,
+            letterSpacing: LETTER_SPACING.wide,
             textTransform: "uppercase",
             color: "var(--ct-text-muted)",
           }}
@@ -62,8 +54,8 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
         <span
           style={{
             fontSize: FONT.xs,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
+            fontWeight: FONT_WEIGHT.semibold,
+            letterSpacing: LETTER_SPACING.tight,
             color: "var(--ct-text-faint)",
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
@@ -109,7 +101,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
                   color: "var(--ct-text-muted)",
                   minWidth: TIME_COL_W,
                   flexShrink: 0,
-                  lineHeight: 1.6,
+                  lineHeight: LINE_HEIGHT.base,
                   paddingTop: 1,
                 }}
               >
@@ -121,7 +113,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
                 style={{
                   fontSize: FONT.base,
                   color: "var(--ct-text-body)",
-                  lineHeight: 1.6,
+                  lineHeight: LINE_HEIGHT.base,
                 }}
               >
                 {parseBold(item.text)}

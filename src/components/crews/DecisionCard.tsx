@@ -2,14 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { SPACING, FONT, RADIUS } from "@/lib/ui/tokens";
+import { SPACING, FONT, RADIUS, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT } from "@/lib/ui/tokens";
 import type { P0Item } from "@/lib/crews/chiefTypes";
 
 // Mirror of Python DEFAULT_SNOOZE_HOURS — keep in sync with chief_decision_store.py
 const DEFAULT_SNOOZE_HOURS = 2;
 
-// Contraste foncé sur --cos-accent (vert foncé sur fond clair).
-const ACCENT_FG = "#08110d"; /* contraste foncé sur --cos-accent */
 
 interface Props {
   p0Item: P0Item | null;
@@ -79,7 +77,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         className="ct-card"
         style={{ textAlign: "center", padding: SPACING.xxl }}
       >
-        <div style={{ fontSize: "2rem" /* 32px icon */ }}>🎯</div>
+        <div style={{ fontSize: FONT.iconLg }}>🎯</div>
         <p
           style={{
             color: "var(--ct-text-muted)",
@@ -110,7 +108,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         <span
           style={{
             fontSize: FONT.xs,
-            fontWeight: 700,
+            fontWeight: FONT_WEIGHT.bold,
             padding: `3px ${SPACING.sm}px`,
             borderRadius: RADIUS.sm,
             background: "color-mix(in srgb, var(--cos-p0) 10%, transparent)",
@@ -122,7 +120,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         <span
           style={{
             fontSize: FONT.xs,
-            fontWeight: 600,
+            fontWeight: FONT_WEIGHT.semibold,
             padding: `3px ${SPACING.sm}px`,
             borderRadius: RADIUS.sm,
             background: "var(--ct-surface-2)",
@@ -134,7 +132,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         <span
           style={{
             fontSize: FONT.xs,
-            fontWeight: 600,
+            fontWeight: FONT_WEIGHT.semibold,
             padding: `3px ${SPACING.sm}px`,
             borderRadius: RADIUS.sm,
             background: "var(--ct-surface-2)",
@@ -159,7 +157,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
       <h3
         style={{
           fontSize: FONT.lg,
-          fontWeight: 700,
+          fontWeight: FONT_WEIGHT.bold,
           color: "var(--ct-text-primary)",
           margin: 0,
         }}
@@ -174,11 +172,11 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           paddingLeft: SPACING.lg,
           paddingTop: SPACING.sm,
           paddingBottom: SPACING.sm,
-          background: "rgba(255,255,255,0.02)", // pas de token exact, valeur conservée
+          background: "var(--ct-surface-0)",
           borderRadius: `0 ${RADIUS.sm}px ${RADIUS.sm}px 0`,
           fontSize: FONT.base,
           color: "var(--ct-text-body)",
-          lineHeight: 1.6,
+          lineHeight: LINE_HEIGHT.base,
         }}
       >
         {p0Item.action}
@@ -197,8 +195,8 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           <div
             style={{
               fontSize: FONT.xs,
-              fontWeight: 700,
-              letterSpacing: "0.14em",
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
               textTransform: "uppercase",
               color: "var(--cos-accent)",
               marginBottom: SPACING.sm,
@@ -210,7 +208,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             style={{
               fontSize: FONT.base,
               color: "var(--ct-text-body)",
-              lineHeight: 1.6,
+              lineHeight: LINE_HEIGHT.base,
               whiteSpace: "pre-wrap",
             }}
           >
@@ -255,14 +253,14 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           title="Phase 3 — approbation Composio Gmail requise"
           style={{
             position: "relative",
-            padding: `${SPACING.sm}px ${SPACING.lg}px`,
-            paddingBottom: SPACING.lx,
+            padding: `${SPACING.md}px ${SPACING.lg}px`,
+            paddingRight: SPACING.xxl,
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
             borderRadius: RADIUS.md,
             color: "var(--ct-text-body)",
             fontSize: FONT.base,
-            fontWeight: 600,
+            fontWeight: FONT_WEIGHT.semibold,
             cursor: "not-allowed",
             opacity: 0.4,
             fontFamily: "inherit",
@@ -272,12 +270,12 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           <kbd
             style={{
               position: "absolute",
-              bottom: 4,
-              right: 6,
+              bottom: SPACING.xs,
+              right: SPACING.sm,
               fontSize: FONT.nano,
-              background: "rgba(255,255,255,0.1)", // pas de token exact, conservé
+              background: "var(--ct-surface-3)",
               borderRadius: RADIUS.xs,
-              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
+              padding: "1px 4px",
               color: "var(--ct-text-faint)",
             }}
           >
@@ -292,14 +290,14 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           disabled={!runId}
           style={{
             position: "relative",
-            padding: `${SPACING.sm}px ${SPACING.lg}px`,
-            paddingBottom: SPACING.lx,
+            padding: `${SPACING.md}px ${SPACING.lg}px`,
+            paddingRight: SPACING.xxl,
             background: "var(--cos-accent)",
             border: "none",
             borderRadius: RADIUS.md,
-            color: ACCENT_FG,
+            color: "var(--ct-text-on-accent)",
             fontSize: FONT.base,
-            fontWeight: 700,
+            fontWeight: FONT_WEIGHT.bold,
             cursor: "pointer",
             fontFamily: "inherit",
           }}
@@ -308,13 +306,13 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           <kbd
             style={{
               position: "absolute",
-              bottom: 4,
-              right: 6,
+              bottom: SPACING.xs,
+              right: SPACING.sm,
               fontSize: FONT.nano,
-              background: "rgba(0,0,0,0.2)", // pas de token exact, conservé
+              background: "var(--ct-overlay-dark)",
               borderRadius: RADIUS.xs,
-              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
-              color: "rgba(0,0,0,0.6)",
+              padding: "1px 4px",
+              color: "var(--ct-overlay-dark-strong)",
             }}
           >
             M
@@ -328,14 +326,14 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           disabled={!runId || loading !== null}
           style={{
             position: "relative",
-            padding: `${SPACING.sm}px ${SPACING.lg}px`,
-            paddingBottom: SPACING.lx,
+            padding: `${SPACING.md}px ${SPACING.lg}px`,
+            paddingRight: SPACING.xxl,
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
             borderRadius: RADIUS.md,
             color: "var(--ct-text-body)",
             fontSize: FONT.base,
-            fontWeight: 600,
+            fontWeight: FONT_WEIGHT.semibold,
             cursor: !runId || loading !== null ? "not-allowed" : "pointer",
             opacity: !runId ? 0.4 : 1,
             fontFamily: "inherit",
@@ -345,12 +343,12 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           <kbd
             style={{
               position: "absolute",
-              bottom: 4,
-              right: 6,
+              bottom: SPACING.xs,
+              right: SPACING.sm,
               fontSize: FONT.nano,
-              background: "rgba(255,255,255,0.1)", // pas de token exact, conservé
+              background: "var(--ct-surface-3)",
               borderRadius: RADIUS.xs,
-              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
+              padding: "1px 4px",
               color: "var(--ct-text-faint)",
             }}
           >
@@ -365,14 +363,14 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           disabled={!runId || loading !== null}
           style={{
             position: "relative",
-            padding: `${SPACING.sm}px ${SPACING.lg}px`,
-            paddingBottom: SPACING.lx,
+            padding: `${SPACING.md}px ${SPACING.lg}px`,
+            paddingRight: SPACING.xxl,
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
             borderRadius: RADIUS.md,
             color: "var(--cos-p0)",
             fontSize: FONT.base,
-            fontWeight: 600,
+            fontWeight: FONT_WEIGHT.semibold,
             cursor: !runId || loading !== null ? "not-allowed" : "pointer",
             opacity: !runId ? 0.4 : 1,
             fontFamily: "inherit",
@@ -382,12 +380,12 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
           <kbd
             style={{
               position: "absolute",
-              bottom: 4,
-              right: 6,
+              bottom: SPACING.xs,
+              right: SPACING.sm,
               fontSize: FONT.nano,
-              background: "rgba(255,255,255,0.1)", // pas de token exact, conservé
+              background: "var(--ct-surface-3)",
               borderRadius: RADIUS.xs,
-              padding: "1px 4px", /* 1px non tokenisable proprement, acceptable */
+              padding: "1px 4px",
               color: "var(--ct-text-faint)",
             }}
           >

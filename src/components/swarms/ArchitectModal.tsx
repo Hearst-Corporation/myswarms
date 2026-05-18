@@ -13,17 +13,14 @@ import {
   type ArchitectResponse,
   type SwarmSpecResponse,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { BLUR, COLOR, FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING, Z_INDEX } from "@/lib/ui/tokens";
 
 // Pas de magic numbers : bornes prompt dérivées du même schema Zod que le BFF.
 const PROMPT_MIN = ArchitectGenerateRequestSchema.shape.prompt.minLength ?? 10;
 const PROMPT_MAX = ArchitectGenerateRequestSchema.shape.prompt.maxLength ?? 4000;
 
-// Opacité de l'overlay (verre dépoli cockpit) — constante nommée.
-const OVERLAY_BG = "rgba(8, 4, 6, 0.72)";
 const SPINNER_SIZE = 28;
 const MODAL_MAX_WIDTH = 560;
-const MODAL_Z_INDEX = 1000;
 
 type Phase = "idle" | "loading" | "error" | "success";
 
@@ -138,7 +135,7 @@ export function ArchitectModal({
         if (e.target === e.currentTarget && !pending) onClose();
       }}
     >
-      {/* Keyframe spinner injecté localement (cockpit.css intouchable). */}
+      {/* Keyframe spinner injecté localement. */}
       <style>{`@keyframes ct-architect-spin{to{transform:rotate(360deg)}}`}</style>
       <div
         ref={dialogRef}
@@ -287,9 +284,9 @@ export function ArchitectModal({
 const overlayStyle: CSSProperties = {
   position: "fixed",
   inset: 0,
-  zIndex: MODAL_Z_INDEX,
-  background: OVERLAY_BG,
-  backdropFilter: "blur(4px)",
+  zIndex: Z_INDEX.modal,
+  background: COLOR.overlayModal,
+  backdropFilter: BLUR.modalLight,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -319,7 +316,7 @@ const labelStyle: CSSProperties = {
 
 const labelText: CSSProperties = {
   fontSize: FONT.xs,
-  fontWeight: 600,
+  fontWeight: FONT_WEIGHT.semibold,
   letterSpacing: LETTER_SPACING.tight,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",

@@ -1,4 +1,4 @@
-import { SPACING, FONT } from "@/lib/ui/tokens";
+import { SPACING, FONT, FONT_WEIGHT, LINE_HEIGHT } from "@/lib/ui/tokens";
 
 const CARDS = [
   {
@@ -50,7 +50,7 @@ export function ProductBets() {
             <span
               style={{
                 fontSize: FONT.base,
-                fontWeight: 700,
+                fontWeight: FONT_WEIGHT.bold,
                 color: "var(--ct-text-primary)",
               }}
             >
@@ -63,7 +63,7 @@ export function ProductBets() {
             style={{
               fontSize: FONT.base,
               color: "var(--ct-text-body)",
-              lineHeight: 1.6,
+              lineHeight: LINE_HEIGHT.base,
               margin: 0,
             }}
           >

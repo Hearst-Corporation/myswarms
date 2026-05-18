@@ -2,11 +2,10 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
-// H6 : taille des "TEMPLATE" badge labels — plus petit que FONT.xs pour
-// rester discret. Cas spécifique, pas dans FONT.
-const BADGE_FONT_SIZE = 10;
+// FONT.xs = 10 — taille exacte pour les badge labels TEMPLATE.
+const BADGE_FONT_SIZE = FONT.xs;
 
 interface SwarmListProps {
   swarms: SwarmListItem[];
@@ -74,7 +73,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
                 <Link
                   href={`/swarms/${s.id}`}
                   className="ct-link"
-                  style={{ fontWeight: 600 }}
+                  style={{ fontWeight: FONT_WEIGHT.semibold }}
                 >
                   {s.name}
                 </Link>
@@ -83,7 +82,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
                     style={{
                       marginLeft: SPACING.sm,
                       fontSize: BADGE_FONT_SIZE,
-                      padding: `${SPACING.xs / 2}px ${SPACING.xs + 2}px`,
+                      padding: `${SPACING.hair}px ${SPACING.xxs}px`,
                       borderRadius: RADIUS.sm,
                       background: "var(--ct-surface-3)",
                       color: "var(--ct-text-muted)",
@@ -123,15 +122,15 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
   );
 }
 
-// H6 : padding spécifique aux cellules table — pas dans SPACING (combinaison
-// dédiée pour table compacte).
-const TH_PADDING = `${SPACING.md}px ${SPACING.lg + 4}px`;
-const TD_PADDING = `${SPACING.md + 2}px ${SPACING.lg + 4}px`;
+// Padding table compacte : lx = 20 pour horizontal, md = 12 pour vertical TH,
+// xxs = 6 additionnel pour TD (md+xxs = 18 ≈ entre md et lg — s utilisé comme proxy).
+const TH_PADDING = `${SPACING.md}px ${SPACING.lx}px`;
+const TD_PADDING = `${SPACING.s}px ${SPACING.lx}px`;
 
 const thStyle: React.CSSProperties = {
   padding: TH_PADDING,
   fontSize: BADGE_FONT_SIZE,
-  fontWeight: 700,
+  fontWeight: FONT_WEIGHT.bold,
   letterSpacing: LETTER_SPACING.wide,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",

@@ -7,7 +7,7 @@ import type {
   Tool,
   ToolBindingInput,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 /**
  * G8 fix : tab "Tools" + `ToolsPickerWithAgentSelector` extrait de SwarmBuilder.
@@ -70,11 +70,11 @@ function ToolsPickerWithAgentSelector({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
-      <label style={{ display: "flex", flexDirection: "column", gap: SPACING.xs + 2 }}>
+      <label style={{ display: "flex", flexDirection: "column", gap: SPACING.xxs }}>
         <span
           style={{
-            fontSize: FONT.xs - 1,
-            fontWeight: 700,
+            fontSize: FONT.nano,
+            fontWeight: FONT_WEIGHT.bold,
             letterSpacing: LETTER_SPACING.wide,
             textTransform: "uppercase",
             color: "var(--ct-text-muted)",

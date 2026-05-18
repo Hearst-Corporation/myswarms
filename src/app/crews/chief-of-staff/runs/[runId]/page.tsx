@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils/format";
 import { isValidUuidV4 } from "@/lib/utils/uuid";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
-import { FONT, SPACING } from "@/lib/ui/tokens";
+import { FONT, LINE_HEIGHT, SPACING } from "@/lib/ui/tokens";
 import { requireOwnerId } from "@/lib/auth/owner";
 
 const CREW_NAME = "chief-of-staff";
@@ -137,7 +137,7 @@ export default async function RunDetailPage({ params }: PageProps) {
                 fontSize: FONT.xs,
                 fontFamily: "monospace",
                 color: "var(--ct-text-body)",
-                lineHeight: 1.6,
+                lineHeight: LINE_HEIGHT.base,
                 margin: 0,
               }}
             >
@@ -160,7 +160,7 @@ export default async function RunDetailPage({ params }: PageProps) {
                 fontSize: FONT.xs,
                 fontFamily: "monospace",
                 color: "var(--ct-text-body)",
-                lineHeight: 1.6,
+                lineHeight: LINE_HEIGHT.base,
                 margin: 0,
               }}
             >

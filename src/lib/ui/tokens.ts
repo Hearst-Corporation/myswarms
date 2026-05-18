@@ -1,71 +1,108 @@
-// G9 fix (Stage 4 pass 3) : design tokens centralisés pour éviter les magic
-// numbers en pixels disséminés dans les composants.
-//
+// Design tokens centralisés Cockpit — source de vérité TypeScript.
 // Convention : valeurs en `number` (pixels) côté style inline / props CSS-in-JS.
-// La grille suit une base 4 (xs=4 → xxl=32) pour rester cohérente avec
-// Tailwind 4 et le template visuel hearst-os.
+// Base 4 (xs=4 → xxl=32), cohérente avec Tailwind 4 et la SPEC Cockpit.
 //
 // Usage :
 //   import { SPACING, RADIUS, FONT } from "@/lib/ui/tokens";
 //   <div style={{ padding: SPACING.md, borderRadius: RADIUS.md, fontSize: FONT.base }} />
 
 export const SPACING = {
-  hair: 2, // séparateur micro (1px optique sur HiDPI)
-  xxs: 6,  // extra-extra-small (pré-existant dans la grille du builder)
+  hair: 2,
+  xxs: 6,
   xs: 4,
   sm: 8,
-  s: 10,   // demi-pas entre sm et md
+  s: 10,
   md: 12,
   lg: 16,
-  lx: 20,  // large-extra : intermédiaire lg→xl
+  lx: 20,
   xl: 24,
   xxl: 32,
 } as const;
 
 export const RADIUS = {
-  hair: 1, // micro-border pour séparateurs quasi-plats
-  xs: 3,   // badge compact (tags, chips)
+  hair: 1,
+  xs: 3,
   sm: 4,
   md: 8,
   lg: 12,
-  nav: 10, // rail de navigation latéral
+  xl: 16,
+  nav: 10,
   full: 9999,
 } as const;
 
 export const FONT = {
-  nano: 9,  // label micro (icône-only, status dot)
-  xxs: 11,  // légendes compactes (table header réduit)
+  nano: 9,
+  xxs: 11,
   xs: 10,
   sm: 12,
   base: 13,
   md: 14,
   lg: 16,
   xl: 18,
+  display: 22,
   xxl: 24,
+  iconLg: 32,
 } as const;
 
-// Line-height pour paragraphes et éléments de liste.
 export const LINE_HEIGHT = {
-  tight: 1.5, // textes courts / éléments de menu
-  base: 1.6,  // corps de texte standard
+  tight: 1.5,
+  base: 1.6,
 } as const;
 
-// Poids de police (font-weight).
 export const FONT_WEIGHT = {
   regular: 400,
+  medium: 500,
   semibold: 600,
   bold: 700,
   extrabold: 800,
 } as const;
 
-// Letter-spacing pour les labels uppercase (overview / picker headers).
 export const LETTER_SPACING = {
+  tightNeg: "-0.02em",
   tight: "0.08em",
+  mid: "0.12em",
   wide: "0.14em",
 } as const;
 
-// Préfixe les types pour le DX (autocomplete IDE).
+export const Z_INDEX = {
+  base: 0,
+  ambient: 0,
+  panel: 10,
+  rail: 20,
+  bottomBar: 30,
+  modal: 100,
+  toast: 200,
+} as const;
+
+export const SHADOW = {
+  depth: "var(--ct-shadow-depth)",
+  nowGlow: "var(--ct-shadow-now-glow)",
+} as const;
+
+export const COLOR = {
+  brandHive: "var(--ct-brand-hive)",
+  textOnAccent: "var(--ct-text-on-accent)",
+  overlayModal: "var(--ct-overlay-modal)",
+  overlayDark: "var(--ct-overlay-dark)",
+} as const;
+
+export const BLUR = {
+  panel: "blur(60px) saturate(110%) brightness(105%)",
+  modal: "blur(24px) saturate(150%)",
+  modalLight: "blur(4px)",
+} as const;
+
+export const SIZE = {
+  logo: 40,
+  logoLg: 48,
+  previewMaxH: 480,
+  outputMaxH: 240,
+} as const;
+
 export type Spacing = keyof typeof SPACING;
 export type Radius = keyof typeof RADIUS;
 export type Font = keyof typeof FONT;
 export type LineHeight = keyof typeof LINE_HEIGHT;
+export type FontWeight = keyof typeof FONT_WEIGHT;
+export type LetterSpacing = keyof typeof LETTER_SPACING;
+export type ZIndex = keyof typeof Z_INDEX;

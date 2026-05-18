@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 const STATUS_STYLES: Record<string, CSSProperties> = {
   completed: { background: "var(--ct-status-completed-bg)", color: "var(--ct-status-completed)", border: "1px solid var(--ct-status-completed-border)" },
@@ -11,15 +12,17 @@ const STATUS_STYLES: Record<string, CSSProperties> = {
 
 const BASE_STYLE: CSSProperties = {
   display: "inline-flex",
-  borderRadius: 9999,
-  fontSize: 11,
-  fontWeight: 500,
+  borderRadius: RADIUS.full,
+  fontSize: FONT.xxs,
+  fontWeight: FONT_WEIGHT.medium,
   whiteSpace: "nowrap",
 };
 
 export function StatusBadge({ status, size = "sm" }: { status: string; size?: "sm" | "md" }) {
   const statusStyle = STATUS_STYLES[status] ?? { background: "var(--ct-surface-2)", color: "var(--ct-text-muted)", border: "1px solid var(--ct-border)" };
-  const padding: CSSProperties = size === "md" ? { padding: "4px 10px" } : { padding: "2px 8px" };
+  const padding: CSSProperties = size === "md"
+    ? { padding: `${SPACING.xs}px ${SPACING.s}px` }
+    : { padding: `${SPACING.hair}px ${SPACING.sm}px` };
   return (
     <span style={{ ...BASE_STYLE, ...statusStyle, ...padding }}>
       {status}

@@ -133,7 +133,7 @@ export default async function Home() {
         </div>
       )}
 
-      {/* --cos-* tokens définis dans :root cockpit.css — pas besoin de style inline */}
+      {/* --cos-* tokens définis dans :root — pas besoin de style inline */}
       <div>
 
         {/* 3-column home grid */}

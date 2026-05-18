@@ -87,6 +87,46 @@
   --ct-alert-warning-bg: rgba(245, 158, 11, 0.10);
   --ct-alert-warning-border: rgba(245, 158, 11, 0.25);
   --ct-alert-warning-text: #fcd34d;
+
+  /* ── Brand & sémantique étendus ── */
+  --ct-brand-hive: #F59E0B;
+  --ct-text-on-accent: #08110d;
+  --ct-overlay-modal: rgba(8, 4, 6, 0.72);
+  --ct-overlay-dark: rgba(0, 0, 0, 0.20);
+  --ct-overlay-dark-strong: rgba(0, 0, 0, 0.60);
+
+  /* ── Backdrop filters ── */
+  --ct-blur-panel: blur(60px) saturate(110%) brightness(105%);
+  --ct-blur-modal: blur(24px) saturate(150%);
+  --ct-blur-modal-light: blur(4px);
+
+  /* ── Shadows complémentaires ── */
+  --ct-shadow-now-glow: 0 0 8px 2px rgba(245, 158, 11, 0.5);
+
+  /* ── Z-index officiels ── */
+  --ct-z-base: 0;
+  --ct-z-panel: 10;
+  --ct-z-rail: 20;
+  --ct-z-bottom-bar: 30;
+  --ct-z-modal: 100;
+  --ct-z-toast: 200;
+
+  /* ── Radius étendu ── */
+  --ct-radius-xs: 3px;
+  --ct-radius-sm: 4px;
+  --ct-radius-md: 8px;
+  --ct-radius-lg: 12px;
+  --ct-radius-xl: 16px;
+  --ct-radius-nav: 10px;
+  --ct-radius-pill: 9999px;
+
+  /* ── Sizes complémentaires ── */
+  --ct-logo-size: 40px;
+  --ct-logo-size-lg: 48px;
+  --ct-preview-max-h: 480px;
+  --ct-output-max-h: 240px;
+  --ct-badge-padding-md: 4px 10px;
+  --ct-badge-padding-sm: 2px 8px;
 }
 
 html, body {

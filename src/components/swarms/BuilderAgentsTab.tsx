@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SwarmAgentForm } from "./SwarmAgentForm";
 import type { AgentInput } from "@/lib/forms/swarmSchemas";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 /**
  * G8 fix : tab "Agents" extrait de SwarmBuilder.
@@ -92,12 +92,12 @@ export function BuilderAgentsTab({
               }}
             >
               <div>
-                <div style={{ fontWeight: 600 }}>{a.name}</div>
+                <div style={{ fontWeight: FONT_WEIGHT.semibold }}>{a.name}</div>
                 <div style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}>
                   {a.role} · {a.model_provider}/{a.model_name}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: SPACING.xs + 2 }}>
+              <div style={{ display: "flex", gap: SPACING.xxs }}>
                 <button
                   type="button"
                   className="ct-seg-btn"

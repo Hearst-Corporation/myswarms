@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SwarmTaskForm } from "./SwarmTaskForm";
 import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 /**
  * G8 fix : tab "Tasks" extrait de SwarmBuilder.
@@ -115,7 +115,7 @@ export function BuilderTasksTab({
                 }}
               >
                 <div>
-                  <div style={{ fontWeight: 600 }}>{t.name}</div>
+                  <div style={{ fontWeight: FONT_WEIGHT.semibold }}>{t.name}</div>
                   <div
                     style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}
                   >

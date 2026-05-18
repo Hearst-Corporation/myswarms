@@ -49,6 +49,33 @@ export type Database = {
           },
         ]
       }
+      chief_decisions: {
+        Row: {
+          action: Database["public"]["Enums"]["chief_decision_action"]
+          chief_run_id: string
+          created_at: string
+          id: string
+          owner_id: string | null
+          snooze_until: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["chief_decision_action"]
+          chief_run_id: string
+          created_at?: string
+          id?: string
+          owner_id?: string | null
+          snooze_until?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["chief_decision_action"]
+          chief_run_id?: string
+          created_at?: string
+          id?: string
+          owner_id?: string | null
+          snooze_until?: string | null
+        }
+        Relationships: []
+      }
       chief_run_log: {
         Row: {
           error_text: string | null
@@ -56,6 +83,7 @@ export type Database = {
           id: string
           kickoff_id: string
           langfuse_trace_id: string | null
+          owner_id: string | null
           result: string | null
           started_at: string
           state_json: Json | null
@@ -70,6 +98,7 @@ export type Database = {
           id?: string
           kickoff_id: string
           langfuse_trace_id?: string | null
+          owner_id?: string | null
           result?: string | null
           started_at?: string
           state_json?: Json | null
@@ -84,6 +113,7 @@ export type Database = {
           id?: string
           kickoff_id?: string
           langfuse_trace_id?: string | null
+          owner_id?: string | null
           result?: string | null
           started_at?: string
           state_json?: Json | null
@@ -93,6 +123,113 @@ export type Database = {
           trigger?: string
         }
         Relationships: []
+      }
+      chief_run_steps: {
+        Row: {
+          agent_name: string
+          chief_run_id: string
+          cost_usd: number
+          created_at: string
+          finished_at: string | null
+          id: string
+          langfuse_span_id: string | null
+          latency_ms: number | null
+          output_text: string | null
+          owner_id: string | null
+          started_at: string
+          step_index: number
+          task_name: string | null
+          tokens_in: number
+          tokens_out: number
+        }
+        Insert: {
+          agent_name: string
+          chief_run_id: string
+          cost_usd?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          langfuse_span_id?: string | null
+          latency_ms?: number | null
+          output_text?: string | null
+          owner_id?: string | null
+          started_at?: string
+          step_index: number
+          task_name?: string | null
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Update: {
+          agent_name?: string
+          chief_run_id?: string
+          cost_usd?: number
+          created_at?: string
+          finished_at?: string | null
+          id?: string
+          langfuse_span_id?: string | null
+          latency_ms?: number | null
+          output_text?: string | null
+          owner_id?: string | null
+          started_at?: string
+          step_index?: number
+          task_name?: string | null
+          tokens_in?: number
+          tokens_out?: number
+        }
+        Relationships: []
+      }
+      cockpit_chats: {
+        Row: {
+          created_at: string | null
+          id: string
+          title: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          title?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      cockpit_messages: {
+        Row: {
+          chat_id: string | null
+          content: string
+          created_at: string | null
+          id: string
+          role: string
+        }
+        Insert: {
+          chat_id?: string | null
+          content: string
+          created_at?: string | null
+          id?: string
+          role: string
+        }
+        Update: {
+          chat_id?: string | null
+          content?: string
+          created_at?: string | null
+          id?: string
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cockpit_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "cockpit_chats"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       crew_run_steps: {
         Row: {
@@ -736,6 +873,7 @@ export type Database = {
         | "executor"
         | "reviewer"
         | "tool_runner"
+      chief_decision_action: "sent" | "snoozed" | "rejected"
       crew_run_status:
         | "pending"
         | "running"
@@ -885,6 +1023,7 @@ export const Constants = {
         "reviewer",
         "tool_runner",
       ],
+      chief_decision_action: ["sent", "snoozed", "rejected"],
       crew_run_status: [
         "pending",
         "running",

@@ -1,15 +1,11 @@
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmRunStep } from "@/lib/forms/swarmSchemas";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
 
 interface StepCardProps {
   step: SwarmRunStep;
 }
-
-// H6 : hauteur max du bloc output preview — valeur visuelle dédiée,
-// pas dans SPACING (cas spécifique).
-const OUTPUT_MAX_HEIGHT = 240;
 
 export function StepCard({ step }: StepCardProps) {
   const totalTokens = step.tokens_in + step.tokens_out;
@@ -42,7 +38,7 @@ export function StepCard({ step }: StepCardProps) {
           >
             #{String(step.step_number).padStart(3, "0")}
           </span>
-          <span style={{ fontWeight: 600, color: "var(--ct-text-strong)" }}>
+          <span style={{ fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-strong)" }}>
             {step.agent_name ?? "agent inconnu"}
           </span>
           {step.task_name ? (
@@ -103,7 +99,7 @@ export function StepCard({ step }: StepCardProps) {
             overflow: "auto",
             whiteSpace: "pre-wrap",
             wordBreak: "break-word",
-            maxHeight: OUTPUT_MAX_HEIGHT,
+            maxHeight: SIZE.outputMaxH,
           }}
         >
           {step.output_text}

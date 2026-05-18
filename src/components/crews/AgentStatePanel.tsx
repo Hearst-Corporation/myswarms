@@ -1,4 +1,4 @@
-import { SPACING, FONT, RADIUS } from "@/lib/ui/tokens";
+import { SPACING, FONT, RADIUS, FONT_WEIGHT, LETTER_SPACING } from "@/lib/ui/tokens";
 import type { AgentRow, RunStats } from "@/lib/crews/chiefTypes";
 
 interface Props {
@@ -29,15 +29,7 @@ export function AgentStatePanel({
   const totalItems = runStats?.total ?? null;
 
   return (
-    <div
-      style={{
-        background: "var(--ct-surface-1)",
-        border: "1px solid var(--ct-border)",
-        borderRadius: RADIUS.lg,
-        padding: `${SPACING.lx}px ${SPACING.xl}px`,
-        boxShadow: "var(--ct-shadow-depth)",
-      }}
-    >
+    <div className="ct-card">
       {/* Header */}
       <div
         style={{
@@ -57,8 +49,8 @@ export function AgentStatePanel({
           <span
             style={{
               fontSize: FONT.xs,
-              fontWeight: 700,
-              letterSpacing: "0.14em",
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
               textTransform: "uppercase",
               color: "var(--ct-text-muted)",
             }}
@@ -69,8 +61,8 @@ export function AgentStatePanel({
         <span
           style={{
             fontSize: FONT.xs,
-            fontWeight: 600,
-            letterSpacing: "0.08em",
+            fontWeight: FONT_WEIGHT.semibold,
+            letterSpacing: LETTER_SPACING.tight,
             color: "var(--ct-text-faint)",
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
@@ -110,7 +102,7 @@ export function AgentStatePanel({
             <span
               style={{
                 fontSize: FONT.xs,
-                fontWeight: 600,
+                fontWeight: FONT_WEIGHT.semibold,
                 color: statusColor(agent.status),
               }}
             >

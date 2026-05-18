@@ -17,7 +17,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -87,7 +87,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         <div>
           <h1
             className="ct-title"
-            style={{ fontFamily: "monospace", fontSize: FONT.xxl }}
+            style={{ fontFamily: "monospace" }} // monospace runId display
           >
             Run {runId.slice(0, 8)}…
           </h1>
@@ -203,14 +203,8 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
       ) : null}
 
       <div
-        style={{
-          fontSize: FONT.xs,
-          fontWeight: FONT_WEIGHT.bold,
-          letterSpacing: LETTER_SPACING.wide,
-          textTransform: "uppercase",
-          color: "var(--ct-text-muted)",
-          margin: `${SPACING.xl}px 0 ${SPACING.md}px`,
-        }}
+        className="ct-eyebrow"
+        style={{ margin: `${SPACING.xl}px 0 ${SPACING.md}px` }}
       >
         Timeline ({run.steps.length} steps)
       </div>
@@ -230,16 +224,7 @@ function Field({
 }) {
   return (
     <div>
-      <div
-        style={{
-          fontSize: FONT.xs,
-          fontWeight: FONT_WEIGHT.bold,
-          letterSpacing: LETTER_SPACING.wide,
-          textTransform: "uppercase",
-          color: "var(--ct-text-muted)",
-          marginBottom: SPACING.xs,
-        }}
-      >
+      <div className="ct-eyebrow" style={{ marginBottom: SPACING.xs }}>
         {label}
       </div>
       <div
