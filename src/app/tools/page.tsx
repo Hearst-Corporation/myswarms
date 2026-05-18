@@ -6,23 +6,25 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-async function loadTools(): Promise<Tool[]> {
+async function loadTools(): Promise<{ tools: Tool[]; engineError: string | null }> {
   try {
     const ownerId = await requireOwnerId();
-    return await swarmsClient.listTools(ownerId);
+    const tools = await swarmsClient.listTools(ownerId);
+    return { tools, engineError: null };
   } catch (err) {
     if (err instanceof OwnerAuthError) {
       redirect("/login");
     }
     if (err instanceof SwarmEngineError && err.status === 404) {
-      return [];
+      return { tools: [], engineError: null };
     }
-    throw err;
+    const message = err instanceof Error ? err.message : "Erreur inconnue";
+    return { tools: [], engineError: message };
   }
 }
 
 export default async function ToolsPage() {
-  const tools = await loadTools();
+  const { tools, engineError } = await loadTools();
   const grouped = tools.reduce<Record<string, Tool[]>>((acc, tool) => {
     const cat = tool.category ?? "Autres";
     (acc[cat] ??= []).push(tool);
@@ -41,7 +43,32 @@ export default async function ToolsPage() {
         {tools.length > 1 ? "s" : ""} pour vos agents.
       </p>
 
-      {tools.length === 0 ? (
+      {engineError ? (
+        <div
+          className="ct-card"
+          style={{
+            background: "var(--ct-alert-warning-bg)",
+            borderColor: "var(--ct-alert-warning-border)",
+          }}
+        >
+          <div
+            className="ct-card-title"
+            style={{ color: "var(--ct-alert-warning-text)" }}
+          >
+            Engine CrewAI injoignable
+          </div>
+          <div className="ct-card-body">
+            <code>{engineError}</code>
+            <div style={{ marginTop: SPACING.sm }}>
+              Démarre le microservice Python pour voir le catalogue :{" "}
+              <code>
+                cd services/crewai-engine &amp;&amp; uv run uvicorn src.main:app
+                --reload --port 8000
+              </code>
+            </div>
+          </div>
+        </div>
+      ) : tools.length === 0 ? (
         <div className="ct-card">
           <div className="ct-card-title">Catalogue vide</div>
           <div className="ct-placeholder">
