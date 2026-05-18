@@ -1,4 +1,4 @@
-import { SPACING, FONT, RADIUS } from "@/lib/ui/tokens";
+import { SPACING, FONT } from "@/lib/ui/tokens";
 
 const CARDS = [
   {

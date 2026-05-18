@@ -10,6 +10,7 @@ import { DecisionCard } from "@/components/crews/DecisionCard";
 import { AgentDiff } from "@/components/crews/AgentDiff";
 import { DayTimeline } from "@/components/crews/DayTimeline";
 import { ProductBets } from "@/components/crews/ProductBets";
+import { SPACING, FONT } from "@/lib/ui/tokens";
 
 const CREW_NAME = "chief-of-staff";
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
@@ -54,13 +55,16 @@ export default async function Home() {
 
   let steps: RunStep[] = [];
   let decisions: Decision[] = [];
+  let partialDataError: string | null = null;
   if (latestRun) {
     try {
       [steps, decisions] = await Promise.all([
         crewaiClient.listSteps("chief-of-staff", latestRun.kickoff_id),
         crewaiClient.listDecisions("chief-of-staff", latestRun.kickoff_id),
       ]);
-    } catch { /* fail-soft */ }
+    } catch (err) {
+      partialDataError = err instanceof Error ? err.message : "Données partielles indisponibles";
+    }
   }
   const vm = deriveViewModel(latestRun, steps, decisions, now);
 
@@ -80,11 +84,11 @@ export default async function Home() {
       <AutoRefresh active={latestRun?.status === "running"} />
 
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: SPACING.xl }}>
         <div>
-          <h1 className="ct-title" style={{ marginTop: 4 }}>Daily Chief of Staff</h1>
+          <h1 className="ct-title" style={{ marginTop: SPACING.xs }}>Daily Chief of Staff</h1>
           <p className="ct-sub">Inbox triage · classification · prioritization · drafts · daily summary</p>
-          <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: 12 }}>
+          <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: FONT.sm }}>
             Voir l&apos;historique des runs →
           </Link>
         </div>
@@ -92,23 +96,40 @@ export default async function Home() {
       </div>
 
       {listError && (
-        <div className="ct-card" style={{ borderColor: "rgba(225,29,72,0.55)", background: "rgba(225,29,72,0.08)", color: "#ff9eae", marginBottom: 16 }}>
+        <div
+          className="ct-card"
+          style={{
+            borderColor: "var(--ct-alert-error-border)",
+            background: "var(--ct-alert-error-bg)",
+            color: "var(--ct-alert-error-text)",
+            marginBottom: SPACING.lg,
+          }}
+        >
           {listError}
         </div>
       )}
 
-      {/* Scoped teal accent tokens */}
-      <div style={{
-        "--cos-accent": "#7cf2c4",
-        "--cos-accent-soft": "rgba(124,242,196,0.1)",
-        "--cos-accent-border": "rgba(124,242,196,0.25)",
-        "--cos-p0": "#ff5e7a",
-        "--cos-warn": "#ffb454",
-        "--cos-info": "#6ea8ff",
-      } as React.CSSProperties}>
+      {/* Bandeau données partielles — distinct de l'état "aucune donnée" */}
+      {partialDataError && (
+        <div
+          className="ct-card"
+          style={{
+            borderColor: "var(--ct-alert-error-border)",
+            background: "var(--ct-alert-error-bg)",
+            color: "var(--ct-alert-error-text)",
+            marginBottom: SPACING.lg,
+          }}
+        >
+          Données partielles — étapes indisponibles
+          {partialDataError ? ` (${partialDataError})` : ""}
+        </div>
+      )}
+
+      {/* --cos-* tokens définis dans :root cockpit.css — pas besoin de style inline */}
+      <div>
 
         {/* 3-column home grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "200px 1fr 200px", gap: 12, alignItems: "start" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "var(--ct-rail-width) 1fr var(--ct-rail-width)", gap: SPACING.md, alignItems: "start" }}>
           <AgentStatePanel
             agentRows={vm.agentRows}
             runStats={vm.runStats}
@@ -116,7 +137,7 @@ export default async function Home() {
             runStatus={latestRun?.status ?? null}
           />
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
             <DecisionCard
               p0Item={vm.p0Item}
               draftText={vm.draftText}
@@ -133,8 +154,8 @@ export default async function Home() {
         </div>
 
         {/* Product bets */}
-        <div style={{ marginTop: 32 }}>
-          <div className="ct-eyebrow" style={{ marginBottom: 16 }}>3 paris produit</div>
+        <div style={{ marginTop: SPACING.xxl }}>
+          <div className="ct-eyebrow" style={{ marginBottom: SPACING.lg }}>3 paris produit</div>
           <ProductBets />
         </div>
 

@@ -20,9 +20,10 @@ export function LaunchButton() {
   }, []);
 
   useEffect(() => {
-    checkStatus();
+    // setTimeout 0 évite l'appel synchrone setState-in-effect (react-hooks/no-direct-set-state-in-useeffect)
+    const t = setTimeout(checkStatus, 0);
     const interval = setInterval(checkStatus, 5000);
-    return () => clearInterval(interval);
+    return () => { clearTimeout(t); clearInterval(interval); };
   }, [checkStatus]);
 
   const handleLaunch = async () => {
@@ -72,7 +73,7 @@ export function LaunchButton() {
         fontWeight: status === "down" ? 700 : undefined,
         cursor: status === "up" ? "default" : "pointer",
         gap: SPACING.xs,
-        minWidth: 90,
+        minWidth: "var(--ct-launch-btn-min-w)",
       }}
     >
       {label}

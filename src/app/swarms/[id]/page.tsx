@@ -180,7 +180,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
 
       <div className="ct-card">
         <div className="ct-card-title">Composition</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: SPACING.xl }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--ct-card-min-w), 1fr))", gap: SPACING.xl }}>
           <div>
             <SectionLabel text="Agents" />
             {swarm.agents.length === 0 ? (

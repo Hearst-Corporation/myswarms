@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { NextRequest } from "next/server";
 
 // ── Hoisted mock state ───────────────────────────────────────────────────────
 const { mockCheckRateLimit, mockArchitectGenerate, mockGetOwnerId } = vi.hoisted(() => ({
@@ -54,7 +55,7 @@ describe("POST /api/swarms/architect/generate — rate limiting", () => {
       retryAfterSeconds: 42,
     });
 
-    const res = await POST(makeRequest({ prompt: "create a research swarm" }) as any);
+    const res = await POST(makeRequest({ prompt: "create a research swarm" }) as unknown as NextRequest);
     expect(res.status).toBe(429);
     expect(res.headers.get("Retry-After")).toBe("42");
     const body = await res.json();
@@ -64,9 +65,9 @@ describe("POST /api/swarms/architect/generate — rate limiting", () => {
 
   it("proceeds to engine when rate limit allows", async () => {
     mockCheckRateLimit.mockReturnValue({ allowed: true, retryAfterSeconds: 0 });
-    mockArchitectGenerate.mockResolvedValue({ spec: { name: "test" } } as any);
+    mockArchitectGenerate.mockResolvedValue({ spec: { name: "test" } } as unknown as { spec: { name: string } });
 
-    const res = await POST(makeRequest({ prompt: "create a research swarm" }) as any);
+    const res = await POST(makeRequest({ prompt: "create a research swarm" }) as unknown as NextRequest);
     expect(res.status).not.toBe(429);
     expect(mockArchitectGenerate).toHaveBeenCalledOnce();
   });

@@ -17,7 +17,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT } from "@/lib/ui/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -40,14 +40,15 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         <div className="ct-eyebrow">
           <Link
             href={`/swarms/${id}`}
-            className="ct-breadcrumb-link"
+            style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
           >
             ← Swarm
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
         <div
-          className="ct-card ct-card--accent"
+          className="ct-card"
+          style={{ borderColor: "var(--ct-border-accent)" }}
         >
           <div className="ct-card-title">Chargement échoué</div>
           <p className="ct-card-body">
@@ -80,27 +81,27 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: SPACING.lg,
+          gap: 16,
           flexWrap: "wrap",
         }}
       >
         <div>
           <h1
             className="ct-title"
-            style={{ fontFamily: "monospace", fontSize: FONT.xxl }}
+            style={{ fontFamily: "monospace", fontSize: 22 }}
           >
             Run {runId.slice(0, 8)}…
           </h1>
           <div
             style={{
               display: "flex",
-              gap: SPACING.md,
+              gap: 12,
               alignItems: "center",
-              marginBottom: SPACING.xl,
+              marginBottom: 24,
             }}
           >
             <StatusBadge status={run.status} size="md" />
-            <span style={{ color: "var(--ct-text-muted)", fontSize: 13 }}>
+            <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>
               trigger : {run.trigger}
             </span>
           </div>
@@ -129,7 +130,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: SPACING.lg,
+            gap: 16,
           }}
         >
           <Field
@@ -167,7 +168,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           <div className="ct-card-title">Erreur</div>
           <pre
             style={{
-              fontSize: 12,
+              fontSize: FONT.sm,
               fontFamily: "monospace",
               color: "var(--ct-text-primary)",
               whiteSpace: "pre-wrap",
@@ -186,15 +187,15 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             style={{
               background: "var(--ct-surface-2)",
               border: "1px solid var(--ct-border)",
-              borderRadius: RADIUS.md,
-              padding: SPACING.md,
+              borderRadius: 8,
+              padding: 12,
               fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
               fontFamily: "monospace",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               overflow: "auto",
-              maxHeight: 360,
+              maxHeight: "var(--ct-result-max-h)",
             }}
           >
             {prettyJsonOrRaw(run.result_text)}
@@ -204,12 +205,12 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
 
       <div
         style={{
-          fontSize: FONT.xs,
-          fontWeight: FONT_WEIGHT.bold,
-          letterSpacing: LETTER_SPACING.wide,
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
           color: "var(--ct-text-muted)",
-          margin: `${SPACING.xl}px 0 ${SPACING.md}px`,
+          margin: "24px 0 12px",
         }}
       >
         Timeline ({run.steps.length} steps)
@@ -232,19 +233,19 @@ function Field({
     <div>
       <div
         style={{
-          fontSize: FONT.xs,
-          fontWeight: FONT_WEIGHT.bold,
-          letterSpacing: LETTER_SPACING.wide,
+          fontSize: 10,
+          fontWeight: 700,
+          letterSpacing: "0.14em",
           textTransform: "uppercase",
           color: "var(--ct-text-muted)",
-          marginBottom: SPACING.xs,
+          marginBottom: 4,
         }}
       >
         {label}
       </div>
       <div
         style={{
-          fontSize: FONT.base,
+          fontSize: 13,
           color: "var(--ct-text-primary)",
           fontFamily: mono ? "monospace" : "inherit",
           wordBreak: "break-all",

@@ -50,8 +50,8 @@ export default async function ChiefOfStaffHistoryPage() {
           <div
             className="ct-card"
             style={{
-              border: "1px solid rgba(225,29,72,0.55)",
-              background: "rgba(225,29,72,0.08)",
+              border: "1px solid var(--ct-alert-error-border)",
+              background: "var(--ct-alert-error-bg)",
             }}
           >
             <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>

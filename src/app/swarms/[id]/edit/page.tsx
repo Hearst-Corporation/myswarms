@@ -63,20 +63,20 @@ export default function EditSwarmPage({ params }: PageProps) {
         `}</style>
         <div className="ct-card" style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
           <div style={{
-            height: 28,
+            height: "var(--ct-skeleton-title-h)",
             background: "var(--ct-surface-3)",
             borderRadius: RADIUS.md,
             animation: "ct-pulse 1.5s ease-in-out infinite",
           }} />
           <div style={{
-            height: 16,
+            height: "var(--ct-skeleton-line-h)",
             width: "60%",
             background: "var(--ct-surface-2)",
             borderRadius: RADIUS.sm,
             animation: "ct-pulse 1.5s ease-in-out infinite 0.1s",
           }} />
           <div style={{
-            height: 80,
+            height: "var(--ct-skeleton-body-h)",
             background: "var(--ct-surface-2)",
             borderRadius: RADIUS.sm,
             animation: "ct-pulse 1.5s ease-in-out infinite 0.2s",
