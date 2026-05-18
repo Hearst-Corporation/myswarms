@@ -24,13 +24,15 @@ logger = logging.getLogger(__name__)
 # WHY: The SENTRY_AUTH_TOKEN currently returns 403 in some envs; we want the
 # service to boot cleanly regardless. Re-enable sourcemaps when token is fixed.
 # ---------------------------------------------------------------------------
+_SENTRY_TRACES_SAMPLE_RATE_PROD = 0.1   # 10 % in production to limit quota
+_SENTRY_TRACES_SAMPLE_RATE_DEV = 1.0    # 100 % in dev/staging for full visibility
+
 _sentry_dsn = os.getenv("SENTRY_DSN", "")
 if _sentry_dsn:
     sentry_sdk.init(
         dsn=_sentry_dsn,
         environment=os.getenv("ENVIRONMENT", "development"),
-        # Capture 10 % of traces in production, 100 % otherwise.
-        traces_sample_rate=0.1 if os.getenv("ENVIRONMENT") == "production" else 1.0,
+        traces_sample_rate=_SENTRY_TRACES_SAMPLE_RATE_PROD if os.getenv("ENVIRONMENT") == "production" else _SENTRY_TRACES_SAMPLE_RATE_DEV,
         send_default_pii=False,
         integrations=[
             StarletteIntegration(),
@@ -68,6 +70,18 @@ async def lifespan(app: FastAPI):  # noqa: RUF029
         scheduler = create_scheduler()
         scheduler.start()
         logger.info("APScheduler started")
+
+        if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
+            missing = []
+            if not settings.TELEGRAM_BOT_TOKEN:
+                missing.append("TELEGRAM_BOT_TOKEN")
+            if not settings.TELEGRAM_CHAT_ID:
+                missing.append("TELEGRAM_CHAT_ID")
+            logger.warning(
+                "Telegram digest disabled — missing env vars: %s. "
+                "Morning/evening briefs will NOT be sent to Telegram.",
+                ", ".join(missing),
+            )
 
     yield  # app is running here
 
@@ -131,7 +145,6 @@ app.add_middleware(
 )
 
 
-# Routers
 app.include_router(health_router)
 app.include_router(crews_router)
 app.include_router(swarms_router)
