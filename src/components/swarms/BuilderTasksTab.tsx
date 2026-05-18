@@ -135,7 +135,11 @@ export function BuilderTasksTab({
                   <button
                     type="button"
                     className="ct-seg-btn"
-                    onClick={() => onRemove(idx)}
+                    onClick={() => {
+                      if (window.confirm(`Supprimer la tâche « ${t.name} » ?`)) {
+                        onRemove(idx);
+                      }
+                    }}
                   >
                     Supprimer
                   </button>

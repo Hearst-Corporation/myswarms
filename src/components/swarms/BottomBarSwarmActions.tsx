@@ -46,14 +46,29 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
   }
 
   return (
-    <button
-      type="button"
-      className="ct-seg-btn primary"
-      onClick={handleRun}
-      disabled={busy}
-      title={error ?? "Lance un run on_demand"}
-    >
-      {busy ? "Run…" : "Run"}
-    </button>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+      <button
+        type="button"
+        className="ct-seg-btn primary"
+        onClick={handleRun}
+        disabled={busy}
+        title="Lance un run on_demand"
+      >
+        {busy ? "Run…" : "Run"}
+      </button>
+      {error && (
+        <div
+          role="alert"
+          style={{
+            fontSize: 11,
+            color: "var(--ct-alert-error-text)",
+            maxWidth: 240,
+            textAlign: "right",
+          }}
+        >
+          {error}
+        </div>
+      )}
+    </div>
   );
 }

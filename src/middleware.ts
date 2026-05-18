@@ -50,9 +50,10 @@ async function updateSession(request: NextRequest): Promise<NextResponse> {
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
 
   if (!user && !isPublic) {
-    // Pas de session → rediriger vers /login
+    // Pas de session → rediriger vers /login avec returnTo pour restaurer la navigation
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("returnTo", pathname);
     return NextResponse.redirect(url);
   }
 

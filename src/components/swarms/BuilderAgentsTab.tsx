@@ -108,7 +108,11 @@ export function BuilderAgentsTab({
                 <button
                   type="button"
                   className="ct-seg-btn"
-                  onClick={() => onRemove(idx)}
+                  onClick={() => {
+                    if (window.confirm(`Supprimer l'agent « ${a.name} » ?`)) {
+                      onRemove(idx);
+                    }
+                  }}
                 >
                   Supprimer
                 </button>
