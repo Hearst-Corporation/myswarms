@@ -127,7 +127,7 @@ export function ToolPicker({
                   {tool.description ? (
                     <div
                       style={{
-                        fontSize: FONT.xs,
+                        fontSize: FONT.sm,
                         color: "var(--ct-text-muted)",
                         marginTop: SPACING.xs,
                       }}

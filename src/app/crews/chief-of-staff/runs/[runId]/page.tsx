@@ -5,6 +5,7 @@ import { formatDate } from "@/lib/utils/format";
 import { isValidUuidV4 } from "@/lib/utils/uuid";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
+import { FONT, SPACING } from "@/lib/ui/tokens";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -33,17 +34,17 @@ export default async function RunDetailPage({ params }: PageProps) {
     }
     return (
       <>
-        <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: 13 }}>
+        <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
           ← Daily Chief of Staff
         </Link>
-        <h1 className="ct-title" style={{ marginTop: 8 }}>
+        <h1 className="ct-title" style={{ marginTop: SPACING.sm }}>
           Run {runId.slice(0, 8)}…
         </h1>
         <div
           className="ct-card"
           style={{
-            border: "1px solid rgba(225,29,72,0.55)",
-            background: "rgba(225,29,72,0.08)",
+            border: "1px solid var(--ct-border-accent)",
+            background: "var(--ct-accent-soft)",
           }}
         >
           <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
@@ -54,7 +55,6 @@ export default async function RunDetailPage({ params }: PageProps) {
     );
   }
 
-  // Try to parse result as JSON for pretty-print (mock mode returns JSON)
   let resultPretty: string | null = null;
   if (run.result) {
     try {
@@ -76,18 +76,18 @@ export default async function RunDetailPage({ params }: PageProps) {
       {/* Auto-refresh every 5s while the crew flow is running. Stops when status is terminal. */}
       <AutoRefresh active={run.status === "running"} seconds={5} />
 
-      <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: 13 }}>
+      <Link href={`/crews/${CREW_NAME}`} className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
         ← Daily Chief of Staff
       </Link>
 
-      <div style={{ marginTop: 8, marginBottom: 24 }}>
-        <h1 className="ct-title" style={{ fontFamily: "monospace", marginBottom: 8 }}>
+      <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}>
+        <h1 className="ct-title" style={{ fontFamily: "monospace", marginBottom: SPACING.sm }}>
           {runId.slice(0, 8)}…
         </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.md }}>
           <StatusBadge status={run.status} size="md" />
-          <span style={{ color: "var(--ct-text-muted)", fontSize: 13 }}>·</span>
-          <span style={{ fontSize: 13, color: "var(--ct-text-body)" }}>
+          <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>·</span>
+          <span style={{ fontSize: FONT.base, color: "var(--ct-text-body)" }}>
             trigger :{" "}
             <span style={{ fontFamily: "monospace", color: "var(--ct-text-strong)" }}>
               {triggerLabel}
@@ -100,8 +100,8 @@ export default async function RunDetailPage({ params }: PageProps) {
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-          marginBottom: 24,
+          gap: SPACING.lg,
+          marginBottom: SPACING.xl,
         }}
       >
         <Field
@@ -118,15 +118,15 @@ export default async function RunDetailPage({ params }: PageProps) {
         />
       </div>
 
-      <div style={{ marginBottom: 24 }}>
+      <div style={{ marginBottom: SPACING.xl }}>
         <div className="ct-eyebrow">Résultat</div>
         {run.result ? (
           <div className="ct-card" style={{ padding: 0 }}>
             <pre
               style={{
                 overflow: "auto",
-                padding: "16px 20px",
-                fontSize: 11,
+                padding: `${SPACING.lg}px 20px`,
+                fontSize: FONT.xs,
                 fontFamily: "monospace",
                 color: "var(--ct-text-body)",
                 lineHeight: 1.6,

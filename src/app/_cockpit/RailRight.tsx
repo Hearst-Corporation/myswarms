@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SectionLabel } from "@/components/ui/SectionLabel";
-import { SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
 
 interface Tip {
   title: string;
@@ -97,20 +97,21 @@ export function RailRight() {
             <div
               key={t.title}
               className="ct-card"
+              style={{ marginBottom: 0 }}
             >
               <div
                 style={{
-                  fontWeight: 600,
-                  fontSize: 12,
+                  fontWeight: FONT_WEIGHT.semibold,
+                  fontSize: FONT.sm,
                   color: "var(--ct-text-strong)",
-                  marginBottom: 4,
+                  marginBottom: SPACING.xs,
                 }}
               >
                 {t.title}
               </div>
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: FONT.sm,
                   color: "var(--ct-text-body)",
                   lineHeight: 1.5,
                 }}

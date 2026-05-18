@@ -8,8 +8,6 @@ interface Props {
   compact?: boolean;
 }
 
-// --- result parsing helpers ---
-
 interface ActionItems {
   action_items: Array<{ text?: string; action?: string; title?: string } | string>;
 }
@@ -55,12 +53,16 @@ function hasPreferenceHints(v: unknown): v is PreferenceHints {
   );
 }
 
+const ACTION_ITEMS_PREVIEW_COUNT = 3;
+const PREFERENCE_HINTS_PREVIEW_COUNT = 2;
+const PLAIN_TEXT_PREVIEW_MAX_CHARS = 300;
+
 function ResultBody({ result }: { result: string }) {
   const parsed = tryParseJson(result);
 
   if (parsed !== null) {
     if (hasActionItems(parsed)) {
-      const items = parsed.action_items.slice(0, 3);
+      const items = parsed.action_items.slice(0, ACTION_ITEMS_PREVIEW_COUNT);
       return (
         <ul
           style={{
@@ -115,7 +117,7 @@ function ResultBody({ result }: { result: string }) {
     }
 
     if (hasPreferenceHints(parsed)) {
-      const hints = parsed.preference_hints.slice(0, 2);
+      const hints = parsed.preference_hints.slice(0, PREFERENCE_HINTS_PREVIEW_COUNT);
       return (
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {hints.map((h, i) => (
@@ -136,8 +138,9 @@ function ResultBody({ result }: { result: string }) {
     }
   }
 
-  // Plain text / raw markdown fallback
-  const preview = result.length > 300 ? result.slice(0, 300) + "…" : result;
+  const preview = result.length > PLAIN_TEXT_PREVIEW_MAX_CHARS
+    ? result.slice(0, PLAIN_TEXT_PREVIEW_MAX_CHARS) + "…"
+    : result;
   return (
     <p
       style={{
@@ -191,7 +194,6 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
 
   return (
     <div className="ct-card">
-      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -234,14 +236,12 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
         </div>
       </div>
 
-      {/* Result body */}
       {run.result ? (
         <ResultBody result={run.result} />
       ) : (
         <p className="ct-placeholder">Pas encore de résultat pour ce run.</p>
       )}
 
-      {/* Footer actions */}
       {!compact && (
         <div
           style={{

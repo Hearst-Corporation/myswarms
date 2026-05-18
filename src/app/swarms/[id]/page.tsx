@@ -11,7 +11,7 @@ import { SwarmArchiveButton } from "@/components/swarms/SwarmArchiveButton";
 import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 import type { CSSProperties } from "react";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
 type Trigger = (typeof ALLOWED_TRIGGERS)[number];
@@ -314,8 +314,8 @@ export default async function SwarmDetailPage({ params }: PageProps) {
 const thStyle: React.CSSProperties = {
   padding: `${SPACING.xxs + 4}px ${SPACING.md}px`,
   fontSize: FONT.xs,
-  fontWeight: 700,
-  letterSpacing: "0.14em",
+  fontWeight: FONT_WEIGHT.bold,
+  letterSpacing: LETTER_SPACING.wide,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",
 };

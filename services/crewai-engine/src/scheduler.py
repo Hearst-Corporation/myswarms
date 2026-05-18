@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -17,7 +18,6 @@ logger = logging.getLogger(__name__)
 async def _run_scheduled_kickoff(trigger: str) -> None:
     """Execute a Chief of Staff flow run for scheduled trigger (morning/evening).
 
-    stdlib imports (uuid4, datetime, timezone) are at module level — no circularity risk.
     Persistence (run_store) is imported here — fail-soft if Supabase not configured.
     """
     logger.info("Scheduled kickoff starting — trigger=%s", trigger)
@@ -25,7 +25,7 @@ async def _run_scheduled_kickoff(trigger: str) -> None:
 
     try:
         # Deferred import: ChiefOfStaffFlow imports crews/agents which may not be fully initialized
-        # at scheduler module load time. uuid4/datetime/timezone are stdlib, no circularity risk.
+        # at scheduler module load time.
         from .flows.chief_of_staff_flow import ChiefOfStaffFlow
         from .persistence import run_store
 
@@ -100,7 +100,6 @@ async def _run_market_intel_scout() -> None:
     logger.info("Market Intel Scout job starting — trigger=market_intel_morning")
 
     try:
-        from .persistence import run_store
         from supabase import create_client
 
         supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
@@ -108,7 +107,7 @@ async def _run_market_intel_scout() -> None:
         # Look up the swarm by name (template or user-owned copy)
         resp = (
             supabase.table("swarms")
-            .select("id, name, is_active, config_json")
+            .select("id, name, is_active, owner_id, config_json")
             .eq("name", "Market Intelligence Scout")
             .limit(1)
             .execute()
@@ -125,57 +124,67 @@ async def _run_market_intel_scout() -> None:
             return
 
         swarm_id = swarm["id"]
+        owner_id: str | None = swarm.get("owner_id") or swarm.get("config_json", {}).get("owner_id")
         logger.info("Market Intel Scout swarm found — swarm_id=%s, kicking off", swarm_id)
 
-        # Deferred import — dynamic swarm execution (same path as /kickoff endpoint)
-        from .flows.dynamic_swarm_flow import execute_dynamic_swarm_background
+        # Deferred import — ChiefOfStaffFlow pattern, avoid circularity at module load time.
+        from .flows.dynamic_swarm_flow import DynamicSwarmFlow
+        from .persistence import swarm_store
 
-        kickoff_id = str(uuid4())
-        started_at = datetime.now(timezone.utc).isoformat()
+        run_id = str(uuid4())
+        trigger = "market_intel_morning"
+        inputs = {
+            "trigger": trigger,
+            "user_timezone": settings.USER_TIMEZONE,
+            "user_language": settings.USER_LANGUAGE,
+            "mock_mode": settings.AGENT_MOCK_MODE,
+        }
 
-        run_store.save_run(kickoff_id, "market_intel_morning", "running", started_at)
+        swarm_store.save_swarm_run(
+            run_id=run_id,
+            swarm_id=swarm_id,
+            trigger=trigger,
+            status="running",
+            inputs_json=inputs,
+        )
 
         try:
-            result = await asyncio.wait_for(
-                execute_dynamic_swarm_background(
-                    swarm_id=swarm_id,
-                    inputs={
-                        "trigger": "market_intel_morning",
-                        "user_timezone": settings.USER_TIMEZONE,
-                        "user_language": settings.USER_LANGUAGE,
-                        "mock_mode": settings.AGENT_MOCK_MODE,
-                    },
-                ),
+            flow = DynamicSwarmFlow()
+            state_dict = {
+                "swarm_id": swarm_id,
+                "run_id": run_id,
+                "trigger": trigger,
+                "inputs": inputs,
+                "owner_id": owner_id,
+            }
+            await asyncio.wait_for(
+                asyncio.to_thread(flow.kickoff, inputs=state_dict),
                 timeout=settings.FLOW_TIMEOUT_SECONDS,
             )
+            logger.info("Market Intel Scout completed — run_id=%s", run_id)
 
-            result_str = str(result)
-            run_store.update_run(kickoff_id, "completed", result=result_str)
-            logger.info("Market Intel Scout completed — kickoff_id=%s", kickoff_id)
-
-            # Send Telegram digest
-            await asyncio.to_thread(_send_telegram_digest, result_str, "market_intel_morning")
+            await asyncio.to_thread(_send_telegram_digest, "market_intel_morning completed", trigger)
 
         except asyncio.TimeoutError:
             logger.error("Market Intel Scout timed out after %ss", settings.FLOW_TIMEOUT_SECONDS)
-            run_store.update_run(
-                kickoff_id,
-                "failed",
+            swarm_store.update_swarm_run(
+                run_id,
+                status="failed",
                 error_text=f"Timeout after {settings.FLOW_TIMEOUT_SECONDS}s",
+                finished_at=datetime.now(timezone.utc).isoformat(),
             )
         except Exception as exc:  # noqa: BLE001
             logger.error("Market Intel Scout flow failed: %s", exc, exc_info=True)
             try:
-                run_store.update_run(kickoff_id, "failed", error_text=str(exc))
+                swarm_store.update_swarm_run(
+                    run_id,
+                    status="failed",
+                    error_text=str(exc),
+                    finished_at=datetime.now(timezone.utc).isoformat(),
+                )
             except Exception:  # noqa: BLE001
                 pass
 
-    except ImportError:
-        # Dynamic swarm flow not yet implemented — log and skip gracefully
-        logger.info(
-            "Market Intel Scout: execute_dynamic_swarm_background not available yet — "
-            "falling back to standard kickoff with swarm_id hint"
-        )
     except Exception as exc:  # noqa: BLE001
         logger.error("Market Intel Scout job failed unexpectedly: %s", exc, exc_info=True)
 
@@ -191,9 +200,7 @@ def _send_telegram_digest(result: str, trigger: str) -> None:
     try:
         from .tools.telegram_sender import TelegramSenderTool
         from .tools.digest_formatter import DigestFormatterTool
-        import json
 
-        # Try to format the result as a digest
         formatter = DigestFormatterTool()
         try:
             data = json.loads(result) if result.strip().startswith("{") else {"raw": result}
