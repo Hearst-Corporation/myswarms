@@ -73,3 +73,6 @@ services/*/.venv/
 
 # Python build artifacts
 **/*.egg-info/
+
+# Claude Code (config locale — settings, plans, worktrees)
+.claude/
