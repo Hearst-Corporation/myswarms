@@ -82,7 +82,7 @@ export function ToolPicker({
         <div key={category}>
           <div
             style={{
-              fontSize: FONT.xs - 1,
+              fontSize: FONT.xs,
               fontWeight: 700,
               letterSpacing: LETTER_SPACING.wide,
               textTransform: "uppercase",

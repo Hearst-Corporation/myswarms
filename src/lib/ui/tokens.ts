@@ -49,9 +49,3 @@ export const FONT_WEIGHT = {
   extrabold: 800,
 } as const;
 
-export type FontWeight = keyof typeof FONT_WEIGHT;
-
-// Préfixe les types pour le DX (autocomplete IDE).
-export type Spacing = keyof typeof SPACING;
-export type Radius = keyof typeof RADIUS;
-export type Font = keyof typeof FONT;

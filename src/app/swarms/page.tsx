@@ -4,6 +4,7 @@ import { getOwnerId } from "@/lib/auth/owner";
 import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { SwarmList } from "@/components/swarms/SwarmList";
+import { SPACING } from "@/lib/ui/tokens";
 
 export const metadata = { title: "Swarms — MySwarms" };
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export default async function SwarmsPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 16,
+          marginBottom: SPACING.lg,
         }}
       >
         <div

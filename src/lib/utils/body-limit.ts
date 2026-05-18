@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const MAX_BODY_BYTES = 1_000_000;
+const MAX_BODY_BYTES = 1_000_000;
 
 /**
  * Returns null if body size is acceptable, NextResponse 411/413 otherwise.

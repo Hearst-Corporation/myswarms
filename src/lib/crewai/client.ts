@@ -50,21 +50,34 @@ export class CrewaiEngineError extends Error {
   }
 }
 
-// TODO V1.1: add exponential backoff retry on 502/503 (Railway cold starts)
+const RETRY_STATUSES = [502, 503];
+const RETRY_BACKOFF_MS = [1000, 2000];
+
 async function authedFetch(
   path: string,
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
-  return fetch(`${ENGINE_URL}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(timeoutMs),
-    headers: {
-      Authorization: `Bearer ${ENGINE_TOKEN}`,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
+  let lastRes: Response | undefined;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise<void>((r) =>
+        setTimeout(r, RETRY_BACKOFF_MS[attempt - 1])
+      );
+    }
+    const res = await fetch(`${ENGINE_URL}${path}`, {
+      ...init,
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: {
+        Authorization: `Bearer ${ENGINE_TOKEN}`,
+        "Content-Type": "application/json",
+        ...(init.headers ?? {}),
+      },
+    });
+    if (!RETRY_STATUSES.includes(res.status)) return res;
+    lastRes = res;
+  }
+  return lastRes!;
 }
 
 async function handleResponse<T>(

@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
+import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 export interface KickoffFormState {
   error?: string;
@@ -29,12 +30,12 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
   const [state, formAction] = useActionState<KickoffFormState, FormData>(action, {});
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-      <form action={formAction} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: SPACING.sm }}>
+      <form action={formAction} style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
         <select
           name="trigger"
           defaultValue="on_demand"
-          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: 8, padding: "8px 12px", color: "var(--ct-text-primary)", fontSize: 13, fontFamily: "inherit" }}
+          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit" }}
         >
           <option value="on_demand">On-demand</option>
           <option value="morning">Morning</option>
@@ -46,7 +47,7 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
       {state.error ? (
         <p
           role="alert"
-          style={{ borderRadius: 8, border: "1px solid var(--ct-alert-error-border)", background: "var(--ct-alert-error-bg)", padding: "8px 12px", fontSize: 11, color: "var(--ct-alert-error-text)" }}
+          style={{ borderRadius: RADIUS.md, border: "1px solid var(--ct-alert-error-border)", background: "var(--ct-alert-error-bg)", padding: `${SPACING.sm}px ${SPACING.md}px`, fontSize: FONT.xs, color: "var(--ct-alert-error-text)" }}
         >
           {state.error}
         </p>

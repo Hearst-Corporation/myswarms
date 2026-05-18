@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FONT, SPACING } from "@/lib/ui/tokens";
 
 export const metadata = {
   title: "Crews — myswarms",
@@ -17,16 +18,16 @@ export default function CrewsIndex() {
             display: "flex",
             alignItems: "flex-start",
             justifyContent: "space-between",
-            gap: 16,
+            gap: SPACING.lg,
           }}
         >
           <div>
             <div
               style={{
-                fontSize: 14,
+                fontSize: FONT.md,
                 fontWeight: 600,
                 color: "var(--ct-text-strong)",
-                marginBottom: 4,
+                marginBottom: SPACING.xs,
               }}
             >
               Daily Chief of Staff

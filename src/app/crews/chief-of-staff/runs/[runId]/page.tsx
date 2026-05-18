@@ -148,8 +148,8 @@ export default async function RunDetailPage({ params }: PageProps) {
             <pre
               style={{
                 overflow: "auto",
-                padding: "16px 20px",
-                fontSize: 11,
+                padding: `${SPACING.lg}px 20px`,
+                fontSize: FONT.xs,
                 fontFamily: "monospace",
                 color: "var(--ct-text-body)",
                 lineHeight: 1.6,
@@ -171,7 +171,7 @@ function Field({ label, value }: { label: string; value: string }) {
       <div className="ct-card-title">{label}</div>
       <div
         style={{
-          fontSize: 13,
+          fontSize: FONT.base,
           fontFamily: "monospace",
           color: "var(--ct-text-primary)",
         }}

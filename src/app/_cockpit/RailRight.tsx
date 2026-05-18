@@ -126,7 +126,7 @@ export function RailRight() {
               marginTop: SPACING.md,
               paddingTop: SPACING.md,
               borderTop: "1px solid var(--ct-border-soft)",
-              fontSize: 11,
+              fontSize: FONT.xs,
               color: "var(--ct-text-muted)",
               lineHeight: 1.5,
             }}

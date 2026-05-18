@@ -3,6 +3,7 @@ import { crewaiClient } from "@/lib/crewai/client";
 import type { RunSummary } from "@/lib/crewai/types";
 import { formatDate } from "@/lib/utils/format";
 import { StatusBadge } from "@/components/runs/StatusBadge";
+import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 interface Props {
   compact?: boolean;
@@ -71,7 +72,7 @@ function ResultBody({ result }: { result: string }) {
             margin: 0,
             display: "flex",
             flexDirection: "column",
-            gap: 6,
+            gap: SPACING.xxs,
           }}
         >
           {items.map((item, i) => {
@@ -83,10 +84,10 @@ function ResultBody({ result }: { result: string }) {
               <li
                 key={i}
                 style={{
-                  fontSize: 12,
+                  fontSize: FONT.sm,
                   color: "var(--ct-text-body)",
                   display: "flex",
-                  gap: 8,
+                  gap: SPACING.sm,
                   alignItems: "flex-start",
                 }}
               >
@@ -104,7 +105,7 @@ function ResultBody({ result }: { result: string }) {
       return (
         <p
           style={{
-            fontSize: 12,
+            fontSize: FONT.sm,
             color: "var(--ct-text-body)",
             lineHeight: 1.6,
           }}
@@ -124,7 +125,7 @@ function ResultBody({ result }: { result: string }) {
             <p
               key={i}
               style={{
-                fontSize: 12,
+                fontSize: FONT.sm,
                 fontStyle: "italic",
                 color: "var(--ct-text-muted)",
                 lineHeight: 1.5,
@@ -144,7 +145,7 @@ function ResultBody({ result }: { result: string }) {
   return (
     <p
       style={{
-        fontSize: 12,
+        fontSize: FONT.sm,
         color: "var(--ct-text-body)",
         lineHeight: 1.6,
         whiteSpace: "pre-wrap",
@@ -199,8 +200,8 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          marginBottom: 12,
-          gap: 12,
+          marginBottom: SPACING.md,
+          gap: SPACING.md,
           flexWrap: "wrap",
         }}
       >
@@ -214,8 +215,8 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 8,
-            fontSize: 11,
+            gap: SPACING.sm,
+            fontSize: FONT.xs,
             color: "var(--ct-text-muted)",
           }}
         >
@@ -224,7 +225,7 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
               style={{
                 background: "var(--ct-surface-2)",
                 border: "1px solid var(--ct-border)",
-                borderRadius: 4,
+                borderRadius: RADIUS.sm,
                 padding: "2px 6px",
                 fontFamily: "monospace",
               }}
@@ -245,8 +246,8 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
       {!compact && (
         <div
           style={{
-            marginTop: 16,
-            paddingTop: 12,
+            marginTop: SPACING.lg,
+            paddingTop: SPACING.md,
             borderTop: "1px solid var(--ct-border-soft)",
             display: "flex",
             gap: 10,
@@ -256,14 +257,14 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
           <Link
             href={`/crews/chief-of-staff/runs/${run.kickoff_id}`}
             className="ct-seg-btn"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: FONT.sm }}
           >
             Voir le brief complet →
           </Link>
           <Link
             href="/crews/chief-of-staff"
             className="ct-link"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: FONT.sm }}
           >
             Lancer un brief
           </Link>
@@ -271,11 +272,11 @@ export async function ChiefBriefWidget({ compact = false }: Props) {
       )}
 
       {compact && (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: SPACING.md }}>
           <Link
             href="/crews/chief-of-staff"
             className="ct-link"
-            style={{ fontSize: 12 }}
+            style={{ fontSize: FONT.sm }}
           >
             Lancer un brief
           </Link>

@@ -56,7 +56,7 @@ export default async function Home() {
         </div>
       ) : null}
 
-      <div className="ct-eyebrow" style={{ marginTop: 8 }}>Chief of Staff</div>
+      <div className="ct-eyebrow" style={{ marginTop: SPACING.sm }}>Chief of Staff</div>
       <ChiefBriefWidget />
 
       <div

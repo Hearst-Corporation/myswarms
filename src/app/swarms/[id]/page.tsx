@@ -105,7 +105,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 16,
+          gap: SPACING.lg,
           flexWrap: "wrap",
         }}
       >
@@ -114,7 +114,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
+              gap: SPACING.md,
               flexWrap: "wrap",
             }}
           >
@@ -132,7 +132,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             {swarm.description || "Aucune description."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
           {/* F8 : si archivé, on désactive Run/Edit (lien Edit → span disabled,
               KickoffForm n'est plus rendu). L'utilisateur peut toujours
               désarchiver via le bouton dédié (à venir) — pour l'instant
@@ -149,7 +149,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
               </span>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: FONT.xs,
                   color: "var(--ct-text-muted)",
                   fontStyle: "italic",
                 }}
@@ -197,7 +197,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                   >
                     <div style={{ fontWeight: 600 }}>{a.name}</div>
                     <div
-                      style={{ fontSize: 11, color: "var(--ct-text-muted)" }}
+                      style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}
                     >
                       {a.role} · {a.model_provider}/{a.model_name}
                     </div>
@@ -222,7 +222,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                   >
                     <div style={{ fontWeight: 600 }}>{t.name}</div>
                     <div
-                      style={{ fontSize: 11, color: "var(--ct-text-muted)" }}
+                      style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}
                     >
                       {t.description.slice(0, 80)}
                       {t.description.length > 80 ? "…" : ""}
@@ -242,7 +242,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             Aucun run pour l&apos;instant. Lance-en un via le bouton ci-dessus.
           </p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}>
             <thead>
               <tr
                 style={{
@@ -297,9 +297,9 @@ export default async function SwarmDetailPage({ params }: PageProps) {
         {succeededRuns > 0 && totalRuns > 0 ? (
           <p
             style={{
-              fontSize: 11,
+              fontSize: FONT.xs,
               color: "var(--ct-text-muted)",
-              marginTop: 12,
+              marginTop: SPACING.md,
             }}
           >
             {succeededRuns}/{totalRuns} succès · coût cumulé $

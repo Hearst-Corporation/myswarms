@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils/format";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { KickoffForm, type KickoffFormState } from "@/components/runs/KickoffForm";
 import { ChiefBriefWidget } from "@/components/crews/ChiefBriefWidget";
+import { FONT, SPACING } from "@/lib/ui/tokens";
 
 const CREW_NAME = "chief-of-staff";
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
@@ -47,13 +48,13 @@ export default async function ChiefOfStaffPage() {
 
   return (
     <>
-      <Link href="/crews" className="ct-breadcrumb-link" style={{ fontSize: 13 }}>
+      <Link href="/crews" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
         ← Crews
       </Link>
 
-      <div style={{ marginTop: 8, marginBottom: 24, display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+      <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl, display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: SPACING.lg }}>
         <div>
-          <h1 className="ct-title" style={{ marginBottom: 4 }}>Daily Chief of Staff</h1>
+          <h1 className="ct-title" style={{ marginBottom: SPACING.xs }}>Daily Chief of Staff</h1>
           <p className="ct-sub" style={{ marginBottom: 0 }}>
             Inbox triage · classification · prioritization · drafts · daily summary
           </p>
@@ -63,7 +64,7 @@ export default async function ChiefOfStaffPage() {
 
       <ChiefBriefWidget compact={true} />
 
-      <section style={{ marginTop: 24 }}>
+      <section style={{ marginTop: SPACING.xl }}>
         <div className="ct-eyebrow">Runs récents</div>
 
         {listError ? (
@@ -99,7 +100,7 @@ export default async function ChiefOfStaffPage() {
               <tbody>
                 {runs.map((r) => (
                   <tr key={r.kickoff_id} className="ct-tr">
-                    <td className="ct-td" style={{ fontFamily: "monospace", fontSize: 11 }}>
+                    <td className="ct-td" style={{ fontFamily: "monospace", fontSize: FONT.xs }}>
                       <Link
                         href={`/crews/${CREW_NAME}/runs/${r.kickoff_id}`}
                         prefetch={false}
@@ -112,10 +113,10 @@ export default async function ChiefOfStaffPage() {
                     <td className="ct-td">
                       <StatusBadge status={r.status} />
                     </td>
-                    <td className="ct-td" style={{ fontSize: 11 }}>
+                    <td className="ct-td" style={{ fontSize: FONT.xs }}>
                       {formatDate(r.started_at)}
                     </td>
-                    <td className="ct-td" style={{ fontSize: 11 }}>
+                    <td className="ct-td" style={{ fontSize: FONT.xs }}>
                       {r.finished_at ? formatDate(r.finished_at) : "—"}
                     </td>
                   </tr>

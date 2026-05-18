@@ -3,6 +3,7 @@ import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { ArchitectGenerateRequestSchema } from "@/lib/forms/swarmSchemas";
 import { getOwnerId } from "@/lib/auth/owner";
 import { checkBodySize } from "@/lib/utils/body-limit";
+import { checkRateLimit } from "@/lib/utils/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     const ownerId = await getOwnerId();
+
+    const rateKey = `architect:${ownerId ?? "anonymous"}`;
+    const rl = checkRateLimit(rateKey);
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded", retryAfterSeconds: rl.retryAfterSeconds },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } },
+      );
+    }
+
     const result = await swarmsClient.architectGenerate(
       parsed.data.prompt,
       ownerId,
