@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   CrewKickoffRequest,
   CrewKickoffResponse,
@@ -5,7 +6,12 @@ import {
   CrewStatusResponse,
   CrewStatusResponseSchema,
   RunSummaryListSchema,
+  RunStepSchema,
+  DecisionSchema,
   type RunSummary,
+  type RunStep,
+  type Decision,
+  type DecisionAction,
 } from "./types";
 import { withOwnerId } from "./_internal";
 
@@ -50,21 +56,42 @@ export class CrewaiEngineError extends Error {
   }
 }
 
-// TODO V1.1: add exponential backoff retry on 502/503 (Railway cold starts)
+const RETRY_STATUSES = [502, 503];
+const RETRY_BACKOFF_MS = [1000, 2000];
+
 async function authedFetch(
   path: string,
   init: RequestInit = {},
   timeoutMs: number = DEFAULT_TIMEOUT_MS
 ): Promise<Response> {
-  return fetch(`${ENGINE_URL}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(timeoutMs),
-    headers: {
-      Authorization: `Bearer ${ENGINE_TOKEN}`,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
+  let lastRes: Response | undefined;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) {
+      await new Promise<void>((r) =>
+        setTimeout(r, RETRY_BACKOFF_MS[attempt - 1])
+      );
+    }
+    try {
+      const res = await fetch(`${ENGINE_URL}${path}`, {
+        ...init,
+        signal: AbortSignal.timeout(timeoutMs),
+        headers: {
+          Authorization: `Bearer ${ENGINE_TOKEN}`,
+          "Content-Type": "application/json",
+          ...(init.headers ?? {}),
+        },
+      });
+      if (!RETRY_STATUSES.includes(res.status)) return res;
+      lastRes = res;
+    } catch (err) {
+      lastErr = err;
+      // network error (ECONNREFUSED, DNS, AbortError) — retry
+    }
+  }
+  // All 3 attempts exhausted
+  if (lastRes !== undefined) return lastRes;
+  throw lastErr ?? new Error(`Network error after 3 attempts: ${path}`);
 }
 
 async function handleResponse<T>(
@@ -143,5 +170,37 @@ export const crewaiClient = {
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
     const data = await handleResponse<unknown>(res, path);
     return RunSummaryListSchema.parse(data);
+  },
+
+  async listSteps(crew: string, kickoffId: string): Promise<RunStep[]> {
+    const path = `/v1/crews/${crew}/runs/${kickoffId}/steps`;
+    const res = await authedFetch(path);
+    const data = await handleResponse<unknown>(res, path);
+    return z.array(RunStepSchema).parse(data);
+  },
+
+  async recordDecision(
+    crew: string,
+    payload: { kickoff_id: string; action: DecisionAction; snooze_hours?: number },
+  ): Promise<Decision> {
+    const path = `/v1/crews/${crew}/decisions`;
+    const res = await authedFetch(path, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    const data = await handleResponse<unknown>(res, path);
+    return DecisionSchema.parse(data);
+  },
+
+  async listDecisions(crew: string, kickoffId: string): Promise<Decision[]> {
+    try {
+      const path = `/v1/crews/${crew}/runs/${kickoffId}/decisions`;
+      const res = await authedFetch(path);
+      if (!res.ok) return [];
+      const data = await res.json();
+      return z.array(DecisionSchema).parse(data);
+    } catch {
+      return [];
+    }
   },
 };

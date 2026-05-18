@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SectionLabel } from "@/components/ui/SectionLabel";
+import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
 
 interface Tip {
   title: string;
@@ -53,16 +55,30 @@ const TIPS_BY_AREA: Record<string, Tip[]> = {
       body: "Chaque step affiche tokens, cost et latence. Cliquable pour le détail.",
     },
   ],
+  "chief-of-staff": [
+    {
+      title: "Chief of Staff",
+      body: "8 agents orchestrés par CrewAI : inbox, classification, priorité, drafts, calendar. Brief à 08h et 18h30.",
+    },
+    {
+      title: "Decision Card",
+      body: "La carte centrale affiche le P0 du jour avec un brouillon de réponse. M → voir le run complet.",
+    },
+  ],
   crews: [
     {
-      title: "Legacy",
-      body: "Les Crews historiques restent disponibles (Daily Chief of Staff).",
+      title: "Brief du matin",
+      body: "Le scheduler tourne à 8h et 18h30. Tu peux aussi déclencher manuellement depuis la page Chief of Staff.",
+    },
+    {
+      title: "Digest Telegram",
+      body: "Après chaque run schedulé, le résumé arrive automatiquement sur ton Telegram.",
     },
   ],
 };
 
 function pickArea(pathname: string): keyof typeof TIPS_BY_AREA {
-  if (pathname === "/") return "home";
+  if (pathname === "/" || pathname.startsWith("/crews/chief-of-staff")) return "chief-of-staff";
   if (/^\/swarms\/[0-9a-f-]{36}\/runs\//i.test(pathname)) return "run";
   if (pathname === "/swarms/new" || pathname.endsWith("/edit")) return "builder";
   if (pathname.startsWith("/swarms")) return "swarms";
@@ -84,43 +100,28 @@ export function RailRight() {
         </button>
       </div>
       <div className="ct-rail-right-body">
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-            marginBottom: 12,
-          }}
-        >
-          Contexte · {area}
-        </div>
+        <SectionLabel text={`Contexte · ${area}`} mb={12} />
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
           {tips.map((t) => (
             <div
               key={t.title}
-              style={{
-                background: "var(--ct-surface-1)",
-                border: "1px solid var(--ct-border)",
-                borderRadius: 8,
-                padding: 12,
-              }}
+              className="ct-card"
+              style={{ marginBottom: 0 }}
             >
               <div
                 style={{
-                  fontWeight: 600,
-                  fontSize: 12,
+                  fontWeight: FONT_WEIGHT.semibold,
+                  fontSize: FONT.sm,
                   color: "var(--ct-text-strong)",
-                  marginBottom: 4,
+                  marginBottom: SPACING.xs,
                 }}
               >
                 {t.title}
               </div>
               <p
                 style={{
-                  fontSize: 12,
+                  fontSize: FONT.sm,
                   color: "var(--ct-text-body)",
                   lineHeight: 1.5,
                 }}
@@ -132,10 +133,10 @@ export function RailRight() {
 
           <div
             style={{
-              marginTop: 12,
-              paddingTop: 12,
+              marginTop: SPACING.md,
+              paddingTop: SPACING.md,
               borderTop: "1px solid var(--ct-border-soft)",
-              fontSize: 11,
+              fontSize: FONT.xs,
               color: "var(--ct-text-muted)",
               lineHeight: 1.5,
             }}
@@ -143,14 +144,14 @@ export function RailRight() {
             Besoin d&apos;aide ? Va sur{" "}
             <Link
               href="/swarms"
-              style={{ color: "var(--ct-accent-strong)" }}
+              className="ct-link"
             >
               /swarms
             </Link>
             {" "}pour la liste, ou{" "}
             <Link
               href="/swarms/new"
-              style={{ color: "var(--ct-accent-strong)" }}
+              className="ct-link"
             >
               /swarms/new
             </Link>

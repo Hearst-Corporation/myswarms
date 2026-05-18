@@ -17,6 +17,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
+import { FONT } from "@/lib/ui/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -100,7 +101,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             }}
           >
             <StatusBadge status={run.status} size="md" />
-            <span style={{ color: "var(--ct-text-muted)", fontSize: 13 }}>
+            <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>
               trigger : {run.trigger}
             </span>
           </div>
@@ -167,7 +168,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           <div className="ct-card-title">Erreur</div>
           <pre
             style={{
-              fontSize: 12,
+              fontSize: FONT.sm,
               fontFamily: "monospace",
               color: "var(--ct-text-primary)",
               whiteSpace: "pre-wrap",
@@ -188,13 +189,13 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
               border: "1px solid var(--ct-border)",
               borderRadius: 8,
               padding: 12,
-              fontSize: 12,
+              fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
               fontFamily: "monospace",
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               overflow: "auto",
-              maxHeight: 360,
+              maxHeight: "var(--ct-result-max-h)",
             }}
           >
             {prettyJsonOrRaw(run.result_text)}

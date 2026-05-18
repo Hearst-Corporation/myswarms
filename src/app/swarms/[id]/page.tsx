@@ -8,7 +8,10 @@ import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { KickoffForm, type KickoffFormState } from "@/components/runs/KickoffForm";
 import { SwarmArchiveButton } from "@/components/swarms/SwarmArchiveButton";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { SwarmRunSummary } from "@/lib/forms/swarmSchemas";
+import type { CSSProperties } from "react";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
 type Trigger = (typeof ALLOWED_TRIGGERS)[number];
@@ -55,7 +58,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
         <div className="ct-eyebrow">
           <Link
             href="/swarms"
-            style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
+            className="ct-breadcrumb-link"
           >
             ← Swarms
           </Link>
@@ -102,7 +105,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-start",
-          gap: 16,
+          gap: SPACING.lg,
           flexWrap: "wrap",
         }}
       >
@@ -111,27 +114,16 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
+              gap: SPACING.md,
               flexWrap: "wrap",
             }}
           >
-            <h1 className="ct-title" style={{ margin: 0 }}>
+            <h1 className="ct-title">
               {swarm.name}
             </h1>
             {/* F8 : badge ARCHIVÉ si swarm soft-deleted (is_active=false). */}
             {swarm.is_active === false ? (
-              <span
-                style={{
-                  background: "var(--ct-accent-soft)",
-                  color: "var(--ct-accent-strong)",
-                  padding: "4px 12px",
-                  borderRadius: 4,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                }}
-              >
+              <span style={archivedBadgeStyle}>
                 Archivé
               </span>
             ) : null}
@@ -140,7 +132,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             {swarm.description || "Aucune description."}
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
           {/* F8 : si archivé, on désactive Run/Edit (lien Edit → span disabled,
               KickoffForm n'est plus rendu). L'utilisateur peut toujours
               désarchiver via le bouton dédié (à venir) — pour l'instant
@@ -157,7 +149,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
               </span>
               <span
                 style={{
-                  fontSize: 11,
+                  fontSize: FONT.xs,
                   color: "var(--ct-text-muted)",
                   fontStyle: "italic",
                 }}
@@ -188,20 +180,9 @@ export default async function SwarmDetailPage({ params }: PageProps) {
 
       <div className="ct-card">
         <div className="ct-card-title">Composition</div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(var(--ct-card-min-w), 1fr))", gap: SPACING.xl }}>
           <div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--ct-text-muted)",
-                marginBottom: 8,
-              }}
-            >
-              Agents
-            </div>
+            <SectionLabel text="Agents" />
             {swarm.agents.length === 0 ? (
               <p className="ct-placeholder">Aucun agent.</p>
             ) : (
@@ -210,13 +191,13 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                   <li
                     key={a.id ?? a.name}
                     style={{
-                      padding: "8px 0",
+                      padding: `${SPACING.sm}px 0`,
                       borderBottom: "1px solid var(--ct-border-soft)",
                     }}
                   >
                     <div style={{ fontWeight: 600 }}>{a.name}</div>
                     <div
-                      style={{ fontSize: 11, color: "var(--ct-text-muted)" }}
+                      style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}
                     >
                       {a.role} · {a.model_provider}/{a.model_name}
                     </div>
@@ -226,18 +207,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             )}
           </div>
           <div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.14em",
-                textTransform: "uppercase",
-                color: "var(--ct-text-muted)",
-                marginBottom: 8,
-              }}
-            >
-              Tâches
-            </div>
+            <SectionLabel text="Tâches" />
             {swarm.tasks.length === 0 ? (
               <p className="ct-placeholder">Aucune tâche.</p>
             ) : (
@@ -246,13 +216,13 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                   <li
                     key={t.id ?? t.name}
                     style={{
-                      padding: "8px 0",
+                      padding: `${SPACING.sm}px 0`,
                       borderBottom: "1px solid var(--ct-border-soft)",
                     }}
                   >
                     <div style={{ fontWeight: 600 }}>{t.name}</div>
                     <div
-                      style={{ fontSize: 11, color: "var(--ct-text-muted)" }}
+                      style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}
                     >
                       {t.description.slice(0, 80)}
                       {t.description.length > 80 ? "…" : ""}
@@ -272,7 +242,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             Aucun run pour l&apos;instant. Lance-en un via le bouton ci-dessus.
           </p>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}>
             <thead>
               <tr
                 style={{
@@ -297,10 +267,10 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                   <td style={tdStyle}>
                     <Link
                       href={`/swarms/${id}/runs/${r.id}`}
+                      className="ct-link"
                       style={{
-                        color: "var(--ct-accent-strong)",
                         fontFamily: "monospace",
-                        fontSize: 12,
+                        fontSize: FONT.sm,
                       }}
                     >
                       {r.id.slice(0, 8)}…
@@ -327,9 +297,9 @@ export default async function SwarmDetailPage({ params }: PageProps) {
         {succeededRuns > 0 && totalRuns > 0 ? (
           <p
             style={{
-              fontSize: 11,
+              fontSize: FONT.xs,
               color: "var(--ct-text-muted)",
-              marginTop: 12,
+              marginTop: SPACING.md,
             }}
           >
             {succeededRuns}/{totalRuns} succès · coût cumulé $
@@ -342,14 +312,25 @@ export default async function SwarmDetailPage({ params }: PageProps) {
 }
 
 const thStyle: React.CSSProperties = {
-  padding: "10px 12px",
-  fontSize: 10,
-  fontWeight: 700,
-  letterSpacing: "0.14em",
+  padding: `${SPACING.xxs + 4}px ${SPACING.md}px`,
+  fontSize: FONT.xs,
+  fontWeight: FONT_WEIGHT.bold,
+  letterSpacing: LETTER_SPACING.wide,
   textTransform: "uppercase",
   color: "var(--ct-text-muted)",
 };
 const tdStyle: React.CSSProperties = {
-  padding: "10px 12px",
+  padding: `${SPACING.xxs + 4}px ${SPACING.md}px`,
   color: "var(--ct-text-body)",
+};
+
+const archivedBadgeStyle: CSSProperties = {
+  background: "var(--ct-accent-soft)",
+  color: "var(--ct-accent-strong)",
+  padding: `${SPACING.xs}px ${SPACING.md}px`,
+  borderRadius: RADIUS.sm,
+  fontSize: FONT.sm,
+  fontWeight: 700,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase" as const,
 };

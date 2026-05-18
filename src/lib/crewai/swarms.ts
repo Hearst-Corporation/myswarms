@@ -32,7 +32,7 @@ const DEFAULT_TIMEOUT_MS = Number(process.env.CREWAI_ENGINE_TIMEOUT_MS ?? "30000
  * LLM (rédaction des agents/tasks/tool_bindings) — significativement plus lent
  * qu'un CRUD swarm. Valeur généreuse (par défaut 90s) configurable via env.
  */
-export const ARCHITECT_TIMEOUT_MS = Number(
+const ARCHITECT_TIMEOUT_MS = Number(
   process.env.CREWAI_ENGINE_ARCHITECT_TIMEOUT_MS ?? "90000",
 );
 
