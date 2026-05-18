@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LINE_HEIGHT } from "@/lib/ui/tokens";
 
 interface Tip {
   title: string;
@@ -122,7 +123,7 @@ export function RailRight() {
                 style={{
                   fontSize: 12,
                   color: "var(--ct-text-body)",
-                  lineHeight: 1.5,
+                  lineHeight: LINE_HEIGHT.tight,
                 }}
               >
                 {t.body}
@@ -137,7 +138,7 @@ export function RailRight() {
               borderTop: "1px solid var(--ct-border-soft)",
               fontSize: 11,
               color: "var(--ct-text-muted)",
-              lineHeight: 1.5,
+              lineHeight: LINE_HEIGHT.base,
             }}
           >
             Besoin d&apos;aide ? Va sur{" "}

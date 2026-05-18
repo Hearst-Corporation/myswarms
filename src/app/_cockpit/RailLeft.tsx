@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { RADIUS } from "@/lib/ui/tokens";
 
 interface NavEntry {
   href: string;
@@ -43,7 +44,7 @@ export function RailLeft() {
           const baseStyle: React.CSSProperties = {
             width: 40,
             height: 40,
-            borderRadius: 10,
+            borderRadius: RADIUS.nav,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",

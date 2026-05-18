@@ -1,9 +1,11 @@
-const STATUS_STYLES: Record<string, string> = {
-  completed: "bg-green-100 text-green-800",
-  running: "bg-blue-100 text-blue-800",
-  failed: "bg-red-100 text-red-800",
-  cancelled: "bg-neutral-200 text-neutral-700",
-  paused_hitl: "bg-amber-100 text-amber-800",
+import { RADIUS, FONT } from "@/lib/ui/tokens";
+
+const STATUS_STYLES: Record<string, { bg: string; color: string }> = {
+  completed: { bg: "rgb(220 252 231)", color: "rgb(22 101 52)" },
+  running: { bg: "rgb(219 234 254)", color: "rgb(30 64 175)" },
+  failed: { bg: "rgb(254 226 226)", color: "rgb(153 27 27)" },
+  cancelled: { bg: "rgb(229 229 229)", color: "rgb(64 64 64)" },
+  paused_hitl: { bg: "rgb(254 243 199)", color: "rgb(146 64 14)" },
 };
 
 export function StatusBadge({
@@ -13,10 +15,22 @@ export function StatusBadge({
   status: string;
   size?: "sm" | "md";
 }) {
-  const cls = STATUS_STYLES[status] ?? "bg-neutral-100 text-neutral-700";
-  const padding = size === "md" ? "px-2.5 py-1" : "px-2.5 py-0.5";
+  const s = STATUS_STYLES[status] ?? { bg: "rgb(245 245 245)", color: "rgb(64 64 64)" };
+  const paddingInline = size === "md" ? "10px" : "10px";
+  const paddingBlock = size === "md" ? "4px" : "2px";
   return (
-    <span className={`inline-flex rounded-full ${padding} text-xs font-medium ${cls}`}>
+    <span
+      style={{
+        display: "inline-flex",
+        borderRadius: RADIUS.full,
+        paddingInline,
+        paddingBlock,
+        fontSize: FONT.xxs,
+        fontWeight: 500,
+        background: s.bg,
+        color: s.color,
+      }}
+    >
       {status}
     </span>
   );
