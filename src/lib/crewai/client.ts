@@ -7,27 +7,19 @@ import {
   RunSummaryListSchema,
   type RunSummary,
 } from "./types";
-import { withOwnerId } from "./_internal";
+import {
+  authedFetch,
+  ENGINE_TOKEN,
+  EngineError,
+  handleResponse,
+  logWarning,
+  withOwnerId,
+} from "./_internal";
 
-const ENGINE_URL =
-  process.env.CREWAI_ENGINE_URL ?? "http://localhost:8000";
-const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
-
-// 30s — kickoff is now async (returns kickoff_id immediately, crew runs in background).
-// Both kickoff and status round-trips should complete in <2s. 5 min was only needed
-// when kickoff was synchronous and awaited the full ~48s crew flow end-to-end.
-// Status polling is handled by the UI (AutoRefresh component, 5s interval).
-const DEFAULT_TIMEOUT_MS = 30_000;
-
-/**
- * Limite de troncature du body brut dans les messages d'erreur. Évite de leak
- * une stack trace Python complète en clair vers les clients HTTP.
- */
-const ERROR_BODY_MAX_CHARS = 200;
-
+// Guard boot-time — utilise logWarning (SSR-safe, pas de console.warn nu).
 if (!ENGINE_TOKEN) {
-  console.warn(
-    "[crewai/client] CREWAI_ENGINE_AUTH_TOKEN missing — calls will fail with 401"
+  logWarning(
+    "[crewai/client] CREWAI_ENGINE_AUTH_TOKEN missing — calls will fail with 401",
   );
 }
 
@@ -37,53 +29,14 @@ if (!ENGINE_TOKEN) {
  * Porte `status` (code HTTP réel renvoyé par l'engine) et `path` (route appelée),
  * ce qui permet aux call-sites de mapper proprement (401 → 401, 404 → 404,
  * 429 → 429, autre → 502) sans recourir à un string-match fragile sur `message`.
+ *
+ * Alias rétrocompatible de `EngineError` (_internal.ts).
  */
-export class CrewaiEngineError extends Error {
-  readonly status: number;
-  readonly path: string;
-
+export class CrewaiEngineError extends EngineError {
   constructor(status: number, path: string, message: string) {
-    super(message);
+    super(status, path, message);
     this.name = "CrewaiEngineError";
-    this.status = status;
-    this.path = path;
   }
-}
-
-// TODO V1.1: add exponential backoff retry on 502/503 (Railway cold starts)
-async function authedFetch(
-  path: string,
-  init: RequestInit = {},
-  timeoutMs: number = DEFAULT_TIMEOUT_MS
-): Promise<Response> {
-  return fetch(`${ENGINE_URL}${path}`, {
-    ...init,
-    signal: AbortSignal.timeout(timeoutMs),
-    headers: {
-      Authorization: `Bearer ${ENGINE_TOKEN}`,
-      "Content-Type": "application/json",
-      ...(init.headers ?? {}),
-    },
-  });
-}
-
-async function handleResponse<T>(
-  res: Response,
-  path: string
-): Promise<T> {
-  if (!res.ok) {
-    const rawBody = await res.text().catch(() => "(no body)");
-    const truncated =
-      rawBody.length > ERROR_BODY_MAX_CHARS
-        ? `${rawBody.slice(0, ERROR_BODY_MAX_CHARS)}…`
-        : rawBody;
-    throw new CrewaiEngineError(
-      res.status,
-      path,
-      `[crewai/client] ${res.status} ${res.statusText} on ${path}: ${truncated}`
-    );
-  }
-  return res.json() as Promise<T>;
 }
 
 /**
@@ -92,8 +45,10 @@ async function handleResponse<T>(
  * - `ownerId` : ajoute `?owner_id=...` au path engine (multi-tenant V2). `null`/
  *   `undefined` = pas de filtre (V1 single-user).
  * - `timeoutMs` : override le timeout par défaut (`DEFAULT_TIMEOUT_MS`).
+ *
+ * @internal — non exportée : aucun call-site externe ne l'importe.
  */
-export interface CrewaiCallOptions {
+interface CrewaiCallOptions {
   ownerId?: string | null;
   timeoutMs?: number;
 }
@@ -113,7 +68,7 @@ export const crewaiClient = {
       },
       opts.timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return CrewKickoffResponseSchema.parse(data);
   },
 
@@ -127,7 +82,7 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return CrewStatusResponseSchema.parse(data);
   },
 
@@ -141,7 +96,7 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path);
+    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
     return RunSummaryListSchema.parse(data);
   },
 };
