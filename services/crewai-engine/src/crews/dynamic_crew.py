@@ -29,6 +29,7 @@ from typing import Any
 from crewai import Agent, Crew, LLM, Process, Task
 
 from ..composio_session import get_composio_tools_for_toolkits
+from ..config import settings
 from ..llms import get_llm
 from ..persistence import swarm_store
 
@@ -75,8 +76,16 @@ def _resolve_llm(agent_row: dict[str, Any]) -> LLM:
             # kimi / hypercli partagent un endpoint OpenAI-compatible.
             litellm_provider = "openai" if provider in {"kimi", "hypercli"} else provider
             model_name = f"{litellm_provider}/{model_name}"
+        # Pour tout modèle destiné à Hypercli (provider kimi/hypercli ou préfixe
+        # openai/ qui pointe sur Hypercli), on injecte base_url + api_key depuis
+        # settings pour éviter que LiteLLM tape l'endpoint OpenAI réel.
+        _is_hypercli = provider in {"kimi", "hypercli"} or model_name.startswith("openai/")
+        _llm_kwargs: dict = {"model": model_name}
+        if _is_hypercli:
+            _llm_kwargs["base_url"] = settings.HYPERCLI_BASE_URL
+            _llm_kwargs["api_key"] = settings.HYPERCLI_API_KEY
         try:
-            return LLM(model=model_name)
+            return LLM(**_llm_kwargs)
         except Exception as exc:  # noqa: BLE001
             # Préfixe stable `[LLM_FALLBACK]` pour grep côté observabilité —
             # Langfuse / Loki / Railway peuvent indexer ce tag pour compter

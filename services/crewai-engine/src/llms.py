@@ -8,17 +8,25 @@ ModelTier = Literal["fast", "balanced", "smart"]
 
 
 def get_llm(tier: ModelTier = "balanced") -> LLM:
-    """Factory LLM via Claude (Anthropic) — provider natif CrewAI.
+    """Factory LLM — route sur Hypercli (Kimi K2.6) via endpoint OpenAI-compatible.
 
-    Bascule depuis Kimi/Hypercli (essais infructueux : empty responses sur prompts
-    longs avec function-calling, 404 sur anthropic/, timeouts en ReAct).
-    Sonnet 4.6 tient le rythme de 8 agents séquentiels + tools Composio.
+    Provider unique du projet (directive explicite) : toutes les tiers (fast /
+    balanced / smart) pointent sur `openai/kimi-k2.6` via `HYPERCLI_BASE_URL`.
+    LiteLLM reçoit `base_url` + `api_key` issus de `settings` — aucun secret
+    hardcodé.
 
-    Note : `temperature` retirée — déprécié sur Claude 4.x (renvoie 400 si fourni).
+    Hypercli avait été écarté en N-1 pour empty-responses/timeouts sur le crew
+    8 agents — re-validé sous cette directive.
+
+    Note : `temperature` non passée — évite tout rejet 400 éventuel côté provider.
     """
     mapping: dict[ModelTier, str] = {
         "fast": settings.CREWAI_DEFAULT_FAST_MODEL,
         "balanced": settings.CREWAI_DEFAULT_BALANCED_MODEL,
         "smart": settings.CREWAI_DEFAULT_SMART_MODEL,
     }
-    return LLM(model=mapping[tier])
+    return LLM(
+        model=mapping[tier],
+        base_url=settings.HYPERCLI_BASE_URL,
+        api_key=settings.HYPERCLI_API_KEY,
+    )

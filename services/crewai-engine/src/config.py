@@ -44,10 +44,10 @@ class Settings(BaseSettings):
     HYPERCLI_DEFAULT_MODEL: str = "kimi-k2.6"
     HYPERCLI_ANTHROPIC_MODEL: str = "kimi-k2.6-anthropic"
 
-    # Claude model tiers
-    CREWAI_DEFAULT_FAST_MODEL: str = "anthropic/claude-haiku-4-5-20251001"
-    CREWAI_DEFAULT_BALANCED_MODEL: str = "anthropic/claude-sonnet-4-6"
-    CREWAI_DEFAULT_SMART_MODEL: str = "anthropic/claude-opus-4-7"
+    # Tiers LLM (Hypercli / Kimi K2.6 — endpoint OpenAI-compatible, base_url=HYPERCLI_BASE_URL)
+    CREWAI_DEFAULT_FAST_MODEL: str = "openai/kimi-k2.6"
+    CREWAI_DEFAULT_BALANCED_MODEL: str = "openai/kimi-k2.6"
+    CREWAI_DEFAULT_SMART_MODEL: str = "openai/kimi-k2.6"
 
     # Supabase
     SUPABASE_URL: str = ""
