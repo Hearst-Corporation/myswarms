@@ -9,6 +9,13 @@
  *     (utile pour le seed Chief of Staff + tests bout-en-bout),
  *   - de garder le comportement actuel inchangé si la var n'est pas set.
  *
+ * ⚠️ RISQUE IDOR SI DEV_OWNER_ID EST ABSENT ⚠️
+ * Si `DEV_OWNER_ID` n'est pas définie dans `.env.local`, cette fonction retourne
+ * `null`. Côté engine Python (`src/routes/swarms.py`), un `owner_id` null désactive
+ * le filtre par owner → n'importe quel run peut lire/modifier les données de tous
+ * les owners (équivalent service-role sans scoping). DEV_OWNER_ID DOIT être set
+ * à un UUID v4 fixe en développement. Voir `.env.local`.
+ *
  * 🛠️ V2 — à remplacer par une vraie session Supabase via `@supabase/ssr` :
  *
  *   import { createServerClient } from "@supabase/ssr";
@@ -27,6 +34,7 @@
  */
 export async function getOwnerId(): Promise<string | null> {
   // V1 single-user : owner_id stub depuis env.
+  // DEV_OWNER_ID DOIT être set dans .env.local (UUID v4 fixe) — sinon IDOR.
   // V2 TODO : remplacer par session Supabase via @supabase/ssr.
   return process.env.DEV_OWNER_ID ?? null;
 }

@@ -54,6 +54,14 @@ electron/__tests__/results/
 *.AppImage
 *.deb
 
+# Electron build output (lourd — ne pas committer, régénéré via npm run electron:build)
+dist/
+*.blockmap
+dist/builder-debug.yml
+
+# Rapports d'audit générés (squad/ready/all)
+docs/audit/
+
 # Python
 **/__pycache__/
 **/*.py[cod]

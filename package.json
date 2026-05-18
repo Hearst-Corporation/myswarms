@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest run",
     "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3000 && npm run electron:start\"",
     "electron:assets": "mkdir -p dist-electron && cp electron/splash.html dist-electron/splash.html",
     "electron:start": "tsc -p electron && npm run electron:assets && electron .",
@@ -16,10 +17,14 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@sentry/nextjs": "^10.53.1",
+    "@supabase/ssr": "^0.10.3",
     "next": "16.2.6",
     "openai": "^6.38.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
+    "react-hook-form": "^7.76.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -28,6 +33,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.6",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^42.1.0",
@@ -38,6 +44,7 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vitest": "^4.1.6",
     "wait-on": "^9.0.10"
   },
   "main": "dist-electron/main.js",

@@ -57,3 +57,28 @@ curl -H "Authorization: Bearer <CREWAI_ENGINE_AUTH_TOKEN>" \
 
 Push to your Railway service. Set all vars from `.env.example` in Railway dashboard.
 The `railway.json` handles Dockerfile build, port 8000, and `/health` healthcheck.
+
+## Auth V1 (single-user stub)
+
+### DEV_OWNER_ID — requis en développement
+
+L'engine Python reçoit un `owner_id` (UUID) transmis par Next.js via query param `?owner_id=`.
+Côté Next.js, la valeur provient de `src/lib/auth/owner.ts` → `process.env.DEV_OWNER_ID`.
+
+**Risque IDOR si absent** : si `DEV_OWNER_ID` n'est pas défini dans `.env.local`, la fonction
+retourne `null`. L'engine traite `owner_id=null` comme une absence de filtre (équivalent
+service-role) — tous les runs/swarms de tous les owners sont alors accessibles sans restriction.
+
+**Que faire** : ajouter dans `.env.local` du repo Next.js :
+
+```
+DEV_OWNER_ID=<uuid-v4-fixe>   # généré via: python3 -c "import uuid; print(uuid.uuid4())"
+```
+
+### Chemin V2 — Supabase SSR
+
+En V2, `src/lib/auth/owner.ts` sera remplacé par une vraie session Supabase Auth via
+`@supabase/ssr` : `supabase.auth.getUser()` → `user.id`. L'engine Python n'a pas besoin
+de changer : il filtre déjà sur `owner_id` quel que soit son origine.
+Le bearer token `CREWAI_ENGINE_AUTH_TOKEN` reste la seule auth engine-level (Next.js → Python).
+L'`owner_id` est un attribut métier de scoping, pas un mécanisme d'auth réseau.

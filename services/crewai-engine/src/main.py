@@ -3,6 +3,9 @@ import logging
 import os
 from contextlib import asynccontextmanager
 
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.starlette import StarletteIntegration
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -15,6 +18,28 @@ from . import hooks  # registers LLM + tool hooks at startup (side-effect import
 from .scheduler import create_scheduler
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Sentry init — fail-soft: skip silently if SENTRY_DSN is absent or empty.
+# WHY: The SENTRY_AUTH_TOKEN currently returns 403 in some envs; we want the
+# service to boot cleanly regardless. Re-enable sourcemaps when token is fixed.
+# ---------------------------------------------------------------------------
+_sentry_dsn = os.getenv("SENTRY_DSN", "")
+if _sentry_dsn:
+    sentry_sdk.init(
+        dsn=_sentry_dsn,
+        environment=os.getenv("ENVIRONMENT", "development"),
+        # Capture 10 % of traces in production, 100 % otherwise.
+        traces_sample_rate=0.1 if os.getenv("ENVIRONMENT") == "production" else 1.0,
+        send_default_pii=False,
+        integrations=[
+            StarletteIntegration(),
+            FastApiIntegration(),
+        ],
+    )
+    logger.info("Sentry initialised (dsn present)")
+else:
+    logger.info("Sentry skipped — SENTRY_DSN not set")
 
 # Boot observability (Langfuse + OpenTelemetry). Fail-soft if keys absent.
 init_observability()
