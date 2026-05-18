@@ -144,4 +144,58 @@ export const crewaiClient = {
     const data = await handleResponse<unknown>(res, path);
     return RunSummaryListSchema.parse(data);
   },
+
+  /**
+   * Liste les décisions enregistrées pour un crew, filtrées par owner_id.
+   * Endpoint engine : GET /v1/crews/{crew}/decisions?owner_id=...
+   */
+  async listDecisions(
+    crewName: string,
+    opts: CrewaiCallOptions = {},
+  ): Promise<unknown[]> {
+    const path = withOwnerId(
+      `/v1/crews/${encodeURIComponent(crewName)}/decisions`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+    return handleResponse<unknown[]>(res, path);
+  },
+
+  /**
+   * Enregistre une décision pour un crew, scopée par owner_id.
+   * Endpoint engine : POST /v1/crews/{crew}/decisions?owner_id=...
+   */
+  async recordDecision(
+    crewName: string,
+    payload: unknown,
+    opts: CrewaiCallOptions = {},
+  ): Promise<unknown> {
+    const path = withOwnerId(
+      `/v1/crews/${encodeURIComponent(crewName)}/decisions`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(
+      path,
+      { method: "POST", body: JSON.stringify(payload) },
+      opts.timeoutMs,
+    );
+    return handleResponse<unknown>(res, path);
+  },
+
+  /**
+   * Liste les steps d'un run, filtrés par owner_id.
+   * Endpoint engine : GET /v1/crews/{crew}/runs/{runId}/steps?owner_id=...
+   */
+  async listSteps(
+    crewName: string,
+    runId: string,
+    opts: CrewaiCallOptions = {},
+  ): Promise<unknown[]> {
+    const path = withOwnerId(
+      `/v1/crews/${encodeURIComponent(crewName)}/runs/${encodeURIComponent(runId)}/steps`,
+      opts.ownerId,
+    );
+    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+    return handleResponse<unknown[]>(res, path);
+  },
 };
