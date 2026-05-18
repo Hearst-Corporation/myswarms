@@ -6,7 +6,7 @@ Dette V2: ajouter get_run_id_by_kickoff dans run_store et migrer vers uuid FK.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any
 import logging
 

@@ -11,9 +11,10 @@ import { NextRequest } from "next/server";
 // ── Hoisted mock state — must be hoisted before vi.mock() factories ─────────
 // vi.hoisted() runs before the module graph is resolved, so these refs are
 // safe to use inside vi.mock() factories without TDZ issues.
-const { mockKickoff, mockGetOwnerId } = vi.hoisted(() => ({
+const { mockKickoff, mockGetOwnerId, mockRequireOwnerId } = vi.hoisted(() => ({
   mockKickoff: vi.fn(),
   mockGetOwnerId: vi.fn(),
+  mockRequireOwnerId: vi.fn(),
 }));
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
@@ -37,6 +38,8 @@ vi.mock("@/lib/crewai/swarms", () => {
 
 vi.mock("@/lib/auth/owner", () => ({
   getOwnerId: mockGetOwnerId,
+  requireOwnerId: mockRequireOwnerId,
+  OwnerAuthError: class OwnerAuthError extends Error {},
 }));
 
 // Import AFTER mocks are registered
@@ -49,10 +52,14 @@ const VALID_UUID = "550e8400-e29b-41d4-a716-446655440000";
 const INVALID_UUID = "not-a-uuid";
 
 function makeRequest(body: unknown): NextRequest {
+  const serialized = JSON.stringify(body);
   return new NextRequest("http://localhost/api/swarms/test/kickoff", {
     method: "POST",
-    body: JSON.stringify(body),
-    headers: { "Content-Type": "application/json" },
+    body: serialized,
+    headers: {
+      "Content-Type": "application/json",
+      "Content-Length": String(Buffer.byteLength(serialized, "utf8")),
+    },
   });
 }
 
@@ -66,6 +73,7 @@ describe("POST /api/swarms/[id]/kickoff", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGetOwnerId.mockResolvedValue("owner-abc");
+    mockRequireOwnerId.mockResolvedValue("owner-abc");
   });
 
   it("returns 400 when swarm id is not a valid UUID", async () => {
@@ -77,10 +85,14 @@ describe("POST /api/swarms/[id]/kickoff", () => {
   });
 
   it("returns 400 when the JSON body is unparseable", async () => {
+    const rawBody = "NOT JSON";
     const req = new NextRequest("http://localhost/api/swarms/test/kickoff", {
       method: "POST",
-      body: "NOT JSON",
-      headers: { "Content-Type": "application/json" },
+      body: rawBody,
+      headers: {
+        "Content-Type": "application/json",
+        "Content-Length": String(Buffer.byteLength(rawBody, "utf8")),
+      },
     });
     const res = await POST(req, makeContext(VALID_UUID));
     expect(res.status).toBe(400);

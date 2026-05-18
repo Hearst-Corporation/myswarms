@@ -10,11 +10,17 @@ import { NextRequest } from "next/server";
 
 // ── Hoisted mock state ────────────────────────────────────────────────────────
 
-const { mockRecordDecision } = vi.hoisted(() => ({
+const { mockRecordDecision, mockRequireOwnerId } = vi.hoisted(() => ({
   mockRecordDecision: vi.fn(),
+  mockRequireOwnerId: vi.fn(),
 }));
 
 // ── Module mocks ──────────────────────────────────────────────────────────────
+
+vi.mock("@/lib/auth/owner", () => ({
+  requireOwnerId: mockRequireOwnerId,
+  OwnerAuthError: class OwnerAuthError extends Error {},
+}));
 
 vi.mock("@/lib/crewai/client", () => {
   class CrewaiEngineError extends Error {
@@ -68,6 +74,7 @@ const MOCK_DECISION_RESPONSE = {
 describe("POST /api/crews/chief-of-staff/decisions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRequireOwnerId.mockResolvedValue("test-owner-id");
   });
 
   it("valid 'rejected' body → calls crewaiClient.recordDecision with correct args → 201", async () => {
@@ -82,10 +89,11 @@ describe("POST /api/crews/chief-of-staff/decisions", () => {
     expect(body.action).toBe("rejected");
 
     expect(mockRecordDecision).toHaveBeenCalledOnce();
-    expect(mockRecordDecision).toHaveBeenCalledWith("chief-of-staff", {
-      kickoff_id: VALID_UUID,
-      action: "rejected",
-    });
+    expect(mockRecordDecision).toHaveBeenCalledWith(
+      "chief-of-staff",
+      { kickoff_id: VALID_UUID, action: "rejected" },
+      { ownerId: "test-owner-id" },
+    );
   });
 
   it("valid 'snoozed' body with snooze_hours → 201", async () => {
@@ -108,11 +116,11 @@ describe("POST /api/crews/chief-of-staff/decisions", () => {
     const body = await res.json();
     expect(body.action).toBe("snoozed");
 
-    expect(mockRecordDecision).toHaveBeenCalledWith("chief-of-staff", {
-      kickoff_id: VALID_UUID,
-      action: "snoozed",
-      snooze_hours: 2,
-    });
+    expect(mockRecordDecision).toHaveBeenCalledWith(
+      "chief-of-staff",
+      { kickoff_id: VALID_UUID, action: "snoozed", snooze_hours: 2 },
+      { ownerId: "test-owner-id" },
+    );
   });
 
   it("invalid action (not in enum) → 400 validation error", async () => {
