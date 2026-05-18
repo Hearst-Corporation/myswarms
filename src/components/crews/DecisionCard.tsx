@@ -20,13 +20,13 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
     function handleKey(e: KeyboardEvent) {
       const key = e.key.toLowerCase();
       if (key === "e") {
-        console.log("stub: envoyer");
+        // Phase 2 — action non disponible
       } else if (key === "m") {
         router.push(`/crews/chief-of-staff/runs/${runId}`);
       } else if (key === "s") {
-        console.log("stub: snooze");
+        // Phase 2 — snooze non disponible
       } else if (key === "r") {
-        console.log("stub: rejeter");
+        // Phase 2 — rejet non disponible
       }
     }
 
@@ -230,7 +230,8 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
         {/* M — Modifier */}
         <button
-          onClick={() => router.push(`/crews/chief-of-staff/runs/${runId ?? ""}`)}
+          onClick={() => runId && router.push(`/crews/chief-of-staff/runs/${runId}`)}
+          disabled={!runId}
           style={{
             position: "relative",
             padding: `${SPACING.sm}px ${SPACING.lg}px`,

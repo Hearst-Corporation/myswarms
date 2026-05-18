@@ -524,10 +524,3 @@ select:focus-visible {
   50% { opacity: 0.3; }
 }
 
-/* breadcrumb link style */
-.ct-breadcrumb-link {
-  font-size: 13px;
-  color: var(--ct-text-muted);
-  text-decoration: none;
-}
-.ct-breadcrumb-link:hover { text-decoration: underline; }

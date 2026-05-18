@@ -8,14 +8,6 @@ interface Props {
   runStatus: string | null;
 }
 
-function formatTime(iso: string | null): string {
-  if (!iso) return "Aucun run";
-  const d = new Date(iso);
-  const hh = String(d.getHours()).padStart(2, "0");
-  const mm = String(d.getMinutes()).padStart(2, "0");
-  return `${hh}:${mm}`;
-}
-
 function statusColor(status: AgentRow["status"]): string {
   switch (status) {
     case "active":
@@ -34,7 +26,6 @@ export function AgentStatePanel({
   runStatus,
 }: Props) {
   const isRunning = runStatus === "running";
-  const formattedTime = formatTime(lastRunAt);
   const totalItems = runStats?.total ?? null;
 
   return (
@@ -140,7 +131,7 @@ export function AgentStatePanel({
         }}
       >
         <span>
-          Dernier run · {formattedTime} · {totalItems !== null ? totalItems : "—"} items
+          Dernier run · {lastRunAt ?? "Aucun run"} · {totalItems !== null ? totalItems : "—"} items
         </span>
         <span>Prochain · 18:30</span>
       </div>

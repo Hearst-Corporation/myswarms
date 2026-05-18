@@ -10,7 +10,6 @@ import type {
   RunStats,
 } from "./chiefTypes";
 
-// 9 agents statiques dans l'ordre séquentiel
 const AGENT_DEFS: Pick<AgentRow, "icon" | "name">[] = [
   { icon: "🎯", name: "Chief of Staff" },
   { icon: "📥", name: "Inbox Collector" },
@@ -38,6 +37,11 @@ function tryParse(result: string | null | undefined): MockResult | ProductionRes
   } catch {
     return null;
   }
+}
+
+function safeDate(iso: string): Date | null {
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? null : d;
 }
 
 function formatHHMM(date: Date): string {
@@ -93,7 +97,9 @@ function deriveAgentRows(run: RunSummary | null, now: Date): AgentRow[] {
       };
     }
     if (run.status === "running") {
-      const elapsed = now.getTime() - new Date(run.started_at).getTime();
+      const startDate = safeDate(run.started_at);
+      if (!startDate) return { ...def, status: "idle" as const, statusLabel: "—" };
+      const elapsed = now.getTime() - startDate.getTime();
       // On suppose 9 agents actifs sur ~600s total → ~60s par agent
       const estimatedStep = Math.min(Math.floor(elapsed / 60_000), AGENT_DEFS.length - 1);
       if (idx === 0)
@@ -117,7 +123,8 @@ function deriveDiffItems(
   parsed: MockResult | ProductionResult | null,
 ): DiffItem[] {
   if (!run || !parsed) return [];
-  const base = new Date(run.started_at);
+  const base = safeDate(run.started_at);
+  if (!base) return [];
   const items: DiffItem[] = [];
   if (isMockResult(parsed)) {
     const s = parsed.inbox_summary;
@@ -174,7 +181,9 @@ function deriveDiffItems(
 
 function deriveTimeline(run: RunSummary | null, now: Date): TimelineMarker[] {
   if (!run) return [];
-  const startMs = new Date(run.started_at).getTime();
+  const startDate = safeDate(run.started_at);
+  if (!startDate) return [];
+  const startMs = startDate.getTime();
   // Cible 18:30 comme référence de fin de journée
   const today1830 = new Date(run.started_at);
   today1830.setHours(18, 30, 0, 0);
