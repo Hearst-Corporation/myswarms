@@ -4,6 +4,7 @@ import { kimi, KIMI_MODEL } from "@/lib/llm/kimi";
 import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 /**
  * Implémentation ChatPersistence branché sur Supabase.

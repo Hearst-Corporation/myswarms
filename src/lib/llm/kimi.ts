@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 export const kimi = new OpenAI({
-  apiKey: process.env.HYPERCLI_API_KEY!,
+  apiKey: process.env.HYPERCLI_API_KEY || "build-placeholder",
   baseURL: process.env.HYPERCLI_BASE_URL || "https://api.hypercli.com/v1",
 });
 
