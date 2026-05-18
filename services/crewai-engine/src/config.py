@@ -57,7 +57,7 @@ class Settings(BaseSettings):
 
     # CORS — comma-separated JSON list of allowed origins.
     # Default: localhost only. Override in Railway prod env.
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3333"]
 
     # Telemetry
     CREWAI_DISABLE_TELEMETRY: bool = True

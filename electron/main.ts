@@ -19,13 +19,13 @@ async function initStore() {
 }
 
 const ENV_URLS = {
-  local: "http://localhost:3001",
+  local: "http://localhost:3333",
   prod: "https://myswarms.vercel.app",
 };
 
 // --- Boot tuning constants (no magic numbers scattered in logic) ---
 const ENGINE_PORT = 8000;
-const FRONT_PORT = 3001;
+const FRONT_PORT = 3333;
 const ENGINE_HEALTH_URL = `http://localhost:${ENGINE_PORT}/health`;
 const FRONT_URL = `http://localhost:${FRONT_PORT}`;
 const BOOT_TIMEOUT_MS = 90_000;
