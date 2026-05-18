@@ -87,7 +87,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         <div>
           <h1
             className="ct-title"
-            style={{ fontFamily: "monospace", fontSize: 22 /* 22px : taille titre run d'origine, pas de token équivalent (FONT scale: xl=18, xxl=24) */ }}
+            style={{ fontFamily: "monospace", fontSize: FONT.xxl }}
           >
             Run {runId.slice(0, 8)}…
           </h1>
