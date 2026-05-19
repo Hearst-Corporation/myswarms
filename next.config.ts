@@ -5,6 +5,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   turbopack: {
     root: path.resolve(__dirname),
   },
