@@ -7,7 +7,7 @@
 
 // ─── Config (env, pas de magic numbers) ──────────────────────────────────────
 
-export const ENGINE_URL =
+const ENGINE_URL =
   process.env.CREWAI_ENGINE_URL ?? "http://localhost:8000";
 export const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
 
@@ -15,7 +15,7 @@ export const ENGINE_TOKEN = process.env.CREWAI_ENGINE_AUTH_TOKEN ?? "";
  * Limite de troncature du body brut dans les messages d'erreur. Évite de leak
  * une stack trace Python complète en clair vers les clients HTTP.
  */
-export const ERROR_BODY_MAX_CHARS = 200;
+const ERROR_BODY_MAX_CHARS = 200;
 
 // ─── Logging centralisé ───────────────────────────────────────────────────────
 
@@ -118,14 +118,16 @@ export async function authedFetch(
 
 /**
  * Décode la réponse HTTP et lance `EngineError` si non-ok.
- * Gère le 204 No Content (renvoie `null as T`).
  * Le `prefix` permet de distinguer les messages d'erreur entre client et swarms.
+ *
+ * Note : ne gère plus le 204 No Content — utiliser `handleResponseVoid` pour
+ * les endpoints DELETE/204.
  */
-export async function handleResponse<T>(
+export async function handleResponse(
   res: Response,
   path: string,
   prefix = "[crewai/engine]",
-): Promise<T> {
+): Promise<unknown> {
   if (!res.ok) {
     const rawBody = await res.text().catch(() => "(no body)");
     const truncated =
@@ -138,9 +140,37 @@ export async function handleResponse<T>(
       `${prefix} ${res.status} ${res.statusText} on ${path}: ${truncated}`,
     );
   }
-  // 204 No Content → renvoyer null
-  if (res.status === 204) return null as T;
-  return (await res.json()) as T;
+  if (res.status === 204) {
+    throw new EngineError(
+      204,
+      path,
+      `${prefix} unexpected 204 No Content on ${path}`,
+    );
+  }
+  return await res.json();
+}
+
+/**
+ * Variante pour les endpoints qui renvoient 204 No Content (ex: DELETE).
+ * Throw `EngineError` si !res.ok, sinon retourne void.
+ */
+export async function handleResponseVoid(
+  res: Response,
+  path: string,
+  prefix = "[crewai/engine]",
+): Promise<void> {
+  if (!res.ok) {
+    const rawBody = await res.text().catch(() => "(no body)");
+    const truncated =
+      rawBody.length > ERROR_BODY_MAX_CHARS
+        ? `${rawBody.slice(0, ERROR_BODY_MAX_CHARS)}…`
+        : rawBody;
+    throw new EngineError(
+      res.status,
+      path,
+      `${prefix} ${res.status} ${res.statusText} on ${path}: ${truncated}`,
+    );
+  }
 }
 
 // ─── withOwnerId ──────────────────────────────────────────────────────────────

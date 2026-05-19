@@ -58,7 +58,6 @@ export const RunStatusSchema = z.enum([
   "failed",
   "cancelled",
 ]);
-export type RunStatus = z.infer<typeof RunStatusSchema>;
 
 // ─── Defaults via env (pas de magic numbers) ────────────────────────────────
 
@@ -170,7 +169,7 @@ export type SwarmInputRaw = z.input<typeof SwarmInputSchema>;
 // clés effectivement envoyées, et déclenche `replace_*` UNIQUEMENT pour
 // les collections présentes dans le payload.
 //
-// NE PAS faire `SwarmInputSchema.partial()` ici — `.partial()` ne
+// ⚠️ NE PAS faire `SwarmInputSchema.partial()` ici — `.partial()` ne
 // supprime PAS les `.default()`, donc le parse appliquerait
 // `agents: []` même si le client n'a envoyé que `description`.
 export const SwarmPatchSchema = z
@@ -348,13 +347,8 @@ export const ArchitectGenerateRequestSchema = z.object({
     .max(ARCHITECT_PROMPT_MAX, "Description trop longue (4000 caractères max)"),
 });
 
-// Spec renvoyée par l'Architect : même shape que `SwarmInputSchema` (les
-// `.default()` Zod comblent les champs absents → state builder cohérent).
-export const SwarmSpecResponseSchema = SwarmInputSchema;
-export type SwarmSpecResponse = z.output<typeof SwarmSpecResponseSchema>;
-
 export const ArchitectResponseSchema = z.object({
-  spec: SwarmSpecResponseSchema,
+  spec: SwarmInputSchema,
   rationale: z.string().optional().default(""),
   warnings: z.array(z.string()).optional().default([]),
 });

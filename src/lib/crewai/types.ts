@@ -1,15 +1,5 @@
 import { z } from "zod";
 
-// ─── Enums ───────────────────────────────────────────────────────────────────
-
-export type RunStatus =
-  | "pending"
-  | "running"
-  | "paused_hitl"
-  | "completed"
-  | "failed"
-  | "cancelled";
-
 // ─── Zod schemas (runtime validation) ────────────────────────────────────────
 
 export const CrewTriggerSchema = z.enum([

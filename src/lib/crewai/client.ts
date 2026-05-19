@@ -50,7 +50,7 @@ export class CrewaiEngineError extends EngineError {
  *
  * - `ownerId` : ajoute `?owner_id=...` au path engine (multi-tenant V2). `null`/
  *   `undefined` = pas de filtre (V1 single-user).
- * - `timeoutMs` : override le timeout par défaut (`DEFAULT_TIMEOUT_MS`).
+ * - `timeoutMs` : override le timeout par défaut (env `CREWAI_ENGINE_TIMEOUT_MS`, fallback 30s).
  *
  * @internal — non exportée : aucun call-site externe ne l'importe.
  */
@@ -74,7 +74,7 @@ export const crewaiClient = {
       },
       opts.timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
+    const data = await handleResponse(res, path, "[crewai/client]");
     return CrewKickoffResponseSchema.parse(data);
   },
 
@@ -88,7 +88,7 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
+    const data = await handleResponse(res, path, "[crewai/client]");
     return CrewStatusResponseSchema.parse(data);
   },
 
@@ -102,7 +102,7 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
+    const data = await handleResponse(res, path, "[crewai/client]");
     return RunSummaryListSchema.parse(data);
   },
 
@@ -120,7 +120,7 @@ export const crewaiClient = {
       opts.ownerId,
     );
     const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
-    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
+    const data = await handleResponse(res, path, "[crewai/client]");
     return z.array(RunStepSchema).parse(data);
   },
 
@@ -142,7 +142,7 @@ export const crewaiClient = {
       { method: "POST", body: JSON.stringify(payload) },
       opts.timeoutMs,
     );
-    const data = await handleResponse<unknown>(res, path, "[crewai/client]");
+    const data = await handleResponse(res, path, "[crewai/client]");
     return DecisionSchema.parse(data);
   },
 
@@ -162,7 +162,7 @@ export const crewaiClient = {
       );
       const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
       if (!res.ok) return [];
-      const data = await handleResponse<unknown>(res, path, "[crewai/client]");
+      const data = await handleResponse(res, path, "[crewai/client]");
       return z.array(DecisionSchema).parse(data);
     } catch {
       return [];

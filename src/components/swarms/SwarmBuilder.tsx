@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +17,7 @@ import { BuilderAgentsTab } from "./BuilderAgentsTab";
 import { BuilderTasksTab } from "./BuilderTasksTab";
 import { BuilderToolsTab } from "./BuilderToolsTab";
 import { ArchitectModal } from "./ArchitectModal";
-import type { SwarmSpecResponse } from "@/lib/forms/swarmSchemas";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 import { isValidUuid } from "@/lib/utils/uuid";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
 
@@ -58,6 +58,20 @@ function generateLocalId(): string {
   return crypto.randomUUID();
 }
 
+// Dirty detection robuste : sérialise les clés des objets dans un ordre stable
+// pour éviter les faux positifs dus à l'ordre d'insertion après spread.
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, v) => {
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      return Object.keys(v as Record<string, unknown>).sort().reduce<Record<string, unknown>>((acc, k) => {
+        acc[k] = (v as Record<string, unknown>)[k];
+        return acc;
+      }, {});
+    }
+    return v;
+  });
+}
+
 export function SwarmBuilder({
   mode,
   swarmId,
@@ -81,19 +95,36 @@ export function SwarmBuilder({
   // Incrémenté à chaque ouverture → remonte le modal avec un state propre
   // (évite un reset via setState-in-effect, flaggé par le lint).
   const [architectKey, setArchitectKey] = useState(0);
+  // AlertDialog : remplacement spec IA en mode edit
+  const [pendingSpec, setPendingSpec] = useState<SwarmInput | null>(null);
+  // AlertDialog : abandon modifications (dirty)
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+
+  // IDs accessibilité checkboxes
+  const isActiveId = useId();
+  const isTemplateId = useId();
 
   // Pattern Zod 4 + react-hook-form : `<TInput, TContext, TOutput>` —
   // l'input contient les défauts optionnels, l'output est résolu (avec défauts appliqués).
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty: formIsDirty },
     getValues,
     setValue,
   } = useForm<SwarmInputRaw, undefined, SwarmInput>({
     resolver: zodResolver(SwarmInputSchema),
     defaultValues: initialSwarm ?? EMPTY_SWARM,
   });
+
+  // Dirty detection pour les listes gérées en useState (hors react-hook-form)
+  const agentsChanged =
+    stableStringify(agents) !== stableStringify((initialSwarm?.agents ?? []) as AgentInput[]);
+  const tasksChanged =
+    stableStringify(tasks) !== stableStringify((initialSwarm?.tasks ?? []) as TaskInput[]);
+  const bindingsChanged =
+    stableStringify(toolBindings) !== stableStringify((initialSwarm?.tool_bindings ?? []) as ToolBindingInput[]);
+  const isDirty = formIsDirty || agentsChanged || tasksChanged || bindingsChanged;
 
   const onSubmit = async (data: SwarmInput) => {
     setSubmitting(true);
@@ -170,14 +201,7 @@ export function SwarmBuilder({
   // Cohérence des ids : on conserve les UUID valides fournis par l'architecte
   // (et leurs références croisées), on (re)génère un id local UNIQUEMENT pour
   // les entités sans UUID valide, en remappant les références correspondantes.
-  const onGenerated = (spec: SwarmSpecResponse) => {
-    if (mode === "edit") {
-      const ok = window.confirm(
-        "Remplacer le contenu actuel du builder par la spec générée ? Les modifications non enregistrées seront perdues.",
-      );
-      if (!ok) return;
-    }
-
+  const applySpec = (spec: SwarmInput) => {
     const specAgents = spec.agents ?? [];
     const specTasks = spec.tasks ?? [];
     const specBindings = spec.tool_bindings ?? [];
@@ -192,12 +216,13 @@ export function SwarmBuilder({
       return { ...a, id: newId } as AgentInput;
     });
     // Second passage : remap parent_agent_id sur les nouveaux ids.
+    // Si la ref est orpheline (absent du map), null plutôt que conserver un id invalide.
     const resolvedAgents = nextAgents.map((a) => ({
       ...a,
       parent_agent_id:
         a.parent_agent_id && agentIdMap.has(a.parent_agent_id)
           ? agentIdMap.get(a.parent_agent_id)!
-          : a.parent_agent_id ?? null,
+          : null,
     }));
 
     const taskIdMap = new Map<string, string>();
@@ -210,14 +235,16 @@ export function SwarmBuilder({
     });
     const resolvedTasks = nextTasks.map((t) => ({
       ...t,
+      // Si ref orpheline : string vide → déclenche le placeholder "Aucun agent — re-pair requis"
       agent_id:
         t.agent_id && agentIdMap.has(t.agent_id)
           ? agentIdMap.get(t.agent_id)!
-          : t.agent_id,
+          : "",
+      // Si ref orpheline : null plutôt que conserver un id invalide
       depends_on_task_id:
         t.depends_on_task_id && taskIdMap.has(t.depends_on_task_id)
           ? taskIdMap.get(t.depends_on_task_id)!
-          : t.depends_on_task_id ?? null,
+          : null,
     }));
 
     const resolvedBindings: ToolBindingInput[] = specBindings.map((b) => ({
@@ -240,6 +267,16 @@ export function SwarmBuilder({
     setActiveTab("overview");
   };
 
+  // onGenerated : en mode edit, ouvre la confirmation avant d'écraser.
+  // En mode create, applique directement.
+  const onGenerated = (spec: SwarmInput) => {
+    if (mode === "edit") {
+      setPendingSpec(spec);
+    } else {
+      applySpec(spec);
+    }
+  };
+
   const previewJson = useMemo(() => {
     const snapshot = {
       ...getValues(),
@@ -251,6 +288,35 @@ export function SwarmBuilder({
   }, [agents, tasks, toolBindings, getValues]);
 
   return (
+    <>
+      {/* AlertDialog : confirmation remplacement spec IA en mode edit */}
+      <AlertDialog
+        open={pendingSpec !== null}
+        onClose={() => setPendingSpec(null)}
+        onConfirm={() => {
+          if (pendingSpec) applySpec(pendingSpec);
+          setPendingSpec(null);
+        }}
+        title="Remplacer le contenu du builder ?"
+        description="La spec générée va écraser les agents, tâches et tools actuels. Tu pourras toujours éditer après."
+        variant="warning"
+        impact={<>{agents.length} agent(s) et {tasks.length} tâche(s) seront remplacés.</>}
+        confirmLabel="Remplacer"
+        cancelLabel="Annuler"
+      />
+
+      {/* AlertDialog : abandon modifications dirty */}
+      <AlertDialog
+        open={showCancelDialog}
+        onClose={() => setShowCancelDialog(false)}
+        onConfirm={() => { setShowCancelDialog(false); router.push("/swarms"); }}
+        title="Abandonner les modifications ?"
+        description="Tu as des changements non sauvegardés. Cette action est irréversible."
+        variant="warning"
+        confirmLabel="Abandonner"
+        cancelLabel="Rester"
+      />
+
     <form onSubmit={handleSubmit(onSubmit)}>
       <div
         style={{
@@ -282,8 +348,9 @@ export function SwarmBuilder({
             setArchitectOpen(true);
           }}
           disabled={submitting}
+          aria-disabled={submitting}
         >
-          Générer avec l&apos;IA
+          ✨ Générer avec l&apos;IA
         </button>
       </div>
 
@@ -322,6 +389,7 @@ export function SwarmBuilder({
 
             <div style={{ display: "flex", gap: SPACING.lg, flexWrap: "wrap" }}>
               <label
+                htmlFor={isActiveId}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -330,10 +398,11 @@ export function SwarmBuilder({
                   color: "var(--ct-text-primary)",
                 }}
               >
-                <input type="checkbox" {...register("is_active")} />
+                <input id={isActiveId} type="checkbox" {...register("is_active")} />
                 Actif (déclenchable)
               </label>
               <label
+                htmlFor={isTemplateId}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -342,7 +411,7 @@ export function SwarmBuilder({
                   color: "var(--ct-text-primary)",
                 }}
               >
-                <input type="checkbox" {...register("is_template")} />
+                <input id={isTemplateId} type="checkbox" {...register("is_template")} />
                 Template
               </label>
             </div>
@@ -353,6 +422,7 @@ export function SwarmBuilder({
       {activeTab === "agents" && (
         <BuilderAgentsTab
           agents={agents}
+          tasks={tasks}
           onAdd={addAgent}
           onUpdate={updateAgent}
           onRemove={removeAgent}
@@ -389,7 +459,7 @@ export function SwarmBuilder({
               padding: SPACING.md,
               fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
-              fontFamily: "monospace",
+              fontFamily: "var(--font-mono)",
               overflow: "auto",
               maxHeight: SIZE.previewMaxH,
             }}
@@ -423,8 +493,15 @@ export function SwarmBuilder({
         <button
           type="button"
           className="ct-seg-btn"
-          onClick={() => router.push("/swarms")}
+          onClick={() => {
+            if (isDirty) {
+              setShowCancelDialog(true);
+            } else {
+              router.push("/swarms");
+            }
+          }}
           disabled={submitting}
+          aria-disabled={submitting}
         >
           Annuler
         </button>
@@ -432,6 +509,7 @@ export function SwarmBuilder({
           type="submit"
           className="ct-seg-btn primary"
           disabled={submitting}
+          aria-disabled={submitting}
         >
           {submitting
             ? "Sauvegarde…"
@@ -441,6 +519,7 @@ export function SwarmBuilder({
         </button>
       </div>
     </form>
+    </>
   );
 }
 
@@ -464,7 +543,6 @@ const inputStyle: React.CSSProperties = {
   color: "var(--ct-text-primary)",
   fontSize: FONT.base,
   fontFamily: "inherit",
-  outline: "none",
 };
 const errorStyle: React.CSSProperties = {
   fontSize: FONT.xs,

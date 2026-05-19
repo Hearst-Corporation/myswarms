@@ -99,10 +99,3 @@ export const SIZE = {
   outputMaxH: 240,
 } as const;
 
-export type Spacing = keyof typeof SPACING;
-export type Radius = keyof typeof RADIUS;
-export type Font = keyof typeof FONT;
-export type LineHeight = keyof typeof LINE_HEIGHT;
-export type FontWeight = keyof typeof FONT_WEIGHT;
-export type LetterSpacing = keyof typeof LETTER_SPACING;
-export type ZIndex = keyof typeof Z_INDEX;

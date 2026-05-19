@@ -2,7 +2,6 @@
 
 import {
   useCallback,
-  useEffect,
   useId,
   useRef,
   useState,
@@ -11,9 +10,11 @@ import {
 import {
   ArchitectGenerateRequestSchema,
   type ArchitectResponse,
-  type SwarmSpecResponse,
+  type SwarmInput,
 } from "@/lib/forms/swarmSchemas";
-import { BLUR, COLOR, FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING, Z_INDEX } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { AlertDialog } from "@/components/ui/AlertDialog";
+import Modal from "@/components/ui/Modal";
 
 // Pas de magic numbers : bornes prompt dérivées du même schema Zod que le BFF.
 const PROMPT_MIN = ArchitectGenerateRequestSchema.shape.prompt.minLength ?? 10;
@@ -27,8 +28,8 @@ type Phase = "idle" | "loading" | "error" | "success";
 interface ArchitectModalProps {
   open: boolean;
   onClose: () => void;
-  /** Appelé avec la spec générée (shape SwarmInputRaw) avant fermeture. */
-  onGenerated: (spec: SwarmSpecResponse) => void;
+  /** Appelé avec la spec générée avant fermeture. */
+  onGenerated: (spec: SwarmInput) => void;
 }
 
 export function ArchitectModal({
@@ -40,9 +41,9 @@ export function ArchitectModal({
   const [phase, setPhase] = useState<Phase>("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<ArchitectResponse | null>(null);
+  const [showCloseWarning, setShowCloseWarning] = useState(false);
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descId = useId();
 
@@ -50,43 +51,14 @@ export function ArchitectModal({
     prompt.trim().length >= PROMPT_MIN && prompt.length <= PROMPT_MAX;
   const pending = phase === "loading";
 
-  // Focus initial sur le textarea à l'ouverture. Le reset d'état est assuré
-  // par un remount (clé `open-…` côté SwarmBuilder), donc pas de setState
-  // dans cet effect (lint react-hooks/set-state-in-effect).
-  useEffect(() => {
-    if (!open) return;
-    const t = window.setTimeout(() => textareaRef.current?.focus(), 0);
-    return () => window.clearTimeout(t);
-  }, [open]);
-
-  // Fermeture via Échap + focus trap basique (Tab cyclique dans le dialog).
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.key === "Escape" && !pending) {
-        e.stopPropagation();
-        onClose();
-        return;
-      }
-      if (e.key !== "Tab") return;
-      const root = dialogRef.current;
-      if (!root) return;
-      const focusable = root.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), textarea:not([disabled]), [href], input:not([disabled])',
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-      if (e.shiftKey && active === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && active === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    },
-    [onClose, pending],
-  );
+  // tryClose : intercepte la fermeture si une spec a été générée mais pas encore injectée.
+  const tryClose = useCallback(() => {
+    if (phase === "success" && result) {
+      setShowCloseWarning(true);
+    } else {
+      onClose();
+    }
+  }, [phase, result, onClose]);
 
   const generate = useCallback(async () => {
     if (!promptValid || pending) return;
@@ -128,25 +100,27 @@ export function ArchitectModal({
   if (!open) return null;
 
   return (
-    <div
-      style={overlayStyle}
-      onMouseDown={(e) => {
-        // Clic sur l'overlay (hors carte) = fermeture, sauf pendant le run.
-        if (e.target === e.currentTarget && !pending) onClose();
-      }}
+    <>
+    <AlertDialog
+      open={showCloseWarning}
+      onClose={() => setShowCloseWarning(false)}
+      onConfirm={() => { setShowCloseWarning(false); onClose(); }}
+      title="Quitter sans injecter la spec ?"
+      description="La spec générée sera perdue. L'appel IA reste consommé."
+      confirmLabel="Quitter sans injecter"
+      cancelLabel="Rester"
+      variant="warning"
+    />
+    <Modal
+      open={open}
+      onClose={tryClose}
+      ariaLabelledBy={titleId}
+      ariaDescribedBy={descId}
+      initialFocusRef={textareaRef}
+      maxWidth={MODAL_MAX_WIDTH}
     >
       {/* Keyframe spinner injecté localement. */}
       <style>{`@keyframes ct-architect-spin{to{transform:rotate(360deg)}}`}</style>
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descId}
-        className="ct-card"
-        style={cardStyle}
-        onKeyDown={handleKeyDown}
-      >
         <div style={headerStyle}>
           <div>
             <div className="ct-eyebrow">Architect Agent</div>
@@ -157,8 +131,8 @@ export function ArchitectModal({
           <button
             type="button"
             className="ct-seg-btn"
-            aria-label="Fermer"
-            onClick={onClose}
+            aria-label="Fermer la fenêtre de génération"
+            onClick={tryClose}
             disabled={pending}
             style={{
               width: 44,
@@ -170,10 +144,7 @@ export function ArchitectModal({
               flexShrink: 0,
             }}
           >
-            <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
-              <line x1={3} y1={3} x2={13} y2={13} />
-              <line x1={13} y1={3} x2={3} y2={13} />
-            </svg>
+            ✕
           </button>
         </div>
 
@@ -238,7 +209,7 @@ export function ArchitectModal({
             {result.warnings.length > 0 ? (
               <ul style={warningListStyle}>
                 {result.warnings.map((w, i) => (
-                  <li key={i}>{w}</li>
+                  <li key={i}>⚠ {w}</li>
                 ))}
               </ul>
             ) : null}
@@ -249,7 +220,7 @@ export function ArchitectModal({
           <button
             type="button"
             className="ct-seg-btn"
-            onClick={onClose}
+            onClick={tryClose}
             disabled={pending}
           >
             Annuler
@@ -277,31 +248,12 @@ export function ArchitectModal({
             </button>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
+    </>
   );
 }
 
 // ─── Styles (tokens UI, pas de magic numbers) ───────────────────────────────
-
-const overlayStyle: CSSProperties = {
-  position: "fixed",
-  inset: 0,
-  zIndex: Z_INDEX.modal,
-  background: COLOR.overlayModal,
-  backdropFilter: BLUR.modalLight,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: SPACING.lg,
-};
-
-const cardStyle: CSSProperties = {
-  width: "100%",
-  maxWidth: MODAL_MAX_WIDTH,
-  maxHeight: "90vh",
-  overflowY: "auto",
-};
 
 const headerStyle: CSSProperties = {
   display: "flex",
@@ -333,7 +285,6 @@ const inputStyle: CSSProperties = {
   color: "var(--ct-text-primary)",
   fontSize: FONT.base,
   fontFamily: "inherit",
-  outline: "none",
 };
 
 const hintStyle: CSSProperties = {
