@@ -1,4 +1,5 @@
 import type { TimelineMarker } from "@/lib/crews/chiefTypes";
+import { SIZE, TRANSITION } from "@/lib/ui/tokens";
 
 interface Props {
   markers: TimelineMarker[];
@@ -9,7 +10,7 @@ const RAIL_H = 8;
 // Réserve pour les labels au-dessus/en dessous du rail
 const LABEL_RESERVE = 24;
 // Hauteur totale de la zone des markers
-const ROW_H = 40;
+const ROW_H = SIZE.timelineRow;
 
 function dotBackground(variant: TimelineMarker["variant"]): string {
   switch (variant) {
@@ -75,7 +76,7 @@ export function DayTimeline({ markers }: Props) {
             background: "var(--ct-accent-strong)",
             transform: "translateY(-50%)",
             borderRadius: 4,
-            transition: "width 0.4s var(--ct-ease)",
+            transition: `width ${TRANSITION.medium} var(--ct-ease)`,
           }}
         />
 

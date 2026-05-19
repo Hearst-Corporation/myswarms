@@ -12,7 +12,7 @@ import {
   type ArchitectResponse,
   type SwarmInput,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
 import { AlertDialog } from "@/components/ui/AlertDialog";
 import Modal from "@/components/ui/Modal";
 
@@ -20,8 +20,8 @@ import Modal from "@/components/ui/Modal";
 const PROMPT_MIN = ArchitectGenerateRequestSchema.shape.prompt.minLength ?? 10;
 const PROMPT_MAX = ArchitectGenerateRequestSchema.shape.prompt.maxLength ?? 4000;
 
-const SPINNER_SIZE = 28;
-const MODAL_MAX_WIDTH = 560;
+const SPINNER_SIZE = SIZE.spinner;
+const MODAL_MAX_WIDTH = SIZE.modalMaxWidth;
 
 type Phase = "idle" | "loading" | "error" | "success";
 

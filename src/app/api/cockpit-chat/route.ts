@@ -86,10 +86,31 @@ const cockpitPersistence: ChatPersistence = {
   },
 };
 
-export const { POST } = createCockpitChatHandler({
+const baseConfig = {
   llmClient: kimi,
   model: KIMI_MODEL,
   systemPrompt:
     "Tu es l'assistant Kimi intégré à Hearst Hive — builder visuel de swarms multi-agents & Daily Chief of Staff. Réponds en français.",
   persistence: cockpitPersistence,
-});
+  // Rate-limit par user authentifié (évite les faux positifs en NAT entreprise).
+  // Le store interne du handler est au niveau module → partagé entre les
+  // instances créées par requête, l'intégrité du rate-limit est préservée.
+  rateLimitMax: 50,
+  rateLimitWindowMs: 60_000,
+};
+
+export async function POST(req: Request): Promise<Response> {
+  let userId: string | undefined;
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    userId = user?.id;
+  } catch {
+    // Pas de session résolvable → fallback rate-limit par IP (comportement handler).
+  }
+
+  const { POST: handler } = createCockpitChatHandler({ ...baseConfig, userId });
+  return handler(req);
+}

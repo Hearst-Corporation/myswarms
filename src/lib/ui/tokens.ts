@@ -97,5 +97,23 @@ export const SIZE = {
   logoLg: 48,
   previewMaxH: 480,
   outputMaxH: 240,
+  iconSm: 14,
+  iconMd: 16,
+  iconLg: 20,
+  btnClose: 44,
+  spinner: 28,
+  modalMaxWidth: 560,
+  timelineRow: 40,
+  agentDiffTimeCol: 38,
+} as const;
+
+export const TRANSITION = {
+  fast: "180ms",
+  medium: "400ms",
+} as const;
+
+export const OPACITY = {
+  disabled: 0.5,
+  muted: 0.6,
 } as const;
 

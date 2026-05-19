@@ -28,12 +28,12 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: SPACING.sm }}>
-      <form action={formAction} style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
+      <form action={formAction} style={{ display: "flex", alignItems: "center", gap: SPACING.sm, flexWrap: "wrap", justifyContent: "flex-end" }}>
         <select
           name="trigger"
           defaultValue="on_demand"
           aria-label="Type de déclenchement"
-          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit" }}
+          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit", flex: "1 1 auto", minWidth: 140 }}
         >
           <option value="on_demand">On-demand</option>
           <option value="morning">Morning</option>

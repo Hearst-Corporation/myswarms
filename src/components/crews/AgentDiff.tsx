@@ -1,4 +1,5 @@
 import type { DiffItem } from "@/lib/crews/chiefTypes";
+import { SIZE } from "@/lib/ui/tokens";
 
 interface Props {
   items: DiffItem[];
@@ -7,7 +8,7 @@ interface Props {
 }
 
 // Largeur minimale de la colonne temps (px)
-const TIME_COL_W = 38;
+const TIME_COL_W = SIZE.agentDiffTimeCol;
 
 /**
  * Parse bold markdown (**text**) et render des segments alternés plain/bold.

@@ -9,8 +9,10 @@ export const dynamic = "force-dynamic";
 const DecisionRequestSchema = z.object({
   kickoff_id: z.string().uuid(),
   action: z.enum(["sent", "snoozed", "rejected"]),
-  snooze_hours: z.number().int().positive().optional(),
+  snooze_hours: z.number().int().nonnegative().optional(),
 });
+
+const uuidSchema = z.string().uuid();
 
 /**
  * GET /api/crews/chief-of-staff/decisions?kickoffId=<uuid>
@@ -23,6 +25,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const kickoffId = req.nextUrl.searchParams.get("kickoffId") ?? "";
   if (!kickoffId) {
     return NextResponse.json({ error: "Missing kickoffId query param" }, { status: 400 });
+  }
+  if (!uuidSchema.safeParse(kickoffId).success) {
+    return NextResponse.json({ error: "Invalid kickoffId (expected UUID)" }, { status: 400 });
   }
 
   try {

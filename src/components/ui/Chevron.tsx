@@ -1,3 +1,5 @@
+import { SIZE } from "@/lib/ui/tokens";
+
 export function Chevron({ direction }: { direction: "left" | "right" }) {
   const style =
     direction === "left"
@@ -5,8 +7,8 @@ export function Chevron({ direction }: { direction: "left" | "right" }) {
       : { display: "inline-block", verticalAlign: "middle", marginLeft: 6 };
   return (
     <svg
-      width={14}
-      height={14}
+      width={SIZE.iconSm}
+      height={SIZE.iconSm}
       viewBox="0 0 14 14"
       fill="none"
       stroke="currentColor"

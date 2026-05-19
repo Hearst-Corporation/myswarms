@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { ArchitectGenerateRequestSchema } from "@/lib/forms/swarmSchemas";
-import { getOwnerId } from "@/lib/auth/owner";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { checkBodySize } from "@/lib/utils/body-limit";
 import { checkRateLimit } from "@/lib/utils/rate-limit";
 
@@ -53,9 +53,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    const ownerId = await getOwnerId();
+    const ownerId = await requireOwnerId();
 
-    const rateKey = `architect:${ownerId ?? "anonymous"}`;
+    const rateKey = `architect:${ownerId}`;
     const rl = checkRateLimit(rateKey);
     if (!rl.allowed) {
       return NextResponse.json(
@@ -70,6 +70,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
     return NextResponse.json(result);
   } catch (err) {
+    if (err instanceof OwnerAuthError) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     return engineErrorResponse(err);
   }
 }

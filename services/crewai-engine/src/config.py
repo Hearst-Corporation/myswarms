@@ -49,6 +49,20 @@ class Settings(BaseSettings):
     CREWAI_DEFAULT_BALANCED_MODEL: str = "openai/kimi-k2.6"
     CREWAI_DEFAULT_SMART_MODEL: str = "openai/kimi-k2.6"
 
+    # Résilience appels LLM Hypercli (litellm via crewai.LLM). Hypercli avait
+    # été écarté en N-1 pour empty-responses/timeouts — retry exponentiel +
+    # timeout explicite pour fiabiliser le crew Chief of Staff (8 agents).
+    LLM_REQUEST_TIMEOUT_SECONDS: int = Field(
+        default=120,
+        gt=0,
+        description="Timeout (s) par appel LLM Hypercli avant abandon.",
+    )
+    LLM_MAX_RETRIES: int = Field(
+        default=3,
+        ge=0,
+        description="Nombre de retries (429/5xx) par appel LLM Hypercli (litellm num_retries).",
+    )
+
     # Supabase
     SUPABASE_URL: str = ""
     SUPABASE_SERVICE_ROLE_KEY: str = ""

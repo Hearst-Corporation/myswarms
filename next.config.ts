@@ -9,6 +9,15 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  experimental: {
+    optimizePackageImports: [
+      "@hearst/cockpit-shell",
+      "@hearst/hub-sdk",
+      "@supabase/supabase-js",
+      "@sentry/nextjs",
+      "openai",
+    ],
+  },
   async headers() {
     // Autorise toujours l'embed depuis le hub Hearst Cockpit (localhost:4200/4201).
     // Ces origines locales ne peuvent jamais être servies en prod → aucun risque.
@@ -38,6 +47,16 @@ const nextConfig: NextConfig = {
           },
           // Pas de X-Frame-Options : il bloque toute embed cross-origin et ne
           // supporte pas de whitelist. Le CSP frame-ancestors ci-dessus suffit.
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
         ],
       },
     ];

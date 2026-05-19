@@ -10,6 +10,7 @@ import {
   FONT_WEIGHT,
   LETTER_SPACING,
   LINE_HEIGHT,
+  TRANSITION,
 } from "@/lib/ui/tokens";
 
 /**
@@ -25,6 +26,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -45,15 +47,38 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
 
     // Rafraîchir le Server Component pour que le middleware voie la session,
     // puis rediriger vers la page demandée (ou l'accueil par défaut).
+    setRedirecting(true);
     router.refresh();
     router.replace(returnTo);
   }
 
   return (
     <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 360 }}>
+      {redirecting && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          style={{
+            marginBottom: SPACING.lg,
+            padding: `${SPACING.s}px ${SPACING.md}px`,
+            borderRadius: RADIUS.md,
+            background: "var(--ct-surface-2)",
+            border: "1px solid var(--ct-border-strong)",
+            color: "var(--ct-text-primary)",
+            fontSize: FONT.base,
+            lineHeight: LINE_HEIGHT.tight,
+          }}
+        >
+          Connexion réussie — redirection en cours…
+        </div>
+      )}
+
       {error && (
         <div
           role="alert"
+          aria-live="polite"
+          aria-atomic="true"
           style={{
             marginBottom: SPACING.lg,
             padding: `${SPACING.s}px ${SPACING.md}px`,
@@ -101,7 +126,7 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
             color: "var(--ct-text-primary)",
             fontSize: FONT.md,
             fontFamily: "inherit",
-            transition: "border-color 180ms",
+            transition: `border-color ${TRANSITION.fast}`,
           }}
         />
       </div>
@@ -138,18 +163,19 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
             color: "var(--ct-text-primary)",
             fontSize: FONT.md,
             fontFamily: "inherit",
-            transition: "border-color 180ms",
+            transition: `border-color ${TRANSITION.fast}`,
           }}
         />
       </div>
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || redirecting}
+        aria-busy={loading || redirecting}
         className="ct-seg-btn primary"
         style={{ width: "100%" }}
       >
-        {loading ? "Connexion…" : "Se connecter"}
+        {redirecting ? "Redirection…" : loading ? "Connexion…" : "Se connecter"}
       </button>
     </form>
   );

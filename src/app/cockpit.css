@@ -6,9 +6,9 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* ── Hearst Hive accent override (#3FA7E0) ── */
+  /* ── Hearst Hive accent override (bordeaux #6b1e2e) ── */
   --ct-bg-deep: #030d14;
-  --ct-accent: #3FA7E0;
+  --ct-accent: #6b1e2e;
   --ct-accent-strong: color-mix(in srgb, var(--ct-accent) 78%, #fff);
   --ct-accent-maroon: color-mix(in srgb, var(--ct-accent) 70%, #1A050B);
   --ct-accent-soft: color-mix(in srgb, var(--ct-accent) 18%, transparent);

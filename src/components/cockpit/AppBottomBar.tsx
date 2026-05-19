@@ -96,11 +96,11 @@ export function AppBottomBar() {
               <Link href={`${pathname}/edit`} className="ct-seg-btn">
                 Edit
               </Link>
-              <span className="ct-seg-btn active" role="button" aria-disabled="true" tabIndex={0}>View</span>
+              <span className="ct-seg-btn active" aria-current="page">View</span>
             </>
           ) : isSwarmEdit ? (
             <>
-              <span className="ct-seg-btn active" role="button" aria-disabled="true" tabIndex={0}>Edit</span>
+              <span className="ct-seg-btn active" aria-current="page">Edit</span>
               <Link
                 href={pathname.replace(/\/edit$/, "")}
                 className="ct-seg-btn"
@@ -109,7 +109,7 @@ export function AppBottomBar() {
               </Link>
             </>
           ) : isSwarmNew ? (
-            <span className="ct-seg-btn primary" role="button" aria-disabled="true" tabIndex={0}>Create</span>
+            <span className="ct-seg-btn primary" aria-current="page">Create</span>
           ) : (
             <Link href="/swarms/new" className="ct-seg-btn primary">
               Build
