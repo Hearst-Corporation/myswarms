@@ -210,7 +210,14 @@ describe("POST /api/crews/chief-of-staff/decisions", () => {
     expect(mockRecordDecision).not.toHaveBeenCalled();
   });
 
-  it("snooze_hours is zero (not positive) → 400 validation error", async () => {
+  it("snooze_hours zero (0 = pas de snooze) → 201", async () => {
+    const snoozedDecision = {
+      ...MOCK_DECISION_RESPONSE,
+      action: "snoozed" as const,
+      snooze_until: null,
+    };
+    mockRecordDecision.mockResolvedValue(snoozedDecision);
+
     const req = makeRequest({
       kickoff_id: VALID_UUID,
       action: "snoozed",
@@ -218,8 +225,12 @@ describe("POST /api/crews/chief-of-staff/decisions", () => {
     });
     const res = await POST(req);
 
-    expect(res.status).toBe(400);
-    expect(mockRecordDecision).not.toHaveBeenCalled();
+    expect(res.status).toBe(201);
+    expect(mockRecordDecision).toHaveBeenCalledWith(
+      "chief-of-staff",
+      { kickoff_id: VALID_UUID, action: "snoozed", snooze_hours: 0 },
+      { ownerId: "test-owner-id" },
+    );
   });
 
   it("unknown Error (not CrewaiEngineError) → 502 with error message", async () => {

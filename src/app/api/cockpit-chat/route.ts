@@ -2,6 +2,7 @@ import { createCockpitChatHandler } from "@hearst/cockpit-shell/handler";
 import type { ChatPersistence, ChatMessage } from "@hearst/cockpit-shell";
 import { kimi, KIMI_MODEL } from "@/lib/llm/kimi";
 import { createClient } from "@/lib/supabase/server";
+import { traceChatEvent } from "@/lib/observability/langfuse";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,6 +112,7 @@ export async function POST(req: Request): Promise<Response> {
     // Pas de session résolvable → fallback rate-limit par IP (comportement handler).
   }
 
+  traceChatEvent({ name: "cockpit-chat", userId, model: KIMI_MODEL, metadata: { runtime: "nodejs" } });
   const { POST: handler } = createCockpitChatHandler({ ...baseConfig, userId });
   return handler(req);
 }

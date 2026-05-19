@@ -2,10 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { NextRequest } from "next/server";
 
 // ── Hoisted mock state ───────────────────────────────────────────────────────
-const { mockCheckRateLimit, mockArchitectGenerate, mockGetOwnerId } = vi.hoisted(() => ({
+const { mockCheckRateLimit, mockArchitectGenerate, mockRequireOwnerId } = vi.hoisted(() => ({
   mockCheckRateLimit: vi.fn(),
   mockArchitectGenerate: vi.fn(),
-  mockGetOwnerId: vi.fn(),
+  mockRequireOwnerId: vi.fn(),
 }));
 
 // Mock the rate-limit module
@@ -24,7 +24,8 @@ vi.mock("@/lib/crewai/swarms", () => {
 
 // Mock auth
 vi.mock("@/lib/auth/owner", () => ({
-  getOwnerId: mockGetOwnerId,
+  requireOwnerId: mockRequireOwnerId,
+  OwnerAuthError: class OwnerAuthError extends Error {},
 }));
 
 import { POST } from "@/app/api/swarms/architect/generate/route";
@@ -46,7 +47,7 @@ function makeRequest(body: unknown): Request {
 describe("POST /api/swarms/architect/generate — rate limiting", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetOwnerId.mockResolvedValue("test-owner-id");
+    mockRequireOwnerId.mockResolvedValue("test-owner-id");
   });
 
   it("returns 429 with Retry-After header when rate limit exceeded", async () => {
