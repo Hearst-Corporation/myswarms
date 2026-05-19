@@ -64,7 +64,7 @@ def _get_client():
         logger.warning("Supabase not configured — swarm operations no-op")
         return None
     try:
-        from supabase import create_client  # type: ignore[import-untyped]
+        from supabase import create_client  # type: ignore[import-untyped] -- supabase-py sans stubs mypy
         _supabase_client = create_client(
             settings.SUPABASE_URL,
             settings.SUPABASE_SERVICE_ROLE_KEY,

@@ -15,7 +15,7 @@ try:
     from ..composio_session import get_composio_tools_for_toolkits
     _composio_available = True
 except ImportError:
-    def get_composio_tools_for_toolkits(toolkits: list) -> list:  # type: ignore[misc]
+    def get_composio_tools_for_toolkits(toolkits: list) -> list:  # type: ignore[misc] -- stub fallback redéfinit symbole importé
         return []
     _composio_available = False
 
