@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@hearst/cockpit-shell": "file:./hearst-cockpit-shell-0.2.0.tgz",
-    "@hearst/hub-sdk": "file:./hearst-hub-sdk-0.1.0.tgz",
+    "@hearst/hub-sdk": "file:./hearst-hub-sdk-0.2.0.tgz",
     "@hookform/resolvers": "^5.2.2",
     "@sentry/nextjs": "^10.53.1",
     "@supabase/ssr": "^0.10.3",
