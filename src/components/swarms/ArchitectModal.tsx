@@ -157,7 +157,7 @@ export function ArchitectModal({
           <button
             type="button"
             className="ct-seg-btn"
-            aria-label="Fermer la fenêtre de génération"
+            aria-label="Fermer"
             onClick={onClose}
             disabled={pending}
             style={{
@@ -170,7 +170,10 @@ export function ArchitectModal({
               flexShrink: 0,
             }}
           >
-            ✕
+            <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" aria-hidden="true">
+              <line x1={3} y1={3} x2={13} y2={13} />
+              <line x1={13} y1={3} x2={3} y2={13} />
+            </svg>
           </button>
         </div>
 
@@ -235,7 +238,7 @@ export function ArchitectModal({
             {result.warnings.length > 0 ? (
               <ul style={warningListStyle}>
                 {result.warnings.map((w, i) => (
-                  <li key={i}>⚠ {w}</li>
+                  <li key={i}>{w}</li>
                 ))}
               </ul>
             ) : null}

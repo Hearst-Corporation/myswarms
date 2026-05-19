@@ -68,7 +68,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- handleDecision recree a chaque render
   }, [p0Item, runId, router, loading]);
 
   if (!p0Item) {
@@ -77,7 +77,22 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
         className="ct-card"
         style={{ textAlign: "center", padding: SPACING.xxl }}
       >
-        <div style={{ fontSize: FONT.iconLg }}>🎯</div>
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{ margin: "0 auto", display: "block", color: "var(--ct-text-muted)" }}
+        >
+          <circle cx="12" cy="12" r="10" />
+          <circle cx="12" cy="12" r="6" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="12" cy="12" r="0.5" fill="currentColor" stroke="none" />
+        </svg>
         <p
           style={{
             color: "var(--ct-text-muted)",
@@ -92,7 +107,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
   }
 
   const channel = p0Item.channel ?? "Gmail";
-  const channelEmoji = channel.toLowerCase().includes("gmail") ? "📧" : "💬";
+  const channelLabel = channel.toLowerCase().includes("gmail") ? "Mail" : "Chat";
 
   return (
     <div
@@ -127,7 +142,7 @@ export function DecisionCard({ p0Item, draftText, runId }: Props) {
             color: "var(--ct-text-muted)",
           }}
         >
-          {channelEmoji} {channel}
+          {channelLabel} · {channel}
         </span>
         <span
           style={{

@@ -3,8 +3,6 @@ import {
   SPACING,
   RADIUS,
   FONT,
-  FONT_WEIGHT,
-  LETTER_SPACING,
   BLUR,
   SIZE,
 } from "@/lib/ui/tokens";

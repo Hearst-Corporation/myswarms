@@ -3,6 +3,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 // FONT.xs = 10 — taille exacte pour les badge labels TEMPLATE.
 const BADGE_FONT_SIZE = FONT.xs;
@@ -35,7 +36,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
         <p className="ct-card-body">
           Crée ton premier swarm pour démarrer.{" "}
           <Link href="/swarms/new" style={{ color: "var(--ct-accent-strong)" }}>
-            Nouveau swarm →
+            Nouveau swarm <Chevron direction="right" />
           </Link>
         </p>
       </div>

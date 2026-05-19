@@ -1,7 +1,7 @@
 /**
  * Rate-limit best-effort en mémoire process (V1 single-user).
  *
- * ⚠️ NON DISTRIBUÉ : compteur stocké dans une `Map` JS du process Node. En
+ * NON DISTRIBUÉ : compteur stocké dans une `Map` JS du process Node. En
  * déploiement multi-instance (Vercel serverless scale-out, Railway replicas)
  * chaque instance a son propre compteur — la limite est donc approximative.
  * Acceptable en V1 (MySwarms = single-user, faible concurrence). Le but ici
@@ -25,7 +25,7 @@ export interface RateLimitResult {
 /**
  * Configuration env-driven (pas de magic numbers).
  *
- * ⚠️ Rationale des défauts : la fenêtre DOIT être > latence d'un appel Opus
+ * Rationale des défauts : la fenêtre DOIT être > latence d'un appel Opus
  * (~60-90s, l'Architect = jusqu'à 3 runs Opus). Sinon, en usage SÉQUENTIEL
  * (un script qui boucle des générations une par une — le scénario d'abus coût
  * le plus réaliste), chaque timestamp expire de la fenêtre avant que le suivant

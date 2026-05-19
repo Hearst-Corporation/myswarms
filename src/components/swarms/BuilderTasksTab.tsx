@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SwarmTaskForm } from "./SwarmTaskForm";
 import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 /**
  * G8 fix : tab "Tasks" extrait de SwarmBuilder.
@@ -120,7 +121,7 @@ export function BuilderTasksTab({
                     style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}
                   >
                     {assignedAgent
-                      ? `→ ${assignedAgent.name}`
+                      ? <><Chevron direction="right" />{assignedAgent.name}</>
                       : "agent non assigné"}
                   </div>
                 </div>

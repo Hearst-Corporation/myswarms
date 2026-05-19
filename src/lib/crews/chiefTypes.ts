@@ -1,7 +1,7 @@
 import type { RunSummary } from "@/lib/crewai/types";
 
 export interface AgentRow {
-  icon: string;
+  initials: string;
   name: string;
   status: "active" | "idle" | "pending";
   statusLabel: string;

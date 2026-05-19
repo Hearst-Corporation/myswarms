@@ -170,7 +170,7 @@ export type SwarmInputRaw = z.input<typeof SwarmInputSchema>;
 // clés effectivement envoyées, et déclenche `replace_*` UNIQUEMENT pour
 // les collections présentes dans le payload.
 //
-// ⚠️ NE PAS faire `SwarmInputSchema.partial()` ici — `.partial()` ne
+// NE PAS faire `SwarmInputSchema.partial()` ici — `.partial()` ne
 // supprime PAS les `.default()`, donc le parse appliquerait
 // `agents: []` même si le client n'a envoyé que `description`.
 export const SwarmPatchSchema = z

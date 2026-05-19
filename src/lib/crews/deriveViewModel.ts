@@ -15,16 +15,16 @@ const DIFF_TEXT_MAX_CHARS = 100;
 // Max chars for draft text shown in DecisionCard (avoids card overflow)
 const DRAFT_TEXT_MAX_CHARS = 600;
 
-const AGENT_DEFS: Pick<AgentRow, "icon" | "name">[] = [
-  { icon: "🎯", name: "Chief of Staff" },
-  { icon: "📥", name: "Inbox Collector" },
-  { icon: "🏷️", name: "Classifier" },
-  { icon: "⚡", name: "Priority" },
-  { icon: "✅", name: "Action Extractor" },
-  { icon: "📅", name: "Daily Planner" },
-  { icon: "✍️", name: "Draft Writer" },
-  { icon: "⚙️", name: "Automation" },
-  { icon: "🧠", name: "Memory" },
+const AGENT_DEFS: Pick<AgentRow, "initials" | "name">[] = [
+  { initials: "CS", name: "Chief of Staff" },
+  { initials: "IC", name: "Inbox Collector" },
+  { initials: "CL", name: "Classifier" },
+  { initials: "PR", name: "Priority" },
+  { initials: "AE", name: "Action Extractor" },
+  { initials: "DP", name: "Daily Planner" },
+  { initials: "DW", name: "Draft Writer" },
+  { initials: "AU", name: "Automation" },
+  { initials: "ME", name: "Memory" },
 ];
 
 function isMockResult(r: unknown): r is MockResult {

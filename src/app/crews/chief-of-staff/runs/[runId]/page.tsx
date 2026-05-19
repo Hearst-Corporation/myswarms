@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { FONT, LINE_HEIGHT, SPACING } from "@/lib/ui/tokens";
 import { requireOwnerId } from "@/lib/auth/owner";
+import { Chevron } from "@/components/ui/Chevron";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -43,7 +44,7 @@ export default async function RunDetailPage({ params }: PageProps) {
     return (
       <>
         <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
-          ← Cockpit
+          <Chevron direction="left" />Cockpit
         </Link>
         <h1 className="ct-title" style={{ marginTop: SPACING.sm }}>
           Run {runId.slice(0, 8)}…
@@ -85,7 +86,7 @@ export default async function RunDetailPage({ params }: PageProps) {
       <AutoRefresh active={run.status === "running"} seconds={5} />
 
       <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
-        ← Cockpit
+        <Chevron direction="left" />Cockpit
       </Link>
 
       <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}>

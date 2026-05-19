@@ -2,6 +2,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmRunStep } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 interface StepCardProps {
   step: SwarmRunStep;
@@ -43,7 +44,7 @@ export function StepCard({ step }: StepCardProps) {
           </span>
           {step.task_name ? (
             <span style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}>
-              → {step.task_name}
+              <Chevron direction="right" />{step.task_name}
             </span>
           ) : null}
         </div>

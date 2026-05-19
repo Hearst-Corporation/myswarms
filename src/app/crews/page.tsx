@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 export const metadata = {
   title: "Crews — myswarms",
@@ -41,7 +42,7 @@ export default function CrewsIndex() {
             className="ct-seg-btn"
             style={{ flexShrink: 0 }}
           >
-            Ouvrir →
+            Ouvrir<Chevron direction="right" />
           </Link>
         </div>
       </div>

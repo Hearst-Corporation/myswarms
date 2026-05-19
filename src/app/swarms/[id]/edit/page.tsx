@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SwarmBuilder } from "@/components/swarms/SwarmBuilder";
 import type { SwarmRecord, Tool } from "@/lib/forms/swarmSchemas";
 import { RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -94,7 +95,7 @@ export default function EditSwarmPage({ params }: PageProps) {
             href="/swarms"
             className="ct-breadcrumb-link"
           >
-            ← Swarms
+            <Chevron direction="left" />Swarms
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
@@ -142,7 +143,7 @@ export default function EditSwarmPage({ params }: PageProps) {
           href={`/swarms/${id}`}
           style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
         >
-          ← {swarm.name}
+          <Chevron direction="left" />{swarm.name}
         </Link>
       </div>
       <h1 className="ct-title">Éditer le swarm</h1>

@@ -6,6 +6,7 @@ import { formatDate } from "@/lib/utils/format";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { FONT, SPACING } from "@/lib/ui/tokens";
 import { requireOwnerId } from "@/lib/auth/owner";
+import { Chevron } from "@/components/ui/Chevron";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -35,7 +36,7 @@ export default async function ChiefOfStaffHistoryPage() {
         className="ct-breadcrumb-link"
         style={{ fontSize: FONT.base }}
       >
-        ← Cockpit
+        <Chevron direction="left" />Cockpit
       </Link>
 
       <div

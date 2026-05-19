@@ -12,6 +12,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 import type { CSSProperties } from "react";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
 type Trigger = (typeof ALLOWED_TRIGGERS)[number];
@@ -60,7 +61,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             href="/swarms"
             className="ct-breadcrumb-link"
           >
-            ← Swarms
+            <Chevron direction="left" />Swarms
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
@@ -98,7 +99,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           href="/swarms"
           style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
         >
-          ← Swarms
+          <Chevron direction="left" />Swarms
         </Link>
       </div>
       <div
@@ -240,7 +241,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
         <div className="ct-card-title">Runs récents</div>
         {listRunsError ? (
           <p className="ct-placeholder" style={{ color: "var(--ct-accent-strong)" }}>
-            ⚠️ {listRunsError}
+            {listRunsError}
           </p>
         ) : recentRuns.length === 0 ? (
           <p className="ct-placeholder">

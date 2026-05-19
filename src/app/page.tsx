@@ -11,6 +11,7 @@ import { AgentDiff } from "@/components/crews/AgentDiff";
 import { DayTimeline } from "@/components/crews/DayTimeline";
 import { ProductBets } from "@/components/crews/ProductBets";
 import { SPACING, FONT } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 import { requireOwnerId } from "@/lib/auth/owner";
 
 const CREW_NAME = "chief-of-staff";
@@ -97,7 +98,7 @@ export default async function Home() {
           <h1 className="ct-title" style={{ marginTop: SPACING.xs }}>Daily Chief of Staff</h1>
           <p className="ct-sub">Inbox triage · classification · prioritization · drafts · daily summary</p>
           <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: FONT.sm }}>
-            Voir l&apos;historique des runs →
+            Voir l&apos;historique des runs<Chevron direction="right" />
           </Link>
         </div>
         <KickoffForm action={triggerKickoff} />

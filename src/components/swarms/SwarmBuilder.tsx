@@ -283,7 +283,7 @@ export function SwarmBuilder({
           }}
           disabled={submitting}
         >
-          ✨ Générer avec l&apos;IA
+          Générer avec l&apos;IA
         </button>
       </div>
 

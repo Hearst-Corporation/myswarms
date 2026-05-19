@@ -18,6 +18,7 @@ import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Chevron } from "@/components/ui/Chevron";
 
 export const dynamic = "force-dynamic";
 
@@ -42,7 +43,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             href={`/swarms/${id}`}
             className="ct-breadcrumb-link"
           >
-            ← Swarm
+            <Chevron direction="left" />Swarm
           </Link>
         </div>
         <h1 className="ct-title">Erreur</h1>
@@ -72,7 +73,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           href={`/swarms/${id}`}
           style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
         >
-          ← Swarm
+          <Chevron direction="left" />Swarm
         </Link>
       </div>
       <div

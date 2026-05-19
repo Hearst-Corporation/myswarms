@@ -132,7 +132,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
           fontStyle: "italic",
         }}
       >
-        Tap une ligne pour corriger → entraîne Memory
+        Tap une ligne pour corriger : entraîne Memory
       </div>
     </div>
   );

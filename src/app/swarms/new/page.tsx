@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SwarmBuilder } from "@/components/swarms/SwarmBuilder";
 import type { Tool } from "@/lib/forms/swarmSchemas";
+import { Chevron } from "@/components/ui/Chevron";
 
 export default function NewSwarmPage() {
   const [tools, setTools] = useState<Tool[]>([]);
@@ -30,7 +31,7 @@ export default function NewSwarmPage() {
           href="/swarms"
           style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
         >
-          ← Swarms
+          <Chevron direction="left" />Swarms
         </Link>
       </div>
       <h1 className="ct-title">Nouveau swarm</h1>

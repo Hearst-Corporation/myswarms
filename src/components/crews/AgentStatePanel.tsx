@@ -96,7 +96,20 @@ export function AgentStatePanel({
                 color: "var(--ct-text-body)",
               }}
             >
-              <span>{agent.icon}</span>
+              <span
+                style={{
+                  fontSize: FONT.xs,
+                  fontWeight: FONT_WEIGHT.bold,
+                  color: "var(--ct-text-strong)",
+                  background: "var(--ct-surface-2)",
+                  border: "1px solid var(--ct-border)",
+                  borderRadius: RADIUS.sm,
+                  padding: `2px ${SPACING.xxs}px`,
+                  letterSpacing: LETTER_SPACING.wide,
+                }}
+              >
+                {agent.initials}
+              </span>
               <span>{agent.name}</span>
             </div>
             <span
