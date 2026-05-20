@@ -6,7 +6,9 @@
     "node": ">=20.0.0"
   },
   "scripts": {
-    "dev": "next dev -p 3333",
+    "dev": "concurrently -k -n front,back -c cyan,magenta \"npm:dev:front\" \"npm:dev:back\"",
+    "dev:front": "next dev -p 3333",
+    "dev:back": "cd services/crewai-engine && uv sync --quiet && uv run uvicorn src.main:app --reload --port 8000",
     "build": "next build",
     "start": "next start -p 3333",
     "lint": "eslint",

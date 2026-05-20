@@ -1,5 +1,5 @@
 import type { TimelineMarker } from "@/lib/crews/chiefTypes";
-import { SIZE, TRANSITION } from "@/lib/ui/tokens";
+import { SIZE, TRANSITION, FONT } from "@/lib/ui/tokens";
 
 interface Props {
   markers: TimelineMarker[];
@@ -101,7 +101,7 @@ export function DayTimeline({ markers }: Props) {
                   bottom: "calc(100% + 6px)",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  fontSize: 10,
+                  fontSize: FONT.xs,
                   textTransform: "uppercase",
                   letterSpacing: "0.06em",
                   color: "var(--ct-text-muted)",
@@ -132,7 +132,7 @@ export function DayTimeline({ markers }: Props) {
                   top: "calc(100% + 6px)",
                   left: "50%",
                   transform: "translateX(-50%)",
-                  fontSize: 10,
+                  fontSize: FONT.xs,
                   color: labelColor(marker.variant),
                   whiteSpace: "nowrap",
                   fontWeight: marker.variant === "now" ? 600 : 400,

@@ -21,6 +21,8 @@ import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import { LiveIndicator } from "@/components/runs/LiveIndicator";
+import { isRunningStatus } from "@/lib/crewai/runStatus";
 
 export const dynamic = "force-dynamic";
 
@@ -56,11 +58,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
     );
   }
 
-  // Inclure `paused_hitl` pour que le polling reprenne automatiquement
-  // à la sortie de la pause Human-in-the-Loop (sinon l'UI reste figée).
-  const isRunning = (["running", "pending", "paused_hitl"] as const).includes(
-    run.status as "running" | "pending" | "paused_hitl",
-  );
+  const isRunning = isRunningStatus(run.status);
 
   return (
     <>
@@ -92,12 +90,14 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
               gap: SPACING.md,
               alignItems: "center",
               marginBottom: SPACING.xl,
+              flexWrap: "wrap",
             }}
           >
             <StatusBadge status={run.status} size="md" />
             <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>
               trigger : {run.trigger}
             </span>
+            {isRunning && run.status !== "paused_hitl" && <LiveIndicator intervalSeconds={5} />}
           </div>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
       >
         Timeline ({run.steps.length} steps)
       </div>
-      <RunTimeline steps={run.steps} />
+      <RunTimeline steps={run.steps} status={run.status} />
     </>
   );
 }

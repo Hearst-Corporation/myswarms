@@ -14,6 +14,7 @@ import {
   COLOR,
   FONT,
   FONT_WEIGHT,
+  LINE_HEIGHT,
   RADIUS,
   SPACING,
   Z_INDEX,
@@ -255,12 +256,12 @@ const destructiveBtnStyle: CSSProperties = {
   border: "1px solid var(--ct-accent-strong)",
   borderRadius: RADIUS.md,
   padding: `${SPACING.xxs}px ${SPACING.lg}px`,
-  color: "#fff",
+  color: "var(--ct-text-strong)",
   fontSize: FONT.base,
   fontWeight: FONT_WEIGHT.semibold,
   fontFamily: "inherit",
   cursor: "pointer",
-  lineHeight: 1.6,
+  lineHeight: LINE_HEIGHT.base,
 };
 
 // Bouton warning : fond surface avec bordure accent.
@@ -274,7 +275,7 @@ const warningBtnStyle: CSSProperties = {
   fontWeight: FONT_WEIGHT.semibold,
   fontFamily: "inherit",
   cursor: "pointer",
-  lineHeight: 1.6,
+  lineHeight: LINE_HEIGHT.base,
 };
 
 // Bouton default : réutilise la classe ct-seg-btn primary via style similaire.
@@ -288,5 +289,5 @@ const defaultConfirmBtnStyle: CSSProperties = {
   fontWeight: FONT_WEIGHT.semibold,
   fontFamily: "inherit",
   cursor: "pointer",
-  lineHeight: 1.6,
+  lineHeight: LINE_HEIGHT.base,
 };

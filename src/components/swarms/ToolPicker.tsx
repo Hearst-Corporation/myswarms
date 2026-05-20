@@ -107,6 +107,8 @@ export function ToolPicker({
                   type="button"
                   className="ct-seg-btn"
                   onClick={() => toggle(tool)}
+                  aria-pressed={isSelected}
+                  aria-label={`${tool.name} — ${isSelected ? "sélectionné" : "non sélectionné"}`}
                   style={{
                     background: isSelected
                       ? "var(--ct-accent-soft)"

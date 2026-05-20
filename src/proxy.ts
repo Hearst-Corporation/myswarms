@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 /**
  * Routes protégées — toute route non listée dans PUBLIC_PATHS requiert une session.
  */
-const PUBLIC_PATHS = ["/login", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/api/health", "/api/system/status"];
 
 /**
  * updateSession : rafraîchit la session Supabase à chaque requête et redirige

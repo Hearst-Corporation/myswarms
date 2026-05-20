@@ -20,6 +20,7 @@ import { RunLogs } from "@/components/dashboard/RunLogs";
 import { SwarmFleet } from "@/components/dashboard/SwarmFleet";
 import { Chevron } from "@/components/ui/Chevron";
 import { requireOwnerId } from "@/lib/auth/owner";
+import { FONT } from "@/lib/ui/tokens";
 
 const CREW_NAME = "chief-of-staff";
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
@@ -166,7 +167,7 @@ export default async function Home() {
           <p className="ct-sub">
             {lastRunAt ? `Dernier run · ${lastRunAt}` : "Aucun run récent"}
           </p>
-          <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: 12 }}>
+          <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: FONT.sm }}>
             Voir l&apos;historique des runs<Chevron direction="right" />
           </Link>
         </div>

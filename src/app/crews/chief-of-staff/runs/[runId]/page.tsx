@@ -10,6 +10,8 @@ import { requireOwnerId } from "@/lib/auth/owner";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import { LiveIndicator } from "@/components/runs/LiveIndicator";
+import { isRunningStatus } from "@/lib/crewai/runStatus";
 
 const CREW_NAME = "chief-of-staff";
 
@@ -51,19 +53,7 @@ export default async function RunDetailPage({ params }: PageProps) {
         <ErrorLayout
           title="Run introuvable"
           message={`Impossible de charger le run : ${err instanceof Error ? err.message : "erreur inconnue"}`}
-        >
-          <div
-            className="ct-card"
-            style={{
-              border: "1px solid var(--ct-border-accent)",
-              background: "var(--ct-accent-soft)",
-            }}
-          >
-            <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
-              {err instanceof Error ? err.message : "erreur inconnue"}
-            </p>
-          </div>
-        </ErrorLayout>
+        />
       </>
     );
   }
@@ -78,6 +68,8 @@ export default async function RunDetailPage({ params }: PageProps) {
     }
   }
 
+  const isRunning = isRunningStatus(run.status);
+
   const statePretty = run.state ? JSON.stringify(run.state, null, 2) : null;
   const triggerLabel =
     run.state && typeof run.state === "object" && "trigger" in run.state
@@ -87,7 +79,7 @@ export default async function RunDetailPage({ params }: PageProps) {
   return (
     <>
       {/* Auto-refresh every 5s while the crew flow is running. Stops when status is terminal. */}
-      <AutoRefresh active={run.status === "running"} seconds={5} />
+      <AutoRefresh active={isRunning} seconds={5} />
 
       <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
         <Chevron direction="left" />Cockpit
@@ -97,7 +89,7 @@ export default async function RunDetailPage({ params }: PageProps) {
         <PageTitle variant="mono" style={{ marginBottom: SPACING.sm }}>
           {runId.slice(0, 8)}…
         </PageTitle>
-        <div style={{ display: "flex", alignItems: "center", gap: SPACING.md }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.md, flexWrap: "wrap" }}>
           <StatusBadge status={run.status} size="md" />
           <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>·</span>
           <span style={{ fontSize: FONT.base, color: "var(--ct-text-body)" }}>
@@ -106,6 +98,7 @@ export default async function RunDetailPage({ params }: PageProps) {
               {triggerLabel}
             </span>
           </span>
+          {isRunning && run.status !== "paused_hitl" && <LiveIndicator intervalSeconds={5} />}
         </div>
       </div>
 

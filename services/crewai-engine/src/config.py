@@ -82,6 +82,10 @@ class Settings(BaseSettings):
     # Mock mode — set to True in test/CI environments to skip LLM + API calls
     AGENT_MOCK_MODE: bool = False
 
+    # Cortex RAG (vault search)
+    CORTEX_URL: str = ""
+    CORTEX_API_KEY: str = ""
+
     # Composio — multi-channel tools (Gmail, Slack, Telegram, Calendar, Notion)
     COMPOSIO_API_KEY: str = ""
     COMPOSIO_USER_ID: str = "adrien"  # entity_id for multi-tenant support — TODO multi-tenant

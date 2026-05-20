@@ -123,6 +123,9 @@ export function Modal({
         }
         mouseDownTargetRef.current = null;
       }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") onClose();
+      }}
     >
       <div
         ref={cardRef}

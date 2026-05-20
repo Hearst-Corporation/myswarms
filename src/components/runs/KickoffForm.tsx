@@ -1,9 +1,9 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
 import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { CtButton } from "@/components/ui/CtButton";
+import { AlertDialog } from "@/components/ui/AlertDialog";
 
 export interface KickoffFormState {
   error?: string;
@@ -14,34 +14,59 @@ type KickoffAction = (
   formData: FormData,
 ) => Promise<KickoffFormState>;
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <CtButton variant="primary" type="submit" loading={pending} className="ct-seg-btn primary">
-      Run now
-    </CtButton>
-  );
-}
-
 export function KickoffForm({ action }: { action: KickoffAction }) {
-  const [state, formAction] = useActionState<KickoffFormState, FormData>(action, {});
+  // isPending : 3e élément du tuple useActionState (React 19) — true pendant l'action serveur
+  const [state, formAction, isPending] = useActionState<KickoffFormState, FormData>(action, {});
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const handleConfirm = () => {
+    setConfirmOpen(false);
+    formRef.current?.requestSubmit();
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: SPACING.sm }}>
-      <form action={formAction} style={{ display: "flex", alignItems: "center", gap: SPACING.sm, flexWrap: "wrap", justifyContent: "flex-end" }}>
+      <form
+        ref={formRef}
+        action={formAction}
+        style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}
+      >
         <select
           name="trigger"
           defaultValue="on_demand"
-          aria-label="Type de déclenchement"
-          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit", flex: "1 1 auto", minWidth: 140 }}
+          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit" }}
         >
           <option value="on_demand">On-demand</option>
           <option value="morning">Morning</option>
           <option value="evening">Evening</option>
           <option value="intraday">Intraday</option>
         </select>
-        <SubmitButton />
+        {/* Submit invisible — déclenché par requestSubmit() depuis onConfirm */}
+        <button type="submit" style={{ display: "none" }} aria-hidden="true" />
       </form>
+
+      {/* Bouton visible — ouvre la dialog, pas un submit direct */}
+      <button
+        type="button"
+        className="ct-seg-btn primary"
+        disabled={isPending}
+        onClick={() => setConfirmOpen(true)}
+      >
+        {isPending ? "Running…" : "Run now"}
+      </button>
+
+      <AlertDialog
+        open={confirmOpen}
+        onClose={() => setConfirmOpen(false)}
+        onConfirm={handleConfirm}
+        title="Lancer le run ?"
+        description="Cette action consomme des tokens LLM et n'est pas réversible."
+        confirmLabel="Lancer"
+        cancelLabel="Annuler"
+        variant="warning"
+      />
+
       {state.error ? (
         <p
           role="alert"

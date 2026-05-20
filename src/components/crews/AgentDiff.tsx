@@ -1,5 +1,5 @@
 import type { DiffItem } from "@/lib/crews/chiefTypes";
-import { SIZE } from "@/lib/ui/tokens";
+import { SIZE, FONT, FONT_WEIGHT, LINE_HEIGHT } from "@/lib/ui/tokens";
 
 interface Props {
   items: DiffItem[];
@@ -19,7 +19,7 @@ function parseBold(text: string): React.ReactNode {
   return parts.map((part, i) => {
     if (i % 2 === 1) {
       return (
-        <strong key={i} style={{ color: "var(--ct-accent-strong)", fontWeight: 700 }}>
+        <strong key={i} style={{ color: "var(--ct-accent-strong)", fontWeight: FONT_WEIGHT.bold }}>
           {part}
         </strong>
       );
@@ -45,8 +45,8 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
         </span>
         <span
           style={{
-            fontSize: 10,
-            fontWeight: 600,
+            fontSize: FONT.xs,
+            fontWeight: FONT_WEIGHT.semibold,
             color: "var(--ct-text-faint)",
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
@@ -82,11 +82,11 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: 11,
+                  fontSize: FONT.xxs,
                   color: "var(--ct-text-muted)",
                   minWidth: TIME_COL_W,
                   flexShrink: 0,
-                  lineHeight: 1.6,
+                  lineHeight: LINE_HEIGHT.base,
                   paddingTop: 1,
                 }}
               >
@@ -96,12 +96,12 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
               {/* Agent name + text */}
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: FONT.base,
                   color: "var(--ct-text-body)",
-                  lineHeight: 1.6,
+                  lineHeight: LINE_HEIGHT.base,
                 }}
               >
-                <span style={{ color: "var(--ct-text-primary)", fontWeight: 600 }}>
+                <span style={{ color: "var(--ct-text-primary)", fontWeight: FONT_WEIGHT.semibold }}>
                   {item.agentName}
                 </span>{" "}
                 {parseBold(item.text)}
@@ -115,7 +115,7 @@ export function AgentDiff({ items, sinceLabel, elapsed }: Props) {
       <div
         style={{
           marginTop: 16,
-          fontSize: 11,
+          fontSize: FONT.xxs,
           color: "var(--ct-text-muted)",
           fontStyle: "italic",
         }}

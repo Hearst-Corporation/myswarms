@@ -105,6 +105,10 @@ export function LLMPicker({
           value={temperature}
           onChange={(e) => onTemperatureChange(Number(e.target.value))}
           style={{ width: "100%" }}
+          aria-label="Température"
+          aria-valuemin={TEMP_MIN}
+          aria-valuemax={TEMP_MAX}
+          aria-valuenow={temperature}
         />
       </label>
 
@@ -143,4 +147,5 @@ const inputStyle: React.CSSProperties = {
   color: "var(--ct-text-primary)",
   fontSize: FONT.base,
   fontFamily: "inherit",
+  outline: "none",
 };

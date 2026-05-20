@@ -1,4 +1,5 @@
 import type { AgentRow, RunStats } from "@/lib/crews/chiefTypes";
+import { FONT, FONT_WEIGHT } from "@/lib/ui/tokens";
 
 interface Props {
   agentRows: AgentRow[];
@@ -57,8 +58,8 @@ export function AgentStatePanel({
         <span
           style={{
             marginLeft: "auto",
-            fontSize: 10,
-            fontWeight: 600,
+            fontSize: FONT.xs,
+            fontWeight: FONT_WEIGHT.semibold,
             color: "var(--ct-text-faint)",
             background: "var(--ct-surface-2)",
             border: "1px solid var(--ct-border)",
@@ -87,8 +88,8 @@ export function AgentStatePanel({
             <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
               <span
                 style={{
-                  fontSize: 10,
-                  fontWeight: 700,
+                  fontSize: FONT.xs,
+                  fontWeight: FONT_WEIGHT.bold,
                   color: initialsColor(agent.status),
                   background: "var(--ct-surface-2)",
                   border: "1px solid var(--ct-border)",
@@ -102,7 +103,7 @@ export function AgentStatePanel({
               </span>
               <span
                 style={{
-                  fontSize: 13,
+                  fontSize: FONT.base,
                   color: "var(--ct-text-body)",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -126,7 +127,7 @@ export function AgentStatePanel({
           marginTop: 16,
           display: "flex",
           justifyContent: "space-between",
-          fontSize: 11,
+          fontSize: FONT.xxs,
           color: "var(--ct-text-faint)",
         }}
       >

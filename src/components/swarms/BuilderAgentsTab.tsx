@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { SwarmAgentForm } from "./SwarmAgentForm";
-import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
+import type { AgentInput } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { AlertDialog } from "@/components/ui/AlertDialog";
 
 /**
  * G8 fix : tab "Agents" extrait de SwarmBuilder.
@@ -13,8 +12,6 @@ import { AlertDialog } from "@/components/ui/AlertDialog";
  */
 interface BuilderAgentsTabProps {
   agents: AgentInput[];
-  /** Liste des tâches pour calculer l'impact lors d'une suppression. */
-  tasks?: TaskInput[];
   onAdd: (agent: AgentInput) => void;
   onUpdate: (idx: number, agent: AgentInput) => void;
   onRemove: (idx: number) => void;
@@ -22,15 +19,12 @@ interface BuilderAgentsTabProps {
 
 export function BuilderAgentsTab({
   agents,
-  tasks = [],
   onAdd,
   onUpdate,
   onRemove,
 }: BuilderAgentsTabProps) {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
-  // Agent en attente de confirmation de suppression.
-  const [pendingRemoveIdx, setPendingRemoveIdx] = useState<number | null>(null);
 
   const handleAdd = (agent: AgentInput) => {
     onAdd(agent);
@@ -107,6 +101,7 @@ export function BuilderAgentsTab({
                 <button
                   type="button"
                   className="ct-seg-btn"
+                  aria-label={`Éditer l'agent ${a.name}`}
                   onClick={() => setEditingIdx(idx)}
                 >
                   Éditer
@@ -114,7 +109,12 @@ export function BuilderAgentsTab({
                 <button
                   type="button"
                   className="ct-seg-btn"
-                  onClick={() => setPendingRemoveIdx(idx)}
+                  aria-label={`Supprimer l'agent ${a.name}`}
+                  onClick={() => {
+                    if (window.confirm(`Supprimer l'agent « ${a.name} » ?`)) {
+                      onRemove(idx);
+                    }
+                  }}
                 >
                   Supprimer
                 </button>
@@ -129,36 +129,6 @@ export function BuilderAgentsTab({
           Aucun agent. Ajoute au moins un coordinator pour démarrer.
         </p>
       ) : null}
-
-      {/* AlertDialog suppression agent */}
-      {pendingRemoveIdx !== null && agents[pendingRemoveIdx] ? (() => {
-        const a = agents[pendingRemoveIdx];
-        const assignedTaskCount = tasks.filter((t) => t.agent_id === a.id).length;
-        const impactMsg =
-          assignedTaskCount > 0
-            ? `${assignedTaskCount} tâche${assignedTaskCount > 1 ? "s" : ""} assignée${assignedTaskCount > 1 ? "s" : ""} deviendra${assignedTaskCount > 1 ? "ont" : ""} orpheline${assignedTaskCount > 1 ? "s" : ""} (agent_id null).`
-            : null;
-        return (
-          <AlertDialog
-            open
-            onClose={() => setPendingRemoveIdx(null)}
-            onConfirm={() => {
-              onRemove(pendingRemoveIdx);
-              setPendingRemoveIdx(null);
-            }}
-            title={`Supprimer l'agent "${a.name}" ?`}
-            description={
-              impactMsg
-                ? undefined
-                : "Cette action est irréversible dans le builder."
-            }
-            impact={impactMsg ? <span>{impactMsg}</span> : undefined}
-            confirmLabel="Supprimer"
-            cancelLabel="Annuler"
-            variant="destructive"
-          />
-        );
-      })() : null}
     </div>
   );
 }

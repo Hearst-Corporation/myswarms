@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FONT } from "@/lib/ui/tokens";
 
 interface Swarm {
   id: string;
@@ -52,7 +53,7 @@ export function SwarmFleet({ swarms }: Props) {
               href={`/swarms/${swarm.id}`}
               className="ct-link"
               style={{
-                fontSize: 13,
+                fontSize: FONT.base,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
