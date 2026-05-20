@@ -68,7 +68,8 @@ class VaultSearchTool(BaseTool):
 
         headers = {"Content-Type": "application/json"}
         if settings.CORTEX_API_KEY:
-            headers["X-Cortex-Api-Key"] = settings.CORTEX_API_KEY
+            # Header standard REST attendu par le middleware Cortex (middleware.ts).
+            headers["x-api-key"] = settings.CORTEX_API_KEY
 
         try:
             resp = requests.post(
