@@ -37,7 +37,7 @@
   border: 1px solid var(--ct-border);
   border-radius: var(--ct-radius-md);
   padding: var(--ct-space-md);
-  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(--font-mono);
   font-size: var(--ct-font-size-xxs);
   color: var(--ct-text-body);
   line-height: 1.55;

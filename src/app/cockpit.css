@@ -613,3 +613,9 @@ select:focus-visible {
   }
 }
 
+/* ── Masquer la HubBottomBar du shell : notre AppBottomBar (`.ct-bottom-bar`)
+   couvre le même rôle (section label + nav globale) + contexte additionnel
+   (builder tabs, swarm actions, +New, Refresh). Deux pills flottants au même
+   `bottom: 24px` se chevauchaient — on garde le nôtre, plus riche. ── */
+.ct-hub-bar { display: none !important; }
+

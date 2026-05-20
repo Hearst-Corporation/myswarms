@@ -1,7 +1,7 @@
 "use client";
 
 import { CockpitShell } from "@hearst/cockpit-shell";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { COLOR } from "@/lib/ui/tokens";
 import { AppBottomBar } from "@/components/cockpit/AppBottomBar";
@@ -26,7 +26,9 @@ export function HiveShell({ children }: { children: ReactNode }) {
   return (
     <CockpitShell products={HIVE_PRODUCTS} appId="hive">
       {children}
-      <AppBottomBar />
+      <Suspense fallback={null}>
+        <AppBottomBar />
+      </Suspense>
     </CockpitShell>
   );
 }

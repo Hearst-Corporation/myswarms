@@ -18,7 +18,7 @@ export function LaunchButton() {
     try {
       const res = await fetch("/api/system/status");
       const data = await res.json();
-      if (data.engine === "up") {
+      if (data.engine === "ok") {
         setStatus("up");
         setError(null);  // clear error sur recovery automatique
       } else {
@@ -62,7 +62,7 @@ export function LaunchButton() {
         await new Promise(r => setTimeout(r, ENGINE_START_POLL_DELAY_MS));
         const res = await fetch("/api/system/status");
         const data = await res.json();
-        if (data.engine === "up") {
+        if (data.engine === "ok") {
           setStatus("up");
           started = true;
           break;

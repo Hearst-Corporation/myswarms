@@ -353,3 +353,7 @@ export const ArchitectResponseSchema = z.object({
   warnings: z.array(z.string()).optional().default([]),
 });
 export type ArchitectResponse = z.output<typeof ArchitectResponseSchema>;
+
+// Alias utilisé par SwarmBuilder / ArchitectModal pour typer la spec générée.
+export const SwarmSpecResponseSchema = SwarmInputSchema;
+export type SwarmSpecResponse = z.output<typeof SwarmSpecResponseSchema>;

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRef, useState } from "react";
 import { BottomBarSwarmActions } from "@/components/swarms/BottomBarSwarmActions";
 import { LaunchButton } from "@/components/cockpit/LaunchButton";
+import { BUILDER_TABS, type BuilderTabId, parseBuilderTab } from "@/lib/swarms/builderTabs";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
@@ -13,7 +14,9 @@ const REFRESH_FEEDBACK_MS = 600;
 export function AppBottomBar() {
   const pathname = usePathname() ?? "/";
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [refreshing, setRefreshing] = useState(false);
+  const tablistRef = useRef<HTMLDivElement>(null);
 
   const isHome = pathname === "/";
   const isSwarmsArea = pathname.startsWith("/swarms");
@@ -25,6 +28,8 @@ export function AppBottomBar() {
   const isSwarmNew = pathname === "/swarms/new";
   const swarmIdFromDetail = detailMatch?.[1] ?? null;
 
+  const isBuilderRoute = isSwarmNew || isSwarmEdit;
+
   const sectionLabel = isHome
     ? "Cockpit"
     : isSwarmsArea
@@ -35,6 +40,55 @@ export function AppBottomBar() {
           ? "Tools"
           : "Cockpit";
 
+  const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
+
+  const navigateToTab = (tabId: BuilderTabId) => {
+    const params = new URLSearchParams(Array.from(searchParams.entries()));
+    params.set("tab", tabId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
+
+  const handleTablistKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const tabs = tablistRef.current?.querySelectorAll<HTMLButtonElement>(
+      '[role="tab"]'
+    );
+    if (!tabs || tabs.length === 0) return;
+
+    const tabsArray = Array.from(tabs);
+    const currentIndex = BUILDER_TABS.findIndex((t) => t.id === activeTab);
+
+    let nextIndex: number | null = null;
+
+    switch (e.key) {
+      case "ArrowLeft":
+        e.preventDefault();
+        nextIndex =
+          currentIndex <= 0 ? tabsArray.length - 1 : currentIndex - 1;
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        nextIndex =
+          currentIndex >= tabsArray.length - 1 ? 0 : currentIndex + 1;
+        break;
+      case "Home":
+        e.preventDefault();
+        nextIndex = 0;
+        break;
+      case "End":
+        e.preventDefault();
+        nextIndex = tabsArray.length - 1;
+        break;
+      default:
+        return;
+    }
+
+    if (nextIndex !== null) {
+      const targetTab = BUILDER_TABS[nextIndex];
+      navigateToTab(targetTab.id);
+      tabsArray[nextIndex].focus();
+    }
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
     router.refresh();
@@ -42,9 +96,9 @@ export function AppBottomBar() {
   };
 
   return (
-    <nav className="ct-app-nav" role="navigation" aria-label="Navigation principale">
-      <div className="ct-app-nav-inner">
-        <span className="ct-bottom-label ct-bottom-label--with-dot">{sectionLabel}</span>
+    <nav className="ct-bottom-bar" role="navigation" aria-label="Navigation principale">
+      <div className="ct-bottom-bar-inner">
+        <span className="ct-bottom-label">{sectionLabel}</span>
 
         <div className="ct-seg-track">
           <Link href="/" className={`ct-seg-btn ${isHome ? "active" : ""}`}>
@@ -69,6 +123,31 @@ export function AppBottomBar() {
             Tools
           </Link>
         </div>
+
+        {isBuilderRoute && (
+          <div
+            ref={tablistRef}
+            className="ct-seg-track"
+            role="tablist"
+            aria-label="Sections du builder de swarm"
+            onKeyDown={handleTablistKeyDown}
+          >
+            {BUILDER_TABS.map((t) => (
+              <button
+                key={t.id}
+                role="tab"
+                id={`swarm-tab-${t.id}`}
+                aria-selected={activeTab === t.id}
+                aria-controls={`swarm-panel-${t.id}`}
+                tabIndex={activeTab === t.id ? 0 : -1}
+                className={`ct-seg-btn${activeTab === t.id ? " active" : ""}`}
+                onClick={() => navigateToTab(t.id)}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="ct-seg-track">
           <LaunchButton />

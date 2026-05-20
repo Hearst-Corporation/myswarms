@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -12,6 +12,7 @@ import {
   type TaskInput,
   type Tool,
   type ToolBindingInput,
+  type SwarmSpecResponse,
 } from "@/lib/forms/swarmSchemas";
 import { BuilderAgentsTab } from "./BuilderAgentsTab";
 import { BuilderTasksTab } from "./BuilderTasksTab";
@@ -19,9 +20,9 @@ import { BuilderToolsTab } from "./BuilderToolsTab";
 import { ArchitectModal } from "./ArchitectModal";
 import { isValidUuid } from "@/lib/utils/uuid";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
+import { type BuilderTabId, parseBuilderTab } from "@/lib/swarms/builderTabs";
 
 type BuilderMode = "create" | "edit";
-type Tab = "overview" | "agents" | "tasks" | "tools" | "preview";
 
 interface SwarmBuilderProps {
   mode: BuilderMode;
@@ -42,14 +43,6 @@ const EMPTY_SWARM: SwarmInputRaw = {
   tool_bindings: [],
 };
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "agents", label: "Agents" },
-  { id: "tasks", label: "Tasks" },
-  { id: "tools", label: "Tools" },
-  { id: "preview", label: "Preview" },
-];
-
 // G10 fix : `crypto.randomUUID()` direct (dispo Node 19+ et tous les
 // navigateurs modernes). Pas de fallback artisanal — si crypto.randomUUID
 // manque, c'est un environnement non supporté.
@@ -64,7 +57,8 @@ export function SwarmBuilder({
   availableTools = [],
 }: SwarmBuilderProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const searchParams = useSearchParams();
+  const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
   const [agents, setAgents] = useState<AgentInput[]>(
     (initialSwarm?.agents ?? []) as AgentInput[],
   );
@@ -80,7 +74,6 @@ export function SwarmBuilder({
   // Incrémenté à chaque ouverture → remonte le modal avec un state propre
   // (évite un reset via setState-in-effect, flaggé par le lint).
   const [architectKey, setArchitectKey] = useState(0);
-  const tablistRef = useRef<HTMLDivElement>(null);
 
   // Pattern Zod 4 + react-hook-form : `<TInput, TContext, TOutput>` —
   // l'input contient les défauts optionnels, l'output est résolu (avec défauts appliqués).
@@ -134,7 +127,7 @@ export function SwarmBuilder({
       router.push(`/swarms/${saved.id}`);
       router.refresh();
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Erreur inconnue");
+      setSubmitError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setSubmitting(false);
     }
@@ -170,10 +163,10 @@ export function SwarmBuilder({
   // Cohérence des ids : on conserve les UUID valides fournis par l'architecte
   // (et leurs références croisées), on (re)génère un id local UNIQUEMENT pour
   // les entités sans UUID valide, en remappant les références correspondantes.
-  const onGenerated = (spec: SwarmInput) => {
+  const onGenerated = (spec: SwarmSpecResponse) => {
     if (mode === "edit") {
       const ok = window.confirm(
-        "Remplacer le contenu actuel du builder par la spec générée ? Les modifications non enregistrées seront perdues.",
+        "Replace the current builder content with the generated spec? Unsaved changes will be lost.",
       );
       if (!ok) return;
     }
@@ -237,31 +230,6 @@ export function SwarmBuilder({
     setValue("is_active", spec.is_active ?? true, { shouldDirty: true });
     setValue("is_template", spec.is_template ?? false, { shouldDirty: true });
     setSubmitError(null);
-    setActiveTab("overview");
-  };
-
-  const handleTabKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    const tabs = tablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
-    if (!tabs || tabs.length === 0) return;
-    const currentIndex = TABS.findIndex((t) => t.id === activeTab);
-    let nextIndex = currentIndex;
-    if (e.key === "ArrowRight") {
-      e.preventDefault();
-      nextIndex = (currentIndex + 1) % TABS.length;
-    } else if (e.key === "ArrowLeft") {
-      e.preventDefault();
-      nextIndex = (currentIndex - 1 + TABS.length) % TABS.length;
-    } else if (e.key === "Home") {
-      e.preventDefault();
-      nextIndex = 0;
-    } else if (e.key === "End") {
-      e.preventDefault();
-      nextIndex = TABS.length - 1;
-    } else {
-      return;
-    }
-    setActiveTab(TABS[nextIndex].id);
-    tabs[nextIndex].focus();
   };
 
   const previewJson = useMemo(() => {
@@ -279,37 +247,13 @@ export function SwarmBuilder({
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
+          justifyContent: "flex-end",
           alignItems: "center",
           gap: SPACING.md,
           flexWrap: "wrap",
           marginBottom: SPACING.xl,
         }}
       >
-        <div
-          ref={tablistRef}
-          className="ct-seg-track"
-          style={{ display: "inline-flex" }}
-          role="tablist"
-          aria-label="Sections du builder de swarm"
-          onKeyDown={handleTabKeyDown}
-        >
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              id={`swarm-tab-${t.id}`}
-              aria-selected={activeTab === t.id}
-              aria-controls={`swarm-panel-${t.id}`}
-              tabIndex={activeTab === t.id ? 0 : -1}
-              onClick={() => setActiveTab(t.id)}
-              className={`ct-seg-btn ${activeTab === t.id ? "active" : ""}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
         <button
           type="button"
           className="ct-seg-btn primary"
@@ -338,14 +282,14 @@ export function SwarmBuilder({
           tabIndex={0}
           className="ct-card"
         >
-          <div className="ct-card-title">Identité</div>
+          <div className="ct-card-title">Identity</div>
           <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
             <label style={labelStyle}>
-              <span style={labelText}>Nom du swarm</span>
+              <span style={labelText}>Swarm name</span>
               <input
                 {...register("name")}
                 style={inputStyle}
-                placeholder="ex: Daily Inbox Triage"
+                placeholder="e.g. Daily Inbox Triage"
               />
               {errors.name ? (
                 <span style={errorStyle}>{errors.name.message}</span>
@@ -358,7 +302,7 @@ export function SwarmBuilder({
                 {...register("description")}
                 rows={4}
                 style={{ ...inputStyle, resize: "vertical" }}
-                placeholder="Pour quoi est conçu ce swarm ?"
+                placeholder="What is this swarm for?"
               />
             </label>
 
@@ -373,7 +317,7 @@ export function SwarmBuilder({
                 }}
               >
                 <input type="checkbox" {...register("is_active")} />
-                Actif (déclenchable)
+                Active (triggerable)
               </label>
               <label
                 style={{
