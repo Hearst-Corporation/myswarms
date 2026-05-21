@@ -700,7 +700,11 @@ def status_swarm_run_endpoint(
     run = swarm_store.get_swarm_run(str(run_id), owner_id=owner_id)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
-    if str(run.get("swarm_id")) != swarm_id:
+    # `swarm_id` de l'URL peut être un slug (ex "revue-projet"). On le résout en
+    # UUID pour le scoping (le run stocke l'UUID). Sinon le poll par slug 404.
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    resolved_swarm_id = str(loaded.get("swarm", {}).get("id")) if loaded else swarm_id
+    if str(run.get("swarm_id")) != resolved_swarm_id:
         # Scoping strict : on n'expose pas les runs d'un autre swarm.
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found for swarm {swarm_id}")
     return _shape_run_response(run)
