@@ -1,52 +1,68 @@
-import { createCockpitChatHandler } from "@hearst/cockpit-shell/handler";
-import type { ChatPersistence, ChatMessage } from "@hearst/cockpit-shell";
+import { z } from "zod";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
+import type { ChatMessage, ChatPersistence } from "@hearst/cockpit-shell";
 import { kimi, KIMI_MODEL } from "@/lib/llm/kimi";
 import { createClient } from "@/lib/supabase/server";
 import { traceChatEvent } from "@/lib/observability/langfuse";
+import { buildSystemPrompt } from "@/lib/cockpit-agent/prompt";
+import { runAgent } from "@/lib/cockpit-agent/runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/**
- * Implémentation ChatPersistence branché sur Supabase.
- *
- * Le client Supabase (et l'identité user) est résolu de façon lazy à chaque
- * appel de méthode — la route est Node, pas Edge, ce qui permet l'async
- * sans contrainte. RLS assure l'isolation par user côté DB.
- *
- * En cas d'erreur Supabase, les méthodes ne lèvent PAS d'exception : un
- * échec de persistance ne doit pas bloquer le stream LLM.
- */
+const BodySchema = z.object({
+  chatId: z.string().nullish(),
+  message: z.string().min(1, "Message vide"),
+  messages: z
+    .array(z.object({ role: z.enum(["user", "assistant", "system"]), content: z.string() }))
+    .optional(),
+  productId: z.string().nullish(),
+  system: z.string().optional(),
+});
+
+type RateSlot = { count: number; resetAt: number };
+const RATE_STORE = new Map<string, RateSlot>();
+
+function checkRateLimit(key: string, max: number, windowMs: number) {
+  if (RATE_STORE.size > 500) {
+    const now = Date.now();
+    for (const [k, slot] of RATE_STORE) if (now > slot.resetAt) RATE_STORE.delete(k);
+  }
+  const now = Date.now();
+  const slot = RATE_STORE.get(key);
+  if (!slot || now > slot.resetAt) {
+    RATE_STORE.set(key, { count: 1, resetAt: now + windowMs });
+    return { limited: false, retryAfter: 0 };
+  }
+  slot.count += 1;
+  if (slot.count > max) {
+    return { limited: true, retryAfter: Math.ceil((slot.resetAt - now) / 1000) };
+  }
+  return { limited: false, retryAfter: 0 };
+}
+
 const cockpitPersistence: ChatPersistence = {
-  async createChat(): Promise<string> {
+  async createChat() {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return crypto.randomUUID();
-
       const { data, error } = await supabase
         .from("cockpit_chats")
         .insert({ user_id: user.id })
         .select("id")
         .single();
-
       if (error || !data) return crypto.randomUUID();
       return data.id;
     } catch {
       return crypto.randomUUID();
     }
   },
-
-  async saveMessage(chatId: string, msg: ChatMessage): Promise<void> {
+  async saveMessage(chatId, msg: ChatMessage) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       await supabase.from("cockpit_messages").insert({
         id: msg.id,
         chat_id: chatId,
@@ -58,23 +74,17 @@ const cockpitPersistence: ChatPersistence = {
       // persistance optionnelle — ne pas bloquer le stream
     }
   },
-
-  async loadMessages(chatId: string): Promise<ChatMessage[]> {
+  async loadMessages(chatId) {
     try {
       const supabase = await createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
-
       const { data, error } = await supabase
         .from("cockpit_messages")
         .select("id, role, content, created_at")
         .eq("chat_id", chatId)
         .order("created_at", { ascending: true });
-
       if (error || !data) return [];
-
       return data.map((row) => ({
         id: row.id,
         role: row.role as "user" | "assistant",
@@ -87,27 +97,15 @@ const cockpitPersistence: ChatPersistence = {
   },
 };
 
-const BASE_SYSTEM_PROMPT =
-  "Tu es l'assistant Kimi intégré à Hearst Hive — builder visuel de swarms multi-agents & Daily Chief of Staff. Réponds en français.";
+function isAdminEmail(email: string | undefined): boolean {
+  if (!email) return false;
+  const list = (process.env.COCKPIT_ADMIN_EMAILS ?? "adrien@hearstcorporation.io")
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return list.includes(email.toLowerCase());
+}
 
-const baseConfig = {
-  llmClient: kimi,
-  model: KIMI_MODEL,
-  systemPrompt: BASE_SYSTEM_PROMPT,
-  persistence: cockpitPersistence,
-  // Rate-limit par user authentifié (évite les faux positifs en NAT entreprise).
-  // Le store interne du handler est au niveau module → partagé entre les
-  // instances créées par requête, l'intégrité du rate-limit est préservée.
-  rateLimitMax: 50,
-  rateLimitWindowMs: 60_000,
-};
-
-/**
- * Contexte « runs récents » injecté dans le system prompt (RAG léger).
- * Best-effort : toute erreur → chaîne vide, jamais de throw, jamais bloquant.
- * Le scoping par utilisateur est assuré par la RLS Supabase (client serveur
- * porteur de la session) — pas de filtre owner_id manuel nécessaire.
- */
 async function buildRunsContext(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<string> {
@@ -124,73 +122,149 @@ async function buildRunsContext(
         .order("started_at", { ascending: false })
         .limit(8),
     ]);
-
     const lines: string[] = [];
-
-    if (chief.data && chief.data.length > 0) {
+    if (chief.data?.length) {
       lines.push("Daily Chief of Staff — chief_run_log :");
       for (const r of chief.data) {
         const end = r.finished_at ?? "(en cours)";
         const err = r.error_text ? ` [err: ${r.error_text.slice(0, 120)}]` : "";
-        lines.push(
-          `- [${r.status}] trigger=${r.trigger} · ${r.started_at} → ${end} · kickoff=${r.kickoff_id}${err}`,
-        );
+        lines.push(`- [${r.status}] trigger=${r.trigger} · ${r.started_at} → ${end} · kickoff=${r.kickoff_id}${err}`);
       }
     }
-
-    if (swarms.data && swarms.data.length > 0) {
+    if (swarms.data?.length) {
       lines.push("", "Swarm runs — swarm_runs :");
       for (const r of swarms.data) {
-        const status = r.error_text
-          ? "error"
-          : r.finished_at
-            ? "ok"
-            : "running";
+        const status = r.error_text ? "error" : r.finished_at ? "ok" : "running";
         const end = r.finished_at ?? "(en cours)";
         const err = r.error_text ? ` [err: ${r.error_text.slice(0, 120)}]` : "";
-        lines.push(
-          `- [${status}] swarm=${r.swarm_id} · ${r.started_at} → ${end}${err}`,
-        );
+        lines.push(`- [${status}] swarm=${r.swarm_id} · ${r.started_at} → ${end}${err}`);
       }
     }
-
-    if (lines.length === 0) return "";
-
-    return [
-      "",
-      "─── Contexte : logs de run récents de l'utilisateur (lecture seule, RLS) ───",
-      ...lines,
-      "",
-      "Quand l'utilisateur demande ses logs/runs, appuie-toi sur ces données. Si vide ou insuffisant, dis-le et oriente vers /crews/chief-of-staff/history ou la page du run.",
-    ].join("\n");
+    return lines.join("\n");
   } catch {
     return "";
   }
 }
 
 export async function POST(req: Request): Promise<Response> {
-  let userId: string | undefined;
-  let runsContext = "";
+  let raw: unknown;
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    userId = user?.id;
-    if (userId) {
-      runsContext = await buildRunsContext(supabase);
-    }
+    raw = await req.json();
   } catch {
-    // Pas de session résolvable → fallback rate-limit par IP (comportement handler).
+    return new Response("Bad request", { status: 400 });
+  }
+  const parsed = BodySchema.safeParse(raw);
+  if (!parsed.success) {
+    return new Response(JSON.stringify({ error: parsed.error.issues[0]?.message ?? "Bad request" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  const body = parsed.data;
+  const message = body.message.trim();
+  if (!message) return new Response("Empty message", { status: 400 });
+
+  // Auth + admin gate.
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser().catch(() => ({ data: { user: null } as { user: null } }));
+  const userId = user?.id;
+  const enableTools = isAdminEmail(user?.email ?? undefined);
+
+  // Rate-limit (clé user > IP).
+  const rateKey = userId
+    ?? req.headers.get("x-vercel-forwarded-for")
+    ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    ?? req.headers.get("x-real-ip")
+    ?? "unknown";
+  const { limited, retryAfter } = checkRateLimit(rateKey, enableTools ? 100 : 30, 60_000);
+  if (limited) {
+    return new Response("Trop de requêtes — réessaie dans quelques instants.", {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    });
   }
 
-  traceChatEvent({ name: "cockpit-chat", userId, model: KIMI_MODEL, metadata: { runtime: "nodejs" } });
-  const { POST: handler } = createCockpitChatHandler({
-    ...baseConfig,
-    systemPrompt: runsContext
-      ? `${BASE_SYSTEM_PROMPT}\n${runsContext}`
-      : BASE_SYSTEM_PROMPT,
+  // Persistence : crée ou charge le chat.
+  let chatId = body.chatId ?? null;
+  const history: ChatCompletionMessageParam[] = [];
+  if (!chatId) chatId = await cockpitPersistence.createChat();
+  else {
+    const loaded = await cockpitPersistence.loadMessages(chatId);
+    history.push(...loaded.map((m) => ({ role: m.role, content: m.content }) as ChatCompletionMessageParam));
+  }
+  if (chatId) {
+    await cockpitPersistence.saveMessage(chatId, {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: message,
+      createdAt: Date.now(),
+    });
+  }
+
+  // Contexte runs (best-effort).
+  const runsContext = userId ? await buildRunsContext(supabase) : "";
+  const systemPrompt = body.system ?? buildSystemPrompt({ hasTools: enableTools, runsContext });
+
+  const messages: ChatCompletionMessageParam[] = [
+    { role: "system", content: systemPrompt },
+    ...history,
+    { role: "user", content: message },
+  ];
+
+  traceChatEvent({
+    name: "cockpit-chat",
     userId,
+    model: KIMI_MODEL,
+    metadata: { runtime: "nodejs", tools: enableTools, chatId: chatId ?? undefined },
   });
-  return handler(req);
+
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const enc = new TextEncoder();
+      let assembled = "";
+      const emit = (chunk: string) => {
+        if (!chunk) return;
+        assembled += chunk;
+        try {
+          controller.enqueue(enc.encode(chunk));
+        } catch {
+          // controller closed (client gone)
+        }
+      };
+      try {
+        await runAgent({
+          client: kimi,
+          model: KIMI_MODEL,
+          messages,
+          ctx: { supabase, signal: req.signal },
+          enableTools,
+          emit,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "agent error";
+        emit(`\n[erreur agent: ${msg}]`);
+      } finally {
+        controller.close();
+        if (chatId && assembled.trim()) {
+          await cockpitPersistence.saveMessage(chatId, {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            content: assembled,
+            createdAt: Date.now(),
+          });
+        }
+      }
+    },
+    cancel() {
+      // signal d'abort déjà propagé via req.signal.
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": "no-cache",
+      ...(chatId ? { "x-chat-id": chatId } : {}),
+    },
+  });
 }
