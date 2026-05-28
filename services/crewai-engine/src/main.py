@@ -139,6 +139,13 @@ async def verify_bearer(
     if request.url.path == "/health":
         return await call_next(request)
 
+    # Dev-only bypass : Swagger UI / OpenAPI / ReDoc accessibles sans Bearer
+    # tant que ENGINE_ENV != "production". Fermé automatiquement en prod.
+    if os.getenv("ENGINE_ENV", "dev").lower() != "production" and request.url.path in (
+        "/docs", "/redoc", "/openapi.json",
+    ):
+        return await call_next(request)
+
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return Response(content="Unauthorized", status_code=401)
