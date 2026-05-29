@@ -22,9 +22,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import os
 import socket
 from datetime import datetime, timezone
+from hashlib import sha256
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -36,15 +36,13 @@ from ..config import settings
 logger = logging.getLogger("execution-engine.reconcile")
 
 
-TOLERANCE_ABS_USD = 1.0           # below this we treat as match (rounding)
-TOLERANCE_REL = 0.005             # 0.5% relative tolerance
-
-
 class ReconcileWorker:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self.pool = pool
         cfg = settings()
-        self.interval = int(os.getenv("RECONCILE_INTERVAL_SECONDS", "30"))
+        self.interval = cfg.reconcile_interval_seconds
+        self.tol_abs = cfg.reconcile_tolerance_abs_usd
+        self.tol_rel = cfg.reconcile_tolerance_rel
         self.worker_id = f"reconcile@{socket.gethostname()}"
         self.adapters: dict[str, VenueAdapter] = {
             "hyperliquid": HyperliquidAdapter(
@@ -103,7 +101,7 @@ class ReconcileWorker:
             status = "venue_unavailable"
         elif not diffs:
             status = "match"
-        elif len(diffs) >= 1 and worst >= max(TOLERANCE_ABS_USD, abs(_db_notional(db_positions)) * TOLERANCE_REL):
+        elif len(diffs) >= 1 and worst >= max(self.tol_abs, abs(_db_notional(db_positions)) * self.tol_rel):
             status = "mismatch"
         else:
             status = "partial"
@@ -177,13 +175,32 @@ class ReconcileWorker:
                 tenant_id,
                 f"auto:{reason}",
             )
-            await conn.execute(
+            # Hash chain: fetch prev row_hash for this tenant, compute deterministic row_hash.
+            prev_hash = await conn.fetchval(
                 """
-                insert into hedge_audit_log (tenant_id, actor_kind, event_type, severity, details, source_service, row_hash)
-                values ($1, 'system', 'kill_switch.auto_set', 'critical', $2::jsonb, 'execution-engine', md5(random()::text))
+                select row_hash from hedge_audit_log
+                where tenant_id = $1
+                order by created_at desc nulls last
+                limit 1
                 """,
                 tenant_id,
-                json.dumps({"reason": reason}),
+            )
+            audit_details = {"reason": reason}
+            canonical = json.dumps(
+                {"prev_hash": prev_hash or "", "event_type": "kill_switch.auto_set",
+                 "tenant_id": str(tenant_id), "details": audit_details},
+                sort_keys=True, separators=(",", ":"),
+            ).encode()
+            row_hash = sha256(canonical).hexdigest()
+            await conn.execute(
+                """
+                insert into hedge_audit_log (tenant_id, actor_kind, event_type, severity, details, source_service, prev_hash, row_hash)
+                values ($1, 'system', 'kill_switch.auto_set', 'critical', $2::jsonb, 'execution-engine', $3, $4)
+                """,
+                tenant_id,
+                json.dumps(audit_details),
+                prev_hash,
+                row_hash,
             )
             return row["id"] if row else None
 
@@ -221,8 +238,6 @@ class ReconcileWorker:
         worst: float,
         remediation: dict[str, Any],
     ) -> None:
-        from hashlib import sha256
-
         canonical = json.dumps(
             {"tenant": str(tenant_id), "venue": venue, "diffs": diffs, "status": status},
             sort_keys=True,

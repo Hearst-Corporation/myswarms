@@ -83,6 +83,7 @@ def evaluate(
     spread_bps_max: float = DEFAULT_SPREAD_BPS_MAX,
     min_depth_usd: float = DEFAULT_MIN_DEPTH_USD,
     slippage_bps_max: float = DEFAULT_SLIPPAGE_BPS_MAX,
+    log_returns_min: int = DEFAULT_LOG_RETURNS_MIN,
 ) -> RiskDecisionOut:
     """Pure deterministic evaluator. See module docstring for ladder."""
     now = datetime.now(timezone.utc)
@@ -128,7 +129,7 @@ def evaluate(
         return _reject(spec, ["spread_too_wide"], eval_data, engine_version, decision_ttl_seconds, now)
 
     # -- 7. Log returns sufficient --
-    if market.log_returns.size < DEFAULT_LOG_RETURNS_MIN:
+    if market.log_returns.size < log_returns_min:
         return _reject(spec, ["log_returns_insufficient"], eval_data, engine_version, decision_ttl_seconds, now)
 
     # -- 8. Kelly + ATR sizing --
@@ -203,6 +204,7 @@ def evaluate(
         entry_price=entry_price,
         size_base=proposed_size,
         limit_pct=profile.cvar_99_max_pct,
+        min_samples=log_returns_min,
     )
     eval_data.cvar_99 = cvar.cvar_99_pct
     eval_data.cvar_99_limit = cvar.limit_pct

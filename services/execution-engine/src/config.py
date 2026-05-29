@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     worker_max_attempts: int = 3
     order_send_timeout_seconds: int = 8
 
+    # Reconcile tolerances (per-venue tuning without redeploy)
+    reconcile_tolerance_abs_usd: float = 1.0
+    reconcile_tolerance_rel: float = 0.005
+    reconcile_interval_seconds: int = 30
+
     log_level: str = "INFO"
 
 

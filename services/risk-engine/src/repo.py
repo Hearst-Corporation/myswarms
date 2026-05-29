@@ -23,8 +23,12 @@ class Repo:
         self._pool = pool
 
     @classmethod
-    async def create(cls, dsn: str, *, min_size: int = 2, max_size: int = 10) -> "Repo":
-        pool = await asyncpg.create_pool(dsn=dsn, min_size=min_size, max_size=max_size, statement_cache_size=0)
+    async def create(cls, dsn: str, *, min_size: int = 2, max_size: int = 10, command_timeout: float = 10.0) -> "Repo":
+        pool = await asyncpg.create_pool(
+            dsn=dsn, min_size=min_size, max_size=max_size,
+            statement_cache_size=0, command_timeout=command_timeout,
+            max_inactive_connection_lifetime=300.0,
+        )
         return cls(pool)
 
     async def close(self) -> None:
@@ -330,6 +334,69 @@ class Repo:
                 """,
                 tenant_id,
             )
+
+    # ---------- Kill switches (control table — mutable by design) ----------
+
+    async def arm_kill_switch(
+        self, *, scope: str = "global", tenant_id: UUID | None = None,
+        venue: str | None = None, reason: str | None = None,
+    ) -> str:
+        """Arm a kill switch. Clears any existing active switch in the same
+        scope first (the unique partial index forbids two active rows)."""
+        async with self._pool.acquire() as conn:
+            async with conn.transaction():
+                # Clear existing active switch in the same scope slot.
+                await conn.execute(
+                    """
+                    update hedge_kill_switches set active = false, cleared_at = now()
+                    where active = true and scope = $1
+                      and tenant_id is not distinct from $2
+                      and venue is not distinct from $3
+                    """,
+                    scope, tenant_id, venue,
+                )
+                row = await conn.fetchrow(
+                    """
+                    insert into hedge_kill_switches (scope, tenant_id, venue, active, reason)
+                    values ($1, $2, $3, true, $4)
+                    returning id
+                    """,
+                    scope, tenant_id, venue, reason,
+                )
+                return str(row["id"])
+
+    async def clear_kill_switches(
+        self, *, scope: str | None = None, tenant_id: UUID | None = None,
+        venue: str | None = None,
+    ) -> int:
+        """Clear (deactivate) active kill switches. With no args, clears ALL
+        active switches. Returns the number cleared."""
+        clauses = ["active = true"]
+        params: list = []
+        if scope is not None:
+            params.append(scope); clauses.append(f"scope = ${len(params)}")
+        if tenant_id is not None:
+            params.append(tenant_id); clauses.append(f"tenant_id = ${len(params)}")
+        if venue is not None:
+            params.append(venue); clauses.append(f"venue = ${len(params)}")
+        where = " and ".join(clauses)
+        async with self._pool.acquire() as conn:
+            res = await conn.execute(
+                f"update hedge_kill_switches set active = false, cleared_at = now() where {where}",
+                *params,
+            )
+            # res like "UPDATE 3"
+            try:
+                return int(res.split()[-1])
+            except (ValueError, IndexError):
+                return 0
+
+    async def list_active_kill_switches(self) -> list[dict[str, Any]]:
+        async with self._pool.acquire() as conn:
+            rows = await conn.fetch(
+                "select id, scope, tenant_id, venue, reason, set_at from hedge_kill_switches where active = true order by set_at desc"
+            )
+            return [dict(r) for r in rows]
 
 
 async def _row(record: asyncpg.Record | None) -> dict[str, Any] | None:

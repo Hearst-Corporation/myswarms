@@ -31,6 +31,7 @@ def cvar_99_historical(
     entry_price: float,
     size_base: float,
     limit_pct: float,
+    min_samples: int = 200,
 ) -> CvarResult:
     """Compute CVaR99 on the proposed position.
 
@@ -38,8 +39,10 @@ def cvar_99_historical(
     For longs, P&L per unit = (price * (e^r - 1)). For shorts, negate.
     Leverage scales the loss in % of margin.
     """
-    if log_returns.size < 20:  # smoke test
-        raise ValueError("Need at least 20 log-return samples for CVaR99 (smoke test)")
+    if log_returns.size < min_samples:
+        raise ValueError(
+            f"CVaR99 requires at least {min_samples} log-return samples, got {log_returns.size}"
+        )
 
     # P&L distribution (relative to notional) per 1 step.
     pct_returns = np.exp(log_returns) - 1.0

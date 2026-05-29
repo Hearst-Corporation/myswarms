@@ -45,7 +45,7 @@ class MarketContext:
 DEFAULT_SPREAD_BPS_MAX = 25.0          # 25 bps (0.25%) — adjust per venue
 DEFAULT_MIN_DEPTH_USD = 50_000.0       # depth top-10 each side
 DEFAULT_SLIPPAGE_BPS_MAX = 30.0        # estimated slippage for the proposed size
-DEFAULT_LOG_RETURNS_MIN = 20  # relâché pour smoke test e2e          # need at least 200 samples for CVaR
+DEFAULT_LOG_RETURNS_MIN = 200  # need at least 200 samples for a statistically valid CVaR99 tail
 
 
 def build_context(row: dict, age_seconds: float) -> MarketContext:

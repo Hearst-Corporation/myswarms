@@ -57,6 +57,11 @@ class RiskWorker:
         self.poll_interval = cfg.worker_poll_interval_ms / 1000.0
         self.batch_size = cfg.worker_batch_size
         self.stopping = False
+        self.market_max_age = cfg.market_max_age_seconds
+        self.log_returns_min = cfg.log_returns_min
+        self.spread_bps_max = cfg.spread_bps_max
+        self.min_depth_usd = cfg.min_depth_usd
+        self.slippage_bps_max = cfg.slippage_bps_max
 
     async def run_forever(self) -> None:
         logger.info("Risk worker starting", extra={"worker_id": self.worker_id})
@@ -130,6 +135,12 @@ class RiskWorker:
 
         spec = StrategySpec.model_validate(spec_payload)
 
+        # Capture reference timestamp ONCE before any fresh-data fetch.
+        # All age calculations use t0 so that DB latency is counted toward staleness
+        # (fail-safe: a snapshot that arrives exactly at the limit will be correctly
+        # rejected as stale rather than silently accepted).
+        t0 = now_utc()
+
         # Portfolio + profile.
         port_row = await self.repo.fetch_latest_portfolio(tenant_id)
         if port_row is None:
@@ -140,7 +151,7 @@ class RiskWorker:
                 reason="portfolio_stale",
             )
             return
-        portfolio_age = (now_utc() - port_row["taken_at"]).total_seconds()
+        portfolio_age = (t0 - port_row["taken_at"]).total_seconds()
         portfolio = PortfolioSnapshot.model_validate(port_row["payload"])
 
         profile_row = await self.repo.fetch_active_risk_profile(tenant_id)
@@ -159,7 +170,7 @@ class RiskWorker:
         )
         market_ctx: MarketContext | None = None
         if mkt_row is not None:
-            market_age = (now_utc() - mkt_row["taken_at"]).total_seconds()
+            market_age = (t0 - mkt_row["taken_at"]).total_seconds()
             market_ctx = build_context(mkt_row, market_age)
 
         # Orderbook (top 20). Slippage estimation will be skipped if missing.
@@ -185,6 +196,11 @@ class RiskWorker:
             portfolio_max_age_seconds=self.portfolio_max_age,
             outbox_pending_depth=outbox_depth,
             outbox_max_pending_depth=settings().outbox_max_pending_depth,
+            market_max_age_seconds=self.market_max_age,
+            spread_bps_max=self.spread_bps_max,
+            min_depth_usd=self.min_depth_usd,
+            slippage_bps_max=self.slippage_bps_max,
+            log_returns_min=self.log_returns_min,
         )
 
         # Build DB rows. Sign decision; sign each outbox row.

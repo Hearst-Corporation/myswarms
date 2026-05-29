@@ -36,6 +36,14 @@ class Settings(BaseSettings):
     worker_max_attempts: int = 3
     outbox_max_pending_depth: int = 100
 
+    # Risk guard rails (overridable per deployment; defaults match market.py DEFAULT_*)
+    log_returns_min: int = 200
+    market_max_age_seconds: int = 5
+    spread_bps_max: float = 25.0
+    min_depth_usd: float = 50_000.0
+    slippage_bps_max: float = 30.0
+    db_command_timeout_seconds: float = 10.0
+
     # Observability
     log_level: str = "INFO"
 
