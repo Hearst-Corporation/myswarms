@@ -33,7 +33,7 @@ def client():
 def _empty_client():
     """Supabase stub that returns empty data for all queries."""
     stub = MagicMock()
-    for method in ("table", "select", "eq", "in_", "order", "limit", "maybe_single",
+    for method in ("table", "select", "eq", "or_", "in_", "order", "limit", "maybe_single",
                    "insert", "update", "delete"):
         getattr(stub, method).return_value = stub
     r = MagicMock()
@@ -146,29 +146,30 @@ class TestCrossTenantIsolation:
     """owner_id=A cannot see data belonging to owner_id=B."""
 
     def test_list_swarms_different_owners_return_separate_results(self, client):
-        """Two calls with different owner UUIDs both see only their own data."""
+        """Two calls with different owner UUIDs trigger separate or_() filters.
+
+        list_swarms now uses .or_("owner_id.eq.X,and(owner_id.is.null,is_template.eq.true)")
+        instead of .eq("owner_id", X) — we verify or_() is called with the correct owner UUID.
+        """
         owner_a = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
         owner_b = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
 
         from src.persistence import swarm_store  # noqa: PLC0415
 
-        # Stub: owner_a gets 1 swarm, owner_b gets 0.
-        # We track which eq("owner_id", ...) was called.
-        calls = []
+        # Stub: tracks or_() calls (new filter pattern after template visibility fix).
+        or_calls = []
 
-        def make_stub(owner: str, rows: list):
+        def make_stub(rows: list):
             stub = MagicMock()
             for method in ("table", "select", "eq", "in_", "order", "limit",
                            "maybe_single", "insert", "update", "delete"):
                 getattr(stub, method).return_value = stub
-            original_eq = stub.eq
 
-            def eq_tracking(col, val):
-                if col == "owner_id":
-                    calls.append(val)
+            def or_tracking(filter_str):
+                or_calls.append(filter_str)
                 return stub
 
-            stub.eq.side_effect = eq_tracking
+            stub.or_.side_effect = or_tracking
             r = MagicMock()
             r.data = rows
             r.count = len(rows)
@@ -176,18 +177,18 @@ class TestCrossTenantIsolation:
             return stub
 
         # Call for owner_a
-        with patch.object(swarm_store, "_get_client", return_value=make_stub(owner_a, [{"id": "s1", "owner_id": owner_a}])):
+        with patch.object(swarm_store, "_get_client", return_value=make_stub([{"id": "s1", "owner_id": owner_a}])):
             resp_a = client.get("/v1/swarms", params={"owner_id": owner_a})
         assert resp_a.status_code == 200
-        assert owner_a in calls, "owner_a UUID must be passed to the DB filter"
+        assert any(owner_a in c for c in or_calls), f"owner_a UUID must appear in or_() filter, got: {or_calls}"
 
-        calls.clear()
+        or_calls.clear()
 
         # Call for owner_b
-        with patch.object(swarm_store, "_get_client", return_value=make_stub(owner_b, [])):
+        with patch.object(swarm_store, "_get_client", return_value=make_stub([])):
             resp_b = client.get("/v1/swarms", params={"owner_id": owner_b})
         assert resp_b.status_code == 200
-        assert owner_b in calls, "owner_b UUID must be passed to the DB filter"
+        assert any(owner_b in c for c in or_calls), f"owner_b UUID must appear in or_() filter, got: {or_calls}"
 
     def test_list_runs_scoped_to_owner(self, client):
         """list_runs always passes owner_id to the DB — never returns all rows."""
@@ -217,40 +218,37 @@ class TestNonTemplateNullOwnerNotExposed:
     """Swarms with owner_id=NULL and is_template=False must not appear in list results."""
 
     def test_null_owner_non_template_excluded_from_list(self, client):
-        """The DB stub returns a row with owner_id=None, is_template=False.
-        Since list_swarms is called with owner_id=X and the stub filters by eq,
-        the response must not contain orphan rows when DB correctly scopes.
+        """Without owner_id → 400 (gate). With owner_id → or_() filter applied.
 
-        This test validates that _require_owner_id forces the eq filter —
-        i.e. it's impossible to call list_swarms without owner_id (400 gate).
-        A null-owner row would only appear if owner_id were absent from the query.
+        The or_() filter pattern is:
+          owner_id.eq.{X},and(owner_id.is.null,is_template.eq.true)
+        A non-template row with owner_id=NULL would NOT match this filter in real DB.
+        Here we verify that or_() is called (not a raw eq bypass) — the DB enforces the rest.
         """
         from src.persistence import swarm_store  # noqa: PLC0415
-
-        orphan_row = {"id": "orphan-1", "owner_id": None, "is_template": False}
-        stub = _empty_client()
-        r = MagicMock()
-        r.data = [orphan_row]
-        r.count = 1
-        stub.execute.return_value = r
 
         # Without owner_id → 400, orphan_row never returned.
         resp_no_owner = client.get("/v1/swarms")
         assert resp_no_owner.status_code == 400
 
-        # With valid owner_id → DB stub returns orphan_row (stub doesn't actually filter),
-        # but the important guarantee is that owner_id was passed to eq() in the query.
-        calls = []
+        # With valid owner_id → or_() must be called with owner UUID in the filter string.
+        stub = _empty_client()
+        or_calls = []
 
-        def eq_tracking(col, val):
-            if col == "owner_id":
-                calls.append(val)
+        def or_tracking(filter_str):
+            or_calls.append(filter_str)
             return stub
 
-        stub.eq.side_effect = eq_tracking
+        stub.or_.side_effect = or_tracking
+        r = MagicMock()
+        r.data = []
+        stub.execute.return_value = r
+
         owner = VALID_UUID
         with patch.object(swarm_store, "_get_client", return_value=stub):
             resp = client.get("/v1/swarms", params={"owner_id": owner})
 
         assert resp.status_code == 200
-        assert owner in calls, "owner_id MUST be forwarded to DB eq filter"
+        assert any(owner in c for c in or_calls), f"owner UUID must appear in or_() filter, got: {or_calls}"
+        # Verify the filter also restricts templates (is_template.eq.true required)
+        assert any("is_template" in c for c in or_calls), "Template filter must be part of or_() clause"

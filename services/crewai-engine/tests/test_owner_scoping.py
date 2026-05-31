@@ -27,7 +27,7 @@ def _chain(side_effect=None, data=None):
     """Build a minimal fluent Supabase chain stub."""
     chain = MagicMock()
     for method in (
-        "table", "select", "eq", "in_", "order", "limit", "maybe_single",
+        "table", "select", "eq", "in_", "or_", "order", "limit", "maybe_single",
         "insert", "update", "delete",
     ):
         getattr(chain, method).return_value = chain
@@ -60,7 +60,11 @@ class TestGetSwarmOwnerScoping:
         assert result is None, "Should return None for wrong owner"
 
     def test_returns_swarm_when_owner_matches(self):
-        """A swarm belonging to owner_A is visible to owner_A."""
+        """A swarm belonging to owner_A is visible to owner_A.
+
+        get_swarm now uses .or_() to include the owner's swarms AND global templates.
+        The stub must support or_() in the chain (returns self like other methods).
+        """
         from src.persistence import swarm_store  # noqa: PLC0415
 
         swarm_row = {"id": "swarm-id-1", "owner_id": "owner_A", "name": "My swarm"}
@@ -70,14 +74,15 @@ class TestGetSwarmOwnerScoping:
         result_empty = MagicMock()
         result_empty.data = []
 
-        # get_swarm makes: 1 swarm query + 3 sub-queries (agents/tasks/bindings).
-        # The tools join (tool_ids) only triggers if bindings have tool_id entries.
+        # get_swarm makes: 1 swarm query (with or_ filter) + 3 sub-queries (agents/tasks/bindings).
         stub = _chain(side_effect=[result_swarm, result_empty, result_empty, result_empty])
         with patch.object(swarm_store, "_get_client", return_value=stub):
             result = swarm_store.get_swarm("swarm-id-1", owner_id="owner_A")
 
         assert result is not None, "Should find swarm for correct owner"
         assert result["swarm"] == swarm_row
+        # Verify or_() was called (new filter pattern: owner OR global template)
+        stub.or_.assert_called_once()
 
 
 class TestGetSwarmRunOwnerScoping:

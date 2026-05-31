@@ -125,17 +125,11 @@ def get_swarm(
 ) -> dict[str, Any] | None:
     """Charge un swarm complet (agents + tasks + tool_bindings).
 
-    Si `owner_id` est fourni, filtre sur `swarms.owner_id` AVANT le filtre id —
-    un swarm n'appartenant pas à l'owner renvoie None (404 côté route).
+    Si `owner_id` est fourni, retourne le swarm si :
+      - il appartient à cet owner (owner_id = X), OU
+      - c'est un template global (owner_id IS NULL AND is_template = true).
     Si `owner_id is None`, comportement service-role : pas de scoping.
 
-    Renvoie un dict :
-        {
-          "swarm": {...colonnes swarms},
-          "agents": [{...colonnes swarm_agents}],
-          "tasks": [{...colonnes swarm_tasks}],
-          "tool_bindings": [{...colonnes swarm_tool_bindings, "tool": {...}}]
-        }
     Renvoie None si swarm introuvable, owner mismatch ou Supabase indispo.
     """
     client = _get_client()
@@ -144,7 +138,8 @@ def get_swarm(
     try:
         query = client.table("swarms").select("*")
         if owner_id:
-            query = query.eq("owner_id", owner_id)
+            # Include swarms owned by this user OR global templates (owner_id IS NULL).
+            query = query.or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
         swarm_res = (
             query.eq("id", swarm_id)
             .maybe_single()
@@ -214,17 +209,15 @@ def get_swarm(
 
 
 def list_swarms(owner_id: str | None = None) -> list[dict[str, Any]]:
-    """Liste les swarms actifs, filtrés optionnellement par propriétaire.
+    """Liste les swarms actifs visibles pour cet owner.
 
-    Inclut `agents_count`, `last_run_at` et `last_run_status` (n+1 simple — OK
-    tant que la liste reste modérée). À switcher en vraie agrégation Postgres
-    via un RPC si la volumétrie explose.
+    Si `owner_id` est fourni : retourne les swarms de l'owner ET les templates
+    globaux (owner_id IS NULL AND is_template=true) — ces derniers sont visibles
+    par tous les users authentifiés, comme en RLS Supabase.
+    Si `owner_id is None` (service-role interne) : tous les swarms actifs.
 
     # TODO V2 perf : n+1 problem — 1 query swarms + 2 queries (agents_count,
-    # last_run) PAR swarm. Seuil critique observé : ~200 swarms ⇒ latence
-    # explose au-delà (>2s). Rework attendu en V2 : vue Postgres ou RPC
-    # `list_swarms_with_stats(owner_id)` qui retourne tout en 1 round-trip
-    # avec sous-requêtes LATERAL pour les agrégats. Voir migration future.
+    # last_run) PAR swarm. Rework attendu en V2 via RPC Postgres.
     """
     client = _get_client()
     if client is None:
@@ -240,7 +233,8 @@ def list_swarms(owner_id: str | None = None) -> list[dict[str, Any]]:
             .order("created_at", desc=True)
         )
         if owner_id:
-            query = query.eq("owner_id", owner_id)
+            # Include owned swarms OR global templates (mirrors swarms_templates_readable RLS).
+            query = query.or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
         result = query.execute()
         swarms = result.data if result else []
 
