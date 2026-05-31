@@ -9,7 +9,13 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-# UUID validation helper — owner_id MUST be a valid UUID string.
+from ..config import settings
+from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
+from ..persistence import run_store
+from ..persistence.chief_step_store import list_chief_steps
+from ..persistence.chief_decision_store import record_decision
+
+
 def _require_owner_id(owner_id: str | None) -> str:
     """Raise 400 if owner_id is absent or not a valid UUID."""
     if not owner_id or not owner_id.strip():
@@ -19,12 +25,6 @@ def _require_owner_id(owner_id: str | None) -> str:
     except ValueError:
         raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
     return owner_id
-
-from ..config import settings
-from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
-from ..persistence import run_store
-from ..persistence.chief_step_store import list_chief_steps
-from ..persistence.chief_decision_store import record_decision
 
 logger = logging.getLogger(__name__)
 

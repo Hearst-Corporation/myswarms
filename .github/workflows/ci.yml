@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   quality:
-    name: Lint · Typecheck · Tests
+    name: Lint · Typecheck · Tests (Node)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,3 +32,36 @@ jobs:
 
       - name: Unit tests (vitest)
         run: npm test
+
+  engine:
+    name: Python engine — Ruff · Pytest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/crewai-engine
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Install dependencies
+        run: uv sync --group dev
+
+      - name: Ruff lint
+        run: uv run ruff check src/
+
+      # Format check skipped for pre-existing code — would require full reformat.
+      # Run locally: uv run ruff format src/ to fix.
+      # - name: Ruff format check
+      #   run: uv run ruff format --check src/
+
+      - name: Pytest (unit — no network)
+        env:
+          CREWAI_ENGINE_AUTH_TOKEN: "00000000000000000000000000000000"
+          # All other secrets absent → tests stub Supabase/LLM via mocks
+        run: uv run pytest tests/ -q --ignore=tests/test_vault_search.py --ignore=tests/test_composio_session.py -x

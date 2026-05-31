@@ -14,9 +14,10 @@ interface LLMPickerProps {
   onMaxTokensChange: (tokens: number) => void;
 }
 
-// C9 : alignement avec CLAUDE.md + services/crewai-engine/src/config.py.
-// Note : "kimi" et "hypercli" pointent vers les mêmes modèles (alias historique
-// vs alias officiel) — l'engine accepte les deux.
+// Runtime enforcement: all providers are routed to Hypercli (Kimi K2.6) at runtime
+// by _resolve_llm() in services/crewai-engine/src/crews/dynamic_crew.py.
+// Anthropic and OpenAI (real) options are removed from the UI to avoid confusion —
+// any value stored in DB will be silently overridden by the engine anyway.
 const HYPERCLI_MODELS = [
   "kimi-k2.6",
   "kimi-k2.6-anthropic",
@@ -24,16 +25,13 @@ const HYPERCLI_MODELS = [
   "kimi-k2.5-anthropic",
   "glm-5",
   "minimax-m2.5",
-  "qwen3-embedding-4b",
 ];
 
+// Only Hypercli/Kimi providers exposed — runtime-enforced.
+// anthropic and openai keys kept for type-compat but intentionally identical content.
 const PROVIDER_MODELS: Record<ModelProvider, string[]> = {
-  anthropic: [
-    "claude-opus-4-7",
-    "claude-sonnet-4-6",
-    "claude-haiku-4-5-20251001",
-  ],
-  openai: ["gpt-4.1", "gpt-4.1-mini", "gpt-4o", "gpt-4o-mini"],
+  anthropic: HYPERCLI_MODELS,  // DB legacy — engine routes to Hypercli
+  openai: HYPERCLI_MODELS,     // DB value — engine routes to Hypercli
   kimi: HYPERCLI_MODELS,
   hypercli: HYPERCLI_MODELS,
 };
@@ -55,9 +53,25 @@ export function LLMPicker({
   onMaxTokensChange,
 }: LLMPickerProps) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
+      {/* Runtime enforcement notice */}
+      <div
+        style={{
+          fontSize: FONT.xs,
+          color: "var(--ct-text-muted)",
+          background: "var(--ct-surface-2)",
+          border: "1px solid var(--ct-border-soft)",
+          borderRadius: RADIUS.md,
+          padding: `${SPACING.xs}px ${SPACING.md}px`,
+        }}
+      >
+        Provider enforced at runtime : <strong style={{ color: "var(--ct-text-primary)" }}>Hypercli · Kimi K2.6</strong>.
+        {" "}Any provider stored in DB is routed to Hypercli by the engine.
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
       <label style={labelStyle}>
-        <span style={labelText}>Provider</span>
+        <span style={labelText}>Provider (stored)</span>
         <select
           value={provider}
           onChange={(e) => {
@@ -68,10 +82,10 @@ export function LLMPicker({
           }}
           style={inputStyle}
         >
-          <option value="anthropic">Anthropic (Claude)</option>
-          <option value="openai">OpenAI</option>
-          <option value="hypercli">Hypercli (official)</option>
-          <option value="kimi">Kimi (legacy alias)</option>
+          <option value="openai">openai (→ Hypercli)</option>
+          <option value="hypercli">hypercli (→ Hypercli)</option>
+          <option value="kimi">kimi (→ Hypercli, legacy)</option>
+          <option value="anthropic">anthropic (→ Hypercli, legacy)</option>
         </select>
       </label>
 
@@ -88,7 +102,7 @@ export function LLMPicker({
             </option>
           ))}
           {!PROVIDER_MODELS[provider].includes(modelName) && modelName ? (
-            <option value={modelName}>{modelName} (custom)</option>
+            <option value={modelName}>{modelName} (stored)</option>
           ) : null}
         </select>
       </label>
@@ -123,6 +137,7 @@ export function LLMPicker({
           style={inputStyle}
         />
       </label>
+      </div>
     </div>
   );
 }

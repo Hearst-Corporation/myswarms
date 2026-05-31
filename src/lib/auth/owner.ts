@@ -45,6 +45,16 @@ export async function getOwnerId(): Promise<string | null> {
     process.env.DEV_BYPASS_AUTH === "true" &&
     process.env.NODE_ENV !== "production"
   ) {
+    // Warn loudly in dev so the bypass is never forgotten.
+    // Fail-closed in production: NODE_ENV check above prevents this branch from running.
+    if (typeof console !== "undefined") {
+      console.warn(
+        "[auth] DEV_BYPASS_AUTH=true — authentication is DISABLED. " +
+        "All requests treated as owner_id=" +
+        (process.env.DEV_BYPASS_OWNER_ID ?? "00000000-0000-0000-0000-000000000000") +
+        ". Set DEV_BYPASS_AUTH=false to use real Supabase auth."
+      );
+    }
     return (
       process.env.DEV_BYPASS_OWNER_ID ??
       "00000000-0000-0000-0000-000000000000"

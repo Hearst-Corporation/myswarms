@@ -35,6 +35,9 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..config import settings
+from ..crews.dynamic_crew import flush_run_steps
+from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
+from ..persistence import swarm_store
 
 
 def _require_owner_id(owner_id: str | None) -> str:
@@ -69,9 +72,6 @@ def _deny_if_global_template(loaded: dict | None, swarm_id: str) -> None:
                 "Global templates are read/run-only for all users."
             ),
         )
-from ..crews.dynamic_crew import flush_run_steps
-from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
-from ..persistence import swarm_store
 
 logger = logging.getLogger(__name__)
 

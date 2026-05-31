@@ -17,13 +17,14 @@ interface SwarmAgentFormProps {
   onCancel?: () => void;
 }
 
-// C9 : aligné sur CLAUDE.md (Anthropic = claude-sonnet-4-6 par défaut).
+// Default to openai/kimi-k2.6 — runtime enforces Hypercli on all providers.
+// "openai" prefix is required by LiteLLM for the Hypercli OpenAI-compatible endpoint.
 const DEFAULT_AGENT: AgentInput = {
   name: "",
   role: "executor",
   system_prompt: "",
-  model_provider: "anthropic",
-  model_name: "claude-sonnet-4-6",
+  model_provider: "openai",
+  model_name: "kimi-k2.6",
   temperature: 0.7,
   max_tokens: 4096,
   parent_agent_id: null,
