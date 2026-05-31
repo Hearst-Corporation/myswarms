@@ -1,0 +1,32 @@
+{
+  "verdict": "PASS",
+  "date": "2026-06-01",
+  "branch": "feat/kimi-admin-agent",
+  "commit": "76b57c0",
+  "url": "https://myswarms-23npe98md-hearst-corporation.vercel.app",
+  "run_id": "baa251eb-df36-43c2-b35c-04d1e9581947",
+  "login_ok": true,
+  "workspace_ok": true,
+  "template_ok": true,
+  "run_completed": true,
+  "steps_count": 6,
+  "tokens_in": 3559,
+  "tokens_out": 14639,
+  "report_contextualized": true,
+  "recommendation": "ÉVITER",
+  "cost_non_misleading": true,
+  "automotive_dashboard_ok": true,
+  "automotive_vehicles_count": 7,
+  "critical_errors": [],
+  "bugs_fixed_during_test": [
+    "CREWAI_ENGINE_AUTH_TOKEN absent du target preview Vercel → ajouté via API",
+    "CREWAI_ENGINE_URL_PROD pointait sur ancienne URL → corrigé vers crewai-engine-production.up.railway.app",
+    "/automotive 404 sur previews antérieures → push branche + redeploy avec commit 76b57c0"
+  ],
+  "known_open_issues": [
+    "Lien Edit visible sur template global dans bottom bar (cosmétique, 403 engine)",
+    "Per-step tokens/cost = 0 (pricing Kimi indisponible, dette connue)",
+    "1 erreur console mineure non identifiée"
+  ],
+  "next_step": "Produit prouvé fonctionnel e2e en déployé. Prochaine action : unification parseur recommandation dashboard + kill N+1, ou test utilisateur externe."
+}

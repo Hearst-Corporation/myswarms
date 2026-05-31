@@ -6,6 +6,7 @@ import { useRef, useState } from "react";
 import { BottomBarSwarmActions } from "@/components/swarms/BottomBarSwarmActions";
 import { LaunchButton } from "@/components/cockpit/LaunchButton";
 import { BUILDER_TABS, type BuilderTabId, parseBuilderTab } from "@/lib/swarms/builderTabs";
+import { useSwarmTemplate } from "@/lib/swarms/templateContext";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
@@ -17,6 +18,7 @@ export function AppBottomBar() {
   const searchParams = useSearchParams();
   const [refreshing, setRefreshing] = useState(false);
   const tablistRef = useRef<HTMLDivElement>(null);
+  const { isTemplate: swarmIsTemplate } = useSwarmTemplate();
 
   const isHome = pathname === "/";
   const isSwarmsArea = pathname.startsWith("/swarms");
@@ -191,9 +193,11 @@ export function AppBottomBar() {
           {isSwarmDetail && swarmIdFromDetail ? (
             <>
               <BottomBarSwarmActions swarmId={swarmIdFromDetail} />
-              <Link href={`${pathname}/edit`} className="ct-seg-btn">
-                Edit
-              </Link>
+              {!swarmIsTemplate && (
+                <Link href={`${pathname}/edit`} className="ct-seg-btn">
+                  Edit
+                </Link>
+              )}
               <span className="ct-seg-btn active" aria-current="page">View</span>
             </>
           ) : isSwarmEdit ? (

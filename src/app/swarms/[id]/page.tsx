@@ -17,6 +17,7 @@ import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tok
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import { SwarmTemplateProvider } from "@/lib/swarms/templateContext";
 
 const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
 type Trigger = (typeof ALLOWED_TRIGGERS)[number];
@@ -129,6 +130,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   const isTemplate = swarm.is_template === true;
 
   return (
+    <SwarmTemplateProvider isTemplate={isTemplate}>
     <>
       <div className="ct-eyebrow">
         <Link
@@ -366,6 +368,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
         ) : null}
       </div>
     </>
+    </SwarmTemplateProvider>
   );
 }
 
