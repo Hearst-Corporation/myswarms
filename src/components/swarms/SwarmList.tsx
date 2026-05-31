@@ -108,12 +108,14 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
                 {formatDate(s.updated_at)}
               </td>
               <td style={{ ...tdStyle, textAlign: "right" }}>
-                <Link
-                  href={`/swarms/${s.id}/edit`}
-                  style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
-                >
-                  Edit
-                </Link>
+                {s.is_template ? null : (
+                  <Link
+                    href={`/swarms/${s.id}/edit`}
+                    style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
+                  >
+                    Edit
+                  </Link>
+                )}
               </td>
             </tr>
           ))}

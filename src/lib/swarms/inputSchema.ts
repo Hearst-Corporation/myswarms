@@ -7,6 +7,7 @@
  *   required_inputs : string[]                 — champs obligatoires
  *   field_order     : string[]                 — ordre d'affichage (optionnel)
  *   field_options   : Record<string, string[]> — options <select> (optionnel)
+ *   field_labels    : Record<string, string>   — labels humains (optionnel)
  *
  * Déduction du type depuis la description :
  *   "integer" | "number" → number input
@@ -14,7 +15,31 @@
  *   textarea | desc >80  → textarea
  *   options présentes    → select (priorité sur le type textuel)
  *   sinon               → text
+ *
+ * Résolution du label (priorité décroissante) :
+ *   1. field_labels[key]    — label explicite dans config_json
+ *   2. BUILTIN_LABELS[key]  — label humain pour les clés communes
+ *   3. key.replace(/_/g, " ").capitalize() — fallback snake_case → Title Case
  */
+
+/** Labels humains pour les clés fréquentes — évite la snake_case dans le formulaire. */
+const BUILTIN_LABELS: Record<string, string> = {
+  make:       "Marque",
+  model:      "Modèle",
+  year:       "Année",
+  mileage_km: "Kilométrage (km)",
+  fuel:       "Carburant",
+  price_eur:  "Prix (€)",
+  country:    "Pays",
+  source_url: "URL de l'annonce",
+  notes:      "Notes",
+  title:      "Titre",
+  description:"Description",
+  name:       "Nom",
+  url:        "URL",
+  email:      "Email",
+  phone:      "Téléphone",
+};
 
 export type FieldType = "text" | "number" | "url" | "textarea" | "select";
 
@@ -57,6 +82,13 @@ export function parseInputSchema(
     ? (configJson["field_order"] as string[])
     : [];
 
+  const fieldLabels: Record<string, string> =
+    configJson["field_labels"] !== null &&
+    typeof configJson["field_labels"] === "object" &&
+    !Array.isArray(configJson["field_labels"])
+      ? (configJson["field_labels"] as Record<string, string>)
+      : {};
+
   const schema = raw as Record<string, string>;
 
   // Build ordered key list: declared order first, then any remaining keys
@@ -86,9 +118,11 @@ export function parseInputSchema(
       type = "text";
     }
 
-    const label = key
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    // Label resolution: field_labels > BUILTIN_LABELS > snake_case fallback
+    const label =
+      fieldLabels[key] ??
+      BUILTIN_LABELS[key] ??
+      key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 
     const hintMatch = description.match(/—\s*(.+)/);
     const placeholder = hintMatch ? hintMatch[1].slice(0, 60) : "";

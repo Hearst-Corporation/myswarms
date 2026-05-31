@@ -32,9 +32,31 @@ interface PageProps {
   params: Promise<{ id: string; runId: string }>;
 }
 
+export async function generateMetadata({ params }: PageProps) {
+  const { id, runId } = await params;
+  if (!isValidUuid(id) || !isValidUuid(runId)) return { title: "Run not found" };
+  try {
+    const ownerId = await getOwnerId();
+    const swarm = await swarmsClient.get(id, ownerId);
+    return { title: `${swarm.name} · Run ${runId.slice(0, 8)} — MySwarms` };
+  } catch {
+    return { title: `Run ${runId.slice(0, 8)} — MySwarms` };
+  }
+}
+
 export default async function SwarmRunDetailPage({ params }: PageProps) {
   const { id, runId } = await params;
   if (!isValidUuid(id) || !isValidUuid(runId)) notFound();
+
+  // Load swarm name for context — fail-soft (not required for run display)
+  let swarmName: string | null = null;
+  try {
+    const ownerId = await getOwnerId();
+    const swarm = await swarmsClient.get(id, ownerId);
+    swarmName = swarm.name;
+  } catch {
+    // silencieux — le nom est un enrichissement contextuel, pas bloquant
+  }
 
   let run;
   try {
@@ -70,7 +92,7 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
           href={`/swarms/${id}`}
           style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
         >
-          <Chevron direction="left" />Swarm
+          <Chevron direction="left" />{swarmName ?? "Swarm"}
         </Link>
       </div>
       <div
@@ -83,6 +105,11 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         }}
       >
         <div>
+          {swarmName && (
+            <div style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.xs }}>
+              {swarmName}
+            </div>
+          )}
           <PageTitle variant="mono">
             Run {runId.slice(0, 8)}…
           </PageTitle>
