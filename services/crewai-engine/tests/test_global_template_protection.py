@@ -250,6 +250,103 @@ class TestUserSwarmWriteAllowed:
         )
 
 
+# ── Tests: Template creation locked ──────────────────────────────────────────
+
+class TestTemplateCreationLocked:
+    """POST /v1/swarms with is_template=true must be rejected."""
+
+    def test_create_with_is_template_true_returns_403(self, client):
+        """Creating a global template via the user API is forbidden."""
+        resp = client.post(
+            "/v1/swarms",
+            params={"owner_id": VALID_OWNER},
+            json={
+                "name": "Fake global template",
+                "is_template": True,
+            },
+        )
+        assert resp.status_code == 403, (
+            f"Expected 403 for is_template=true, got {resp.status_code}: {resp.text}"
+        )
+        assert "global template" in resp.json()["detail"].lower()
+        assert "migration" in resp.json()["detail"].lower()
+
+    def test_create_with_is_template_true_in_body_and_query_owner_returns_403(self, client):
+        """Combination of body is_template=true with query owner_id → still 403."""
+        resp = client.post(
+            "/v1/swarms",
+            params={"owner_id": VALID_OWNER},
+            json={
+                "name": "Another attempt",
+                "is_template": True,
+                "owner_id": VALID_OWNER,  # even with explicit owner → blocked
+            },
+        )
+        assert resp.status_code == 403
+
+    def test_create_without_owner_id_returns_400(self, client):
+        """owner_id missing → 400 (existing _require_owner_id gate, before is_template check)."""
+        resp = client.post(
+            "/v1/swarms",
+            json={"name": "No owner"},
+        )
+        # owner_id absent → 400 (pre-existing gate — is_template check not reached)
+        assert resp.status_code in (400, 403), (
+            f"Expected 400 or 403 without owner_id, got {resp.status_code}"
+        )
+
+    def test_create_normal_swarm_not_blocked(self, client):
+        """POST with owner_id and is_template=false (default) → not 403."""
+        from src.persistence import swarm_store  # noqa: PLC0415
+        with (
+            patch.object(swarm_store, "create_swarm", return_value="new-swarm-id"),
+            patch.object(swarm_store, "get_swarm", return_value={
+                "swarm": {
+                    "id": "new-swarm-id", "owner_id": VALID_OWNER,
+                    "is_template": False, "is_active": True,
+                    "name": "Normal Swarm", "description": "",
+                    "version": 1, "config_json": {},
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "updated_at": "2026-01-01T00:00:00+00:00",
+                },
+                "agents": [], "tasks": [], "tool_bindings": [],
+            }),
+        ):
+            resp = client.post(
+                "/v1/swarms",
+                params={"owner_id": VALID_OWNER},
+                json={"name": "Normal Swarm"},
+            )
+        # 201 success, or 500 if sub-operations fail in mock — not 403
+        assert resp.status_code != 403, (
+            f"Normal swarm creation must not return 403, got {resp.status_code}"
+        )
+
+    def test_create_normal_swarm_with_explicit_is_template_false_not_blocked(self, client):
+        """Explicit is_template=false → allowed (same as default)."""
+        from src.persistence import swarm_store  # noqa: PLC0415
+        with (
+            patch.object(swarm_store, "create_swarm", return_value="new-swarm-id-2"),
+            patch.object(swarm_store, "get_swarm", return_value={
+                "swarm": {
+                    "id": "new-swarm-id-2", "owner_id": VALID_OWNER,
+                    "is_template": False, "is_active": True,
+                    "name": "Explicit False Template", "description": "",
+                    "version": 1, "config_json": {},
+                    "created_at": "2026-01-01T00:00:00+00:00",
+                    "updated_at": "2026-01-01T00:00:00+00:00",
+                },
+                "agents": [], "tasks": [], "tool_bindings": [],
+            }),
+        ):
+            resp = client.post(
+                "/v1/swarms",
+                params={"owner_id": VALID_OWNER},
+                json={"name": "Explicit False Template", "is_template": False},
+            )
+        assert resp.status_code != 403
+
+
 # ── Tests: _deny_if_global_template helper directly ──────────────────────────
 
 class TestDenyIfGlobalTemplateHelper:

@@ -457,12 +457,29 @@ def create_swarm_endpoint(
 
     `owner_id` requis (UUID) — peut arriver via query param (BFF) OU dans le body.
     Priorité body > query. Dans les deux cas doit être un UUID valide.
+
+    `is_template=true` est interdit via cet endpoint : les templates globaux
+    (owner_id IS NULL AND is_template=True) sont créés uniquement par migrations
+    SQL admin. Cette restriction empêche tout caller avec bearer valide de créer
+    un template global qui serait visible par tous les users.
     """
     swarm_payload = payload.model_dump(
         exclude={"agents", "tasks", "tool_bindings"},
         exclude_none=True,
     )
+    # Block global template creation via the user-facing API.
+    # Global templates must be seeded via admin SQL migrations only.
+    if swarm_payload.get("is_template") is True:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                "Creating global templates via the API is not allowed. "
+                "Global templates must be created by admin SQL migrations."
+            ),
+        )
+
     # Résolution priorité body > query, puis validation obligatoire.
+    # _require_owner_id also prevents owner_id=NULL (raises 400 if absent/invalid UUID).
     effective_owner_id = swarm_payload.get("owner_id") or owner_id
     oid = _require_owner_id(effective_owner_id)
     swarm_payload["owner_id"] = oid
