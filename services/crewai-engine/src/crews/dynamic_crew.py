@@ -813,14 +813,50 @@ def _task_callback_fn(task_output: Any) -> None:
         logger.warning("_task_callback_fn failed run=%s task_idx=%s: %s", run_id, step_state.get("current_task_idx"), exc)
 
 
-def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
+def _build_inputs_context(inputs: dict[str, Any]) -> str:
+    """Formats trigger inputs as a human-readable context block for task injection.
+
+    Produces a compact key-value block prepended to the first task's description
+    so every agent in the crew sees the concrete values immediately.
+
+    Example output:
+        --- Inputs ---
+        make: BMW
+        model: 330d xDrive
+        year: 2019
+        mileage_km: 87000
+        --- End inputs ---
+
+    Internal keys (swarm_id, run_id, trigger, owner_id) are excluded.
+    Returns empty string if inputs is empty or None.
+    """
+    _INTERNAL_KEYS = frozenset({"swarm_id", "run_id", "trigger", "owner_id"})
+    filtered = {k: v for k, v in (inputs or {}).items() if k not in _INTERNAL_KEYS and v is not None and v != ""}
+    if not filtered:
+        return ""
+    lines = ["--- Inputs ---"]
+    for k, v in filtered.items():
+        lines.append(f"{k}: {v}")
+    lines.append("--- End inputs ---\n")
+    return "\n".join(lines)
+
+
+def create_dynamic_crew(
+    swarm_id: str,
+    run_id: str | None = None,
+    trigger_inputs: dict[str, Any] | None = None,
+) -> Crew:
     """Charge un swarm DB et renvoie un Crew CrewAI prêt à être kickoff.
 
     Args:
-        swarm_id: UUID du swarm en DB.
-        run_id:   UUID du run en cours (optionnel). Si fourni, on installe
-                  un step_callback / task_callback qui persiste chaque
-                  step dans `swarm_run_steps` — G3 fix.
+        swarm_id:       UUID du swarm en DB.
+        run_id:         UUID du run en cours (optionnel). Si fourni, installe
+                        step_callback / task_callback pour persister les steps.
+        trigger_inputs: Inputs utilisateur du kickoff (make, model, year…).
+                        Si fournis, préfixés à la description de la première task
+                        comme bloc de contexte structuré — les agents les voient
+                        dans leur prompt système. Clés internes (swarm_id, run_id…)
+                        sont filtrées automatiquement.
 
     Raises:
         ValueError: si le swarm n'existe pas ou n'a aucun agent/task valide.
@@ -836,7 +872,16 @@ def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
     task_pairs = instantiate_tasks(agents_map, swarm_config)
     if not task_pairs:
         raise ValueError(f"Swarm {swarm_id} has no instantiable tasks")
-    tasks = [task for _meta, task in task_pairs]
+
+    # Inject trigger inputs into the first task's description so agents receive
+    # the concrete values in their prompts. Subsequent tasks inherit the context
+    # via CrewAI's sequential context propagation (task output becomes next task input).
+    inputs_ctx = _build_inputs_context(trigger_inputs or {})
+    tasks: list[Any] = []
+    for idx, (_meta, task) in enumerate(task_pairs):
+        if idx == 0 and inputs_ctx:
+            task.description = inputs_ctx + task.description
+        tasks.append(task)
 
     # Process : par défaut sequential ; lit `swarm.config_json.process` si fourni.
     config_json = swarm_config.get("swarm", {}).get("config_json") or {}
