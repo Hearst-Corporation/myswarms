@@ -29,10 +29,23 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
+from uuid import UUID as _UUID
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..config import settings
+
+
+def _require_owner_id(owner_id: str | None) -> str:
+    """Raise 400 if owner_id is absent or not a valid UUID."""
+    if not owner_id or not owner_id.strip():
+        raise HTTPException(status_code=400, detail="owner_id is required")
+    try:
+        _UUID(owner_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
+    return owner_id
 from ..crews.dynamic_crew import flush_run_steps
 from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
 from ..persistence import swarm_store
@@ -389,8 +402,9 @@ async def _execute_dynamic_flow_background(
 
 @router.get("/v1/swarms")
 def list_swarms_endpoint(owner_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
-    """Liste tous les swarms actifs, filtrés optionnellement par owner_id."""
-    return swarm_store.list_swarms(owner_id=owner_id)
+    """Liste les swarms actifs de l'owner. owner_id requis (UUID) → 400 sinon."""
+    oid = _require_owner_id(owner_id)
+    return swarm_store.list_swarms(owner_id=oid)
 
 
 @router.get("/v1/swarms/{swarm_id}")
@@ -400,10 +414,10 @@ def get_swarm_endpoint(
 ) -> dict[str, Any]:
     """Renvoie un swarm complet (agents + tasks + tool_bindings).
 
-    `owner_id` optionnel (propagé par le BFF) : si fourni, scope la lecture sur
-    ce propriétaire — 404 si mismatch.
+    `owner_id` requis (UUID) — scope la lecture sur ce propriétaire → 404 si mismatch.
     """
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
     return _shape_swarm_response(loaded)
@@ -418,16 +432,17 @@ def create_swarm_endpoint(
 
     En cas d'erreur partielle, rollback applicatif (hard delete du swarm).
 
-    F4 fix : `owner_id` peut arriver via query param (BFF) OU dans le body.
-    Priorité body > query (body explicite gagne sur le contexte d'appel).
+    `owner_id` requis (UUID) — peut arriver via query param (BFF) OU dans le body.
+    Priorité body > query. Dans les deux cas doit être un UUID valide.
     """
     swarm_payload = payload.model_dump(
         exclude={"agents", "tasks", "tool_bindings"},
         exclude_none=True,
     )
-    # F4 fix : si le body n'a pas posé owner_id, on prend celui du query param.
-    if not swarm_payload.get("owner_id") and owner_id:
-        swarm_payload["owner_id"] = owner_id
+    # Résolution priorité body > query, puis validation obligatoire.
+    effective_owner_id = swarm_payload.get("owner_id") or owner_id
+    oid = _require_owner_id(effective_owner_id)
+    swarm_payload["owner_id"] = oid
 
     # F7 fix : valider l'unicité des client_ids agents/tasks avant insertion.
     # Un duplicate ferait crasher l'hydration (FK contraintes) sans message clair.
@@ -496,26 +511,13 @@ def update_swarm_endpoint(
 ) -> dict[str, Any]:
     """Patch les champs fournis (les non-envoyés sont ignorés).
 
-    Sémantique stricte (F2 fix) : on distingue "clé absente du payload" vs
-    "clé envoyée explicitement à None/[]". On utilise `model_dump(exclude_unset=True)`
-    qui ne renvoie QUE les champs effectivement présents dans le body JSON.
-    → un PATCH `{"description": "X"}` ne touche PAS aux agents/tasks/bindings.
-
-    Si `agents`, `tasks` ou `tool_bindings` sont **explicitement présents**
-    (même si `[]`), on remplace intégralement ces collections (delete-all
-    puis insert) via `swarm_store.replace_*`. Le mapping `client_id → db_uuid`
-    est propagé pour résoudre les références cross-collections dans le même
-    payload.
-
-    `owner_id` optionnel (propagé par le BFF) : si fourni, la lecture
-    pré-update et l'UPDATE scalaire sont scopés. Le swarm est validé via
-    `get_swarm(.., owner_id=)` avant tout replace_* — un mismatch renvoie 404.
+    `owner_id` requis (UUID) — scope la lecture pré-update et l'UPDATE scalaire.
+    Le swarm est validé via `get_swarm(.., owner_id=)` → 404 si mismatch.
     """
-    # Pre-check : valide propriétaire si owner_id fourni (404 sinon).
-    if owner_id:
-        guard = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
-        if guard is None:
-            raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
+    oid = _require_owner_id(owner_id)
+    guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    if guard is None:
+        raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
     # `exclude_unset=True` : seules les clés POSÉES dans le body JSON apparaissent.
     # C'est la clé du fix : on ne re-set jamais une valeur "par défaut Pydantic"
@@ -537,7 +539,7 @@ def update_swarm_endpoint(
         raise HTTPException(status_code=400, detail="No fields to update")
 
     if payload_set:
-        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=owner_id)
+        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=oid)
         if not ok:
             raise HTTPException(
                 status_code=500,
@@ -581,7 +583,7 @@ def update_swarm_endpoint(
             detail={"message": "Partial update failed", "errors": errors},
         )
 
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found after update")
     return _shape_swarm_response(loaded)
@@ -594,16 +596,13 @@ def delete_swarm_endpoint(
 ) -> None:
     """Soft delete : marque `is_active=false`.
 
-    `owner_id` optionnel : scope la suppression sur ce propriétaire.
+    `owner_id` requis (UUID) — scope la suppression sur ce propriétaire.
     """
-    # I6 fix : DELETE non-idempotent — aligné sur GET/PATCH pour cohérence
-    # interne du projet. Même sans owner_id, on vérifie l'existence du swarm
-    # avant le soft delete (404 si inexistant). Reste valide REST : DELETE
-    # peut renvoyer 404 ou 204 selon la convention choisie.
-    guard = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
-    ok = swarm_store.delete_swarm(swarm_id, owner_id=owner_id)
+    ok = swarm_store.delete_swarm(swarm_id, owner_id=oid)
     if not ok:
         raise HTTPException(
             status_code=500,
@@ -622,15 +621,11 @@ async def kickoff_swarm_endpoint(
 ) -> dict[str, Any]:
     """Lance un run async. Retourne immédiatement `{run_id, swarm_id, status}`.
 
-    La réponse respecte `SwarmKickoffResponseSchema` côté front (`{run_id}`).
-    Le polling se fait via `/v1/swarms/{id}/status/{runId}` qui retourne la
-    shape complète `SwarmRun` (avec `id`, pas `run_id`).
-
-    `owner_id` optionnel : si fourni, valide que le swarm appartient à
-    ce propriétaire avant de kicker quoi que ce soit (404 sinon).
+    `owner_id` requis (UUID) — valide que le swarm appartient à ce propriétaire
+    avant de kicker (404 sinon). Prévient le kickoff cross-tenant.
     """
-    # Validation : le swarm doit exister (scopé propriétaire si owner_id fourni).
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
@@ -688,10 +683,10 @@ def status_swarm_run_endpoint(
 ) -> dict[str, Any]:
     """Statut d'un run scope-checké (run.swarm_id == swarm_id).
 
-    `owner_id` optionnel : scope la lecture sur ce propriétaire (joint via
-    swarms.owner_id côté swarm_store).
+    `owner_id` requis (UUID) — scope la lecture via swarms.owner_id.
     """
-    run = swarm_store.get_swarm_run(str(run_id), owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     if str(run.get("swarm_id")) != swarm_id:
@@ -708,10 +703,10 @@ def list_swarm_runs_endpoint(
 ) -> list[dict[str, Any]]:
     """Runs récents d'un swarm donné, plus récents en premier.
 
-    `owner_id` optionnel : si fourni, list_swarm_runs valide d'abord que le
-    swarm appartient à l'owner et retourne [] sinon.
+    `owner_id` requis (UUID) — valide que le swarm appartient à l'owner.
     """
-    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=oid)
 
 
 @router.get("/v1/runs/{run_id}")
@@ -721,9 +716,10 @@ def get_run_cross_swarm_endpoint(
 ) -> dict[str, Any]:
     """Lookup direct par run_id (utile pour debug ou liens directs depuis Langfuse).
 
-    `owner_id` optionnel : si fourni, le run est filtré sur swarms.owner_id.
+    `owner_id` requis (UUID) — filtre le run sur swarms.owner_id.
     """
-    run = swarm_store.get_swarm_run(str(run_id), owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     return _shape_run_response(run)
@@ -739,28 +735,14 @@ async def architect_generate_endpoint(
 ) -> dict[str, Any]:
     """Génère (preview) une spec de swarm depuis une description NL.
 
-    Composition récursive : un agent LLM (Opus) conçoit une équipe d'agents.
-
-    NE PERSISTE RIEN — renvoie une spec de shape `SwarmCreate` que le front
-    affiche en preview puis envoie (après validation utilisateur) au
-    `POST /v1/swarms` existant pour création réelle.
-
-    `owner_id` : priorité body > query (même règle que `create_swarm`). Sert
-    à scoper le catalogue de tools référençables par l'architecte.
-
-    Erreurs :
-    - 422 : prompt invalide (Pydantic — auto).
-    - 502 : l'architecte n'a pas produit de spec valide après retries
-      (`ArchitectGenerationError`) ou erreur inattendue.
-    - 504 : génération dépassant `settings.ARCHITECT_TIMEOUT_SECONDS`.
+    `owner_id` requis (UUID) — priorité body > query. Sert à scoper le
+    catalogue de tools référençables par l'architecte.
     """
-    # Import local : garde `architect` hors du chemin d'import du router
-    # (le module ne fait aucun side-effect, mais on évite de charger les
-    # deps LLM tant que l'endpoint n'est pas appelé).
     from ..agents.architect import ArchitectGenerationError, generate_swarm_spec
 
     effective_owner_id = body.owner_id or owner_id
-    available_tools = swarm_store.list_tools(owner_id=effective_owner_id)
+    oid = _require_owner_id(effective_owner_id)
+    available_tools = swarm_store.list_tools(owner_id=oid)
 
     try:
         result = await asyncio.wait_for(
@@ -768,7 +750,7 @@ async def architect_generate_endpoint(
                 generate_swarm_spec,
                 body.prompt,
                 available_tools,
-                effective_owner_id,
+                oid,
             ),
             timeout=settings.ARCHITECT_TIMEOUT_SECONDS,
         )
@@ -802,5 +784,6 @@ async def architect_generate_endpoint(
 
 @router.get("/v1/tools")
 def list_tools_endpoint(owner_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
-    """Liste le catalogue de tools actifs (filtre optionnel par owner)."""
-    return swarm_store.list_tools(owner_id=owner_id)
+    """Liste le catalogue de tools actifs. owner_id requis (UUID) → 400 sinon."""
+    oid = _require_owner_id(owner_id)
+    return swarm_store.list_tools(owner_id=oid)

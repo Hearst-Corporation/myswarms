@@ -111,26 +111,26 @@ def update_run(
 
 def get_run(
     kickoff_id: str,
-    owner_id: str | None = None,
+    owner_id: str,
 ) -> dict[str, Any] | None:
-    """Fetch a run by kickoff_id. Returns None on miss or failure.
+    """Fetch a run by kickoff_id scoped to owner_id. Returns None on miss or failure.
 
-    If `owner_id` is provided, adds an explicit `.eq("owner_id", owner_id)`
-    filter — required because the engine bypasses RLS (service-role key).
-    Passing owner_id=None returns the run regardless of ownership (legacy).
+    `owner_id` is mandatory — the engine uses SUPABASE_SERVICE_ROLE_KEY (bypasses RLS)
+    so the explicit `.eq("owner_id", owner_id)` filter is the sole isolation boundary.
+    Never call without owner_id to avoid cross-tenant data leakage.
     """
     client = _get_client()
     if client is None:
         return None
     try:
-        query = (
+        result = (
             client.table("chief_run_log")
             .select("*")
             .eq("kickoff_id", kickoff_id)
+            .eq("owner_id", owner_id)
+            .maybe_single()
+            .execute()
         )
-        if owner_id is not None:
-            query = query.eq("owner_id", owner_id)
-        result = query.maybe_single().execute()
         return result.data if result else None
     except Exception as exc:  # noqa: BLE001
         logger.error("get_run failed for %s: %s", kickoff_id, exc)
@@ -173,28 +173,29 @@ def cleanup_stale_runs(max_age_minutes: int) -> int:
 
 def list_runs(
     limit: int = 20,
-    owner_id: str | None = None,
+    owner_id: str = "",
 ) -> list[dict[str, Any]]:
-    """Fetch the most recent runs (ordered by started_at desc). Returns [] on failure.
+    """Fetch the most recent runs scoped to owner_id (ordered by started_at desc).
 
-    If `owner_id` is provided, adds an explicit `.eq("owner_id", owner_id)`
-    filter — required because the engine bypasses RLS (service-role key).
-    Scoping is real since migration 0015 added `owner_id` to `chief_run_log`.
-    Passing owner_id=None returns all runs regardless of ownership (legacy).
+    `owner_id` is mandatory — always scoped. Passing an empty string is a caller
+    bug and returns [] as a safe fallback. The engine uses SUPABASE_SERVICE_ROLE_KEY
+    (bypasses RLS) so this explicit filter is the sole isolation boundary.
     """
+    if not owner_id:
+        logger.error("list_runs called without owner_id — returning [] as safety fallback")
+        return []
     client = _get_client()
     if client is None:
         return []
     try:
-        query = (
+        result = (
             client.table("chief_run_log")
             .select("kickoff_id,trigger,status,started_at,finished_at,result")
+            .eq("owner_id", owner_id)
             .order("started_at", desc=True)
             .limit(limit)
+            .execute()
         )
-        if owner_id is not None:
-            query = query.eq("owner_id", owner_id)
-        result = query.execute()
         return result.data if result else []
     except Exception as exc:  # noqa: BLE001
         logger.error("list_runs failed: %s", exc)

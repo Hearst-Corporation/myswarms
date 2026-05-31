@@ -9,6 +9,17 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
+# UUID validation helper — owner_id MUST be a valid UUID string.
+def _require_owner_id(owner_id: str | None) -> str:
+    """Raise 400 if owner_id is absent or not a valid UUID."""
+    if not owner_id or not owner_id.strip():
+        raise HTTPException(status_code=400, detail="owner_id is required")
+    try:
+        UUID(owner_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
+    return owner_id
+
 from ..config import settings
 from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
 from ..persistence import run_store
@@ -166,11 +177,12 @@ async def kickoff(
     The flow executes in a background asyncio task — poll /status/{kickoff_id} for progress.
     Decoupling the response from flow completion avoids HTTP timeouts (Vercel 10s, browser 30s).
 
-    `owner_id` is propagated from Next.js and written to `chief_run_log.owner_id`
-    (migration 0015). Explicit scoping is required because the engine bypasses RLS
-    via SUPABASE_SERVICE_ROLE_KEY.
+    `owner_id` is required (must be a valid UUID). Propagated from Next.js session
+    and written to `chief_run_log.owner_id` (migration 0015). Explicit scoping is
+    required because the engine bypasses RLS via SUPABASE_SERVICE_ROLE_KEY.
     """
-    logger.debug("chief-of-staff kickoff owner_id=%s", owner_id)
+    oid = _require_owner_id(owner_id)
+    logger.debug("chief-of-staff kickoff owner_id=%s", oid)
     _check_rate_limit()
 
     kickoff_id = str(uuid4())
@@ -187,7 +199,7 @@ async def kickoff(
 
     # Persist to Supabase — owner_id written to chief_run_log.owner_id (migration 0015).
     # Fail-soft: in-memory _runs remains the primary store for this process.
-    run_store.save_run(kickoff_id, request.trigger, "running", started_at, owner_id=owner_id)
+    run_store.save_run(kickoff_id, request.trigger, "running", started_at, owner_id=oid)
 
     # Build initial state with allowlist override merge.
     # chief_run_id injected here so the flow can pass it to create_daily_chief_crew()
@@ -224,17 +236,16 @@ def status(
 ) -> StatusResponse:
     """Return status and result for a given kickoff_id. FastAPI validates UUID format → 422 if malformed.
 
-    `owner_id` is propagated from Next.js and used to scope the Supabase fallback
-    lookup — if provided, only runs belonging to this owner are returned (migration
-    0015 scoping via explicit `.eq("owner_id", owner_id)` since the engine bypasses RLS).
+    `owner_id` is required (valid UUID). Scopes the Supabase fallback lookup so only
+    runs belonging to this owner are returned — prevents cross-tenant data leakage.
     """
-    logger.debug("chief-of-staff status owner_id=%s", owner_id)
+    oid = _require_owner_id(owner_id)
+    logger.debug("chief-of-staff status owner_id=%s", oid)
     kid = str(kickoff_id)
     run = _runs.get(kid)
     if run is None:
         # Fallback to Supabase — handles pod restarts where in-memory store is lost.
-        # owner_id scopes the query to prevent cross-tenant data leakage.
-        db_run = run_store.get_run(kid, owner_id=owner_id)
+        db_run = run_store.get_run(kid, owner_id=oid)
         if db_run is None:
             raise HTTPException(status_code=404, detail=f"kickoff_id {kid!r} not found")
         # Map DB column names to StatusResponse fields.
@@ -258,14 +269,13 @@ def list_runs_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
     owner_id: str | None = Query(default=None),
 ) -> list[dict]:
-    """List recent Chief of Staff runs from Supabase.
+    """List recent Chief of Staff runs from Supabase, scoped to owner_id.
 
-    If `owner_id` is provided, filters rows to that owner via an explicit
-    `.eq("owner_id", owner_id)` — required because the engine bypasses RLS
-    (service-role key). Scoping is real since migration 0015 added `owner_id`
-    to `chief_run_log`. Returns empty list if Supabase is not configured.
+    `owner_id` is required (valid UUID) — prevents cross-tenant data leakage.
+    Returns empty list if Supabase is not configured.
     """
-    return run_store.list_runs(limit=limit, owner_id=owner_id)
+    oid = _require_owner_id(owner_id)
+    return run_store.list_runs(limit=limit, owner_id=oid)
 
 
 @router.get("/runs/{kickoff_id}/steps")
