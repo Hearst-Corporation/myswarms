@@ -121,12 +121,12 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   const succeededRuns = recentRuns.filter((r) => r.status === "completed").length;
   const totalCost = recentRuns.reduce((acc, r) => acc + r.total_cost_usd, 0);
 
-  // Parse input schema from config_json — if present, use structured form
-  const inputFields = parseInputSchema(
-    swarm.config_json as Record<string, unknown>,
-    ["make", "model"], // required_inputs override for APM template
-  );
+  // Parse input schema from config_json.inputs_schema.
+  // required_inputs comes from config_json.required_inputs (set per-template in DB).
+  // No hardcode here — all required fields are declared in the template's config_json.
+  const inputFields = parseInputSchema(swarm.config_json as Record<string, unknown>);
   const hasInputSchema = inputFields.length > 0;
+  const isTemplate = swarm.is_template === true;
 
   return (
     <>
@@ -157,10 +157,10 @@ export default async function SwarmDetailPage({ params }: PageProps) {
             }}
           >
             <PageTitle>{swarm.name}</PageTitle>
-            {swarm.is_active === false ? (
-              <span style={archivedBadgeStyle}>
-                Archived
-              </span>
+            {isTemplate ? (
+              <span style={templateBadgeStyle}>TEMPLATE</span>
+            ) : swarm.is_active === false ? (
+              <span style={archivedBadgeStyle}>Archived</span>
             ) : null}
           </div>
           <p className="ct-sub">
@@ -168,9 +168,16 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           </p>
         </div>
         <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
-          {/* Si archivé, on désactive Run/Edit. L'utilisateur peut toujours
-              voir l'historique des runs mais ne peut pas déclencher de nouveau run. */}
-          {swarm.is_active === false ? (
+          {isTemplate ? (
+            /* Template global — pas d'Edit ni d'Archive utilisateur.
+               Le kickoff est géré par SwarmInputForm ou KickoffForm ci-dessous. */
+            <span
+              style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontStyle: "italic" }}
+            >
+              Global template — read-only
+            </span>
+          ) : swarm.is_active === false ? (
+            /* Swarm archivé — actions désactivées */
             <>
               <span
                 className="ct-seg-btn"
@@ -181,22 +188,18 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                 Edit
               </span>
               <span
-                style={{
-                  fontSize: FONT.xs,
-                  color: "var(--ct-text-muted)",
-                  fontStyle: "italic",
-                }}
+                style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontStyle: "italic" }}
               >
-                Archived swarm — cannot be triggered
+                Archived — cannot be triggered
               </span>
             </>
           ) : (
+            /* Swarm utilisateur actif — Edit + Archive + KickoffForm simple */
             <>
               <Link href={`/swarms/${id}/edit`} className="ct-seg-btn">
                 Edit
               </Link>
               <SwarmArchiveButton swarmId={id} swarmName={swarm.name} />
-              {/* KickoffForm simple uniquement si pas de input schema */}
               {!hasInputSchema && <KickoffForm action={triggerKickoff} />}
             </>
           )}
@@ -274,7 +277,13 @@ export default async function SwarmDetailPage({ params }: PageProps) {
         <div className="ct-card">
           <div className="ct-card-title">Run inputs</div>
           <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.lg }}>
-            Fill in the fields and click <strong>Run now</strong> to launch this swarm.
+            Fill in the fields and click <strong>Run now</strong> to{" "}
+            {isTemplate ? "launch a run from this template" : "launch this swarm"}.
+            {isTemplate && (
+              <span style={{ marginLeft: SPACING.sm, color: "var(--ct-text-faint)" }}>
+                Your run will be owner-scoped.
+              </span>
+            )}
           </p>
           <SwarmInputForm action={triggerKickoffWithInputs} fields={inputFields} />
         </div>
@@ -382,4 +391,16 @@ const archivedBadgeStyle: CSSProperties = {
   fontWeight: FONT_WEIGHT.bold,
   letterSpacing: LETTER_SPACING.mid,
   textTransform: "uppercase" as const,
+};
+
+const templateBadgeStyle: CSSProperties = {
+  background: "var(--ct-surface-3)",
+  color: "var(--ct-text-muted)",
+  padding: `${SPACING.xs}px ${SPACING.s}px`,
+  borderRadius: RADIUS.full,
+  fontSize: FONT.sm,
+  fontWeight: FONT_WEIGHT.bold,
+  letterSpacing: LETTER_SPACING.mid,
+  textTransform: "uppercase" as const,
+  border: "1px solid var(--ct-border)",
 };
