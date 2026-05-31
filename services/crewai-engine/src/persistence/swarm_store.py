@@ -1090,11 +1090,12 @@ def get_swarm_run(
             swarm_id = run.get("swarm_id")
             if not swarm_id:
                 return None
+            # Accept runs belonging to owner's swarms OR global template swarms.
             owner_check = (
                 client.table("swarms")
                 .select("id")
                 .eq("id", swarm_id)
-                .eq("owner_id", owner_id)
+                .or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
                 .maybe_single()
                 .execute()
             )
@@ -1124,11 +1125,12 @@ def list_swarm_runs(
         return []
     try:
         if owner_id:
+            # Accept runs on owner's swarms OR global template swarms.
             owner_check = (
                 client.table("swarms")
                 .select("id")
                 .eq("id", swarm_id)
-                .eq("owner_id", owner_id)
+                .or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
                 .maybe_single()
                 .execute()
             )

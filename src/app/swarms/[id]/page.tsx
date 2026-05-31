@@ -7,8 +7,10 @@ import { formatDate } from "@/lib/utils/format";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { KickoffForm, type KickoffFormState } from "@/components/runs/KickoffForm";
+import { SwarmInputForm, type SwarmInputFormState } from "@/components/swarms/SwarmInputForm";
 import { SwarmArchiveButton } from "@/components/swarms/SwarmArchiveButton";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { parseInputSchema } from "@/lib/swarms/inputSchema";
 import type { SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 import type { CSSProperties } from "react";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
@@ -29,6 +31,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   const { id } = await params;
   if (!isValidUuid(id)) notFound();
 
+  // Server Action — kickoff simple (sans inputs structurés)
   async function triggerKickoff(
     _prevState: KickoffFormState,
     formData: FormData,
@@ -43,6 +46,36 @@ export default async function SwarmDetailPage({ params }: PageProps) {
     try {
       const ownerId = await getOwnerId();
       const result = await swarmsClient.kickoff(id, { trigger }, ownerId);
+      runId = result.run_id;
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : "Failed to kickoff" };
+    }
+    redirect(`/swarms/${id}/runs/${runId}`);
+  }
+
+  // Server Action — kickoff avec inputs structurés depuis SwarmInputForm
+  async function triggerKickoffWithInputs(
+    _prevState: SwarmInputFormState,
+    formData: FormData,
+  ): Promise<SwarmInputFormState> {
+    "use server";
+    const trigger: Trigger = "on_demand";
+
+    // Collecter tous les champs du formulaire (hors trigger) en inputs JSON
+    const inputs: Record<string, unknown> = {};
+    for (const [key, value] of formData.entries()) {
+      if (key === "trigger") continue;
+      const str = typeof value === "string" ? value.trim() : "";
+      if (!str) continue;
+      // Convertir les nombres si la valeur est numérique
+      const num = Number(str);
+      inputs[key] = !isNaN(num) && str !== "" ? num : str;
+    }
+
+    let runId: string;
+    try {
+      const ownerId = await getOwnerId();
+      const result = await swarmsClient.kickoff(id, { trigger, inputs }, ownerId);
       runId = result.run_id;
     } catch (err) {
       return { error: err instanceof Error ? err.message : "Failed to kickoff" };
@@ -87,6 +120,13 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   const activeRuns = recentRuns.filter((r) => r.status === "running").length;
   const succeededRuns = recentRuns.filter((r) => r.status === "completed").length;
   const totalCost = recentRuns.reduce((acc, r) => acc + r.total_cost_usd, 0);
+
+  // Parse input schema from config_json — if present, use structured form
+  const inputFields = parseInputSchema(
+    swarm.config_json as Record<string, unknown>,
+    ["make", "model"], // required_inputs override for APM template
+  );
+  const hasInputSchema = inputFields.length > 0;
 
   return (
     <>
@@ -156,7 +196,8 @@ export default async function SwarmDetailPage({ params }: PageProps) {
                 Edit
               </Link>
               <SwarmArchiveButton swarmId={id} swarmName={swarm.name} />
-              <KickoffForm action={triggerKickoff} />
+              {/* KickoffForm simple uniquement si pas de input schema */}
+              {!hasInputSchema && <KickoffForm action={triggerKickoff} />}
             </>
           )}
         </div>
@@ -227,6 +268,17 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Structured input form — shown only when input_schema is present */}
+      {hasInputSchema && swarm.is_active !== false && (
+        <div className="ct-card">
+          <div className="ct-card-title">Run inputs</div>
+          <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.lg }}>
+            Fill in the fields and click <strong>Run now</strong> to launch this swarm.
+          </p>
+          <SwarmInputForm action={triggerKickoffWithInputs} fields={inputFields} />
+        </div>
+      )}
 
       <div className="ct-card">
         <div className="ct-card-title">Recent runs</div>
