@@ -675,16 +675,34 @@ def _build_task_callback(
 _run_ctx: dict[str, dict] = {}
 _run_ctx_lock = threading.Lock()
 
+# Thread-local storage: each kickoff thread stores its own run_id here so
+# callbacks can resolve the correct context even under concurrent runs.
+_thread_local = threading.local()
+
 
 def _current_run_id_from_writer() -> str | None:
-    """Find run_id by matching active writer threads (used in callbacks)."""
-    current = threading.current_thread()
+    """Resolve run_id for the calling thread.
+
+    Priority:
+    1. Thread-local _thread_local.run_id — set by create_dynamic_crew before
+       crew.kickoff(); correct under concurrent runs (each thread has its own).
+    2. Fallback: pick the first active ctx (safe only when exactly one run is
+       active, kept for backwards-compatibility with test code that doesn't go
+       through the full kickoff path).
+    """
+    run_id: str | None = getattr(_thread_local, "run_id", None)
+    if run_id:
+        return run_id
+    # Fallback (single-active-run assumption — log a warning if >1 ctx present).
     with _run_ctx_lock:
-        for rid, ctx in _run_ctx.items():
-            writer = ctx.get("writer")
-            if writer and writer._thread is current:
-                return rid
-    return None
+        keys = list(_run_ctx.keys())
+    if len(keys) > 1:
+        logger.warning(
+            "_current_run_id_from_writer fallback called with %d active runs — "
+            "steps may be mis-attributed. Thread-local run_id was not set.",
+            len(keys),
+        )
+    return keys[0] if keys else None
 
 
 def _step_callback_fn(payload: Any) -> None:
@@ -693,15 +711,8 @@ def _step_callback_fn(payload: Any) -> None:
     Looks up the run context from _run_ctx using the current thread's run_id.
     Enqueues a step record for swarm_run_steps without blocking the crew thread.
     """
-    # Find which run_id this step belongs to by matching active context threads.
-    run_id: str | None = None
-    with _run_ctx_lock:
-        # Only one run is active per process (single-worker uvicorn).
-        # If multiple runs were concurrent, we'd need a thread-local run_id.
-        # For now: pick the first active ctx (safe for sequential single-worker).
-        for rid in list(_run_ctx.keys()):
-            run_id = rid
-            break
+    # Resolve the run_id for this thread via thread-local (set before kickoff).
+    run_id: str | None = _current_run_id_from_writer()
     if not run_id:
         return
 
@@ -771,11 +782,7 @@ def _task_callback_fn(task_output: Any) -> None:
     Called at end of each task. Persists a task-completion step and advances
     the current_task_idx pointer in step_state.
     """
-    run_id: str | None = None
-    with _run_ctx_lock:
-        for rid in list(_run_ctx.keys()):
-            run_id = rid
-            break
+    run_id: str | None = _current_run_id_from_writer()
     if not run_id:
         return
 

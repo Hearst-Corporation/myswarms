@@ -278,32 +278,51 @@ def list_runs_endpoint(
     return run_store.list_runs(limit=limit, owner_id=oid)
 
 
+def _require_run_owner(kickoff_id: str, owner_id: str) -> None:
+    """Raise 403 if the run does not belong to owner_id.
+
+    Fetches the run from Supabase (owner-scoped). Raises 404 if not found
+    (run belongs to another owner — expose as not-found to prevent enumeration).
+    """
+    run = run_store.get_run(kickoff_id, owner_id=owner_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Run not found or access denied")
+
+
 @router.get("/runs/{kickoff_id}/steps")
-def get_run_steps(kickoff_id: str) -> list[dict]:
+def get_run_steps(
+    kickoff_id: str,
+    owner_id: str | None = Query(default=None),
+) -> list[dict]:
     """Return all completed task steps for a given run, ordered by step_index.
 
-    kickoff_id is a text string (UUID stringified) — no UUID validation applied
-    here since the store uses text comparison (not uuid cast).
-
-    Returns [] if run not found, Supabase not configured, or no steps recorded yet.
+    owner_id is required — gates access so only the run owner can read steps.
+    Returns 400 if owner_id is missing/invalid, 404 if run not found or not owned.
     """
+    oid = _require_owner_id(owner_id)
+    _require_run_owner(kickoff_id, oid)
     return list_chief_steps(chief_run_id=kickoff_id)
 
 
 @router.get("/runs/{kickoff_id}/decisions")
-def list_run_decisions_endpoint(kickoff_id: str) -> list[dict]:
+def list_run_decisions_endpoint(
+    kickoff_id: str,
+    owner_id: str | None = Query(default=None),
+) -> list[dict]:
     """Return all recorded user decisions for a given run, ordered by created_at desc.
 
-    kickoff_id is a text string (UUID stringified) — same convention as /steps.
-
-    Returns [] if run not found, Supabase not configured, or no decisions recorded yet.
+    owner_id is required — gates access so only the run owner can read decisions.
+    Returns 400 if owner_id is missing/invalid, 404 if run not found or not owned.
     """
     from ..persistence.chief_decision_store import list_decisions
+    oid = _require_owner_id(owner_id)
+    _require_run_owner(kickoff_id, oid)
     return list_decisions(kickoff_id)
 
 
 class DecisionRequest(BaseModel):
     kickoff_id: str
+    owner_id: str
     action: Literal["sent", "snoozed", "rejected"]
     snooze_hours: int | None = None
 
@@ -319,14 +338,16 @@ def post_decision(request: DecisionRequest) -> DecisionResponse:
 
     Body:
         kickoff_id: the run's kickoff_id (text).
+        owner_id: the requesting owner UUID — run ownership verified before write.
         action: 'sent' | 'snoozed' | 'rejected'.
         snooze_hours: optional int — only meaningful when action='snoozed'.
-            If provided, snooze_until = now + snooze_hours.
 
     Returns 200 with {ok: true, record: {...}} on success.
+    Returns 400/404 if owner_id invalid or run not owned.
     Returns 422 if action is invalid (Pydantic Literal validation).
-    Returns 500 if Supabase write failed unexpectedly.
     """
+    oid = _require_owner_id(request.owner_id)
+    _require_run_owner(request.kickoff_id, oid)
     try:
         created = record_decision(
             chief_run_id=request.kickoff_id,
@@ -334,7 +355,6 @@ def post_decision(request: DecisionRequest) -> DecisionResponse:
             snooze_hours=request.snooze_hours,
         )
     except ValueError as exc:
-        # Should not happen — Pydantic Literal already validates action.
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     return DecisionResponse(ok=True, record=created)

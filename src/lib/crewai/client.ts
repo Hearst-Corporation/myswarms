@@ -139,7 +139,7 @@ export const crewaiClient = {
     );
     const res = await authedFetch(
       path,
-      { method: "POST", body: JSON.stringify(payload) },
+      { method: "POST", body: JSON.stringify({ ...payload, owner_id: opts.ownerId }) },
       opts.timeoutMs,
     );
     const data = await handleResponse(res, path, "[crewai/client]");

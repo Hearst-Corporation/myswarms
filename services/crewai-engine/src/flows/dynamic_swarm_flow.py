@@ -18,7 +18,7 @@ from crewai import Flow
 from crewai.flow.flow import listen, start
 from pydantic import BaseModel, Field
 
-from ..crews.dynamic_crew import create_dynamic_crew, flush_run_steps
+from ..crews.dynamic_crew import create_dynamic_crew, flush_run_steps, _thread_local
 from ..persistence import swarm_store
 
 logger = logging.getLogger(__name__)
@@ -185,8 +185,13 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
                 run_id=run_id,
                 trigger_inputs=self.state.inputs or {},
             )
-            # crew.kickoff() without inputs — context already injected in task descriptions.
-            result = crew.kickoff()
+            # Set thread-local run_id so callbacks resolve the correct context
+            # even when multiple runs execute concurrently in the same process.
+            _thread_local.run_id = run_id
+            try:
+                result = crew.kickoff()
+            finally:
+                _thread_local.run_id = None
 
             # P0-2 : drain le writer AVANT de toucher swarm_runs.
             flush_run_steps(run_id)

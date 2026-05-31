@@ -73,7 +73,7 @@ function markdownToHtml(md: string): string {
             return `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
           })
           .join("");
-        out.push(`<table class="md-table"><${thead}<tbody>${tbody}</tbody></table>`);
+        out.push(`<table class="md-table">${thead}<tbody>${tbody}</tbody></table>`);
       }
       continue;
     }
