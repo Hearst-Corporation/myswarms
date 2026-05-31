@@ -139,6 +139,7 @@ def flush_run_steps(run_id: str | None) -> None:
       - Unknown run_id → no-op (writer may have already been closed).
       - Any exception → logged as warning, never raised.
 
+    Also cleans up _run_ctx[run_id] to free memory and prevent stale lookups.
     Called by dynamic_swarm_flow.run_crew BEFORE update_swarm_run so that
     ALL queued steps are persisted before the run transitions to
     completed/failed.
@@ -147,6 +148,9 @@ def flush_run_steps(run_id: str | None) -> None:
         return
     with _run_writers_lock:
         writer = _run_writers.pop(run_id, None)
+    # Clean up context registry regardless of whether writer existed.
+    with _run_ctx_lock:
+        _run_ctx.pop(run_id, None)
     if writer is None:
         return
     try:
@@ -661,6 +665,154 @@ def _build_task_callback(
     return task_cb
 
 
+# ── Module-level callback context registry ───────────────────────────────────
+#
+# Stores per-run context (writer, maps, step_state) OUTSIDE Pydantic.
+# Keys = run_id strings. Populated by create_dynamic_crew, consumed by
+# _step_callback_fn / _task_callback_fn (module-level functions that Pydantic
+# can serialize as qualified names without capturing non-serializable objects).
+# Cleaned up by flush_run_steps (which already calls writer.close + pops _run_writers).
+_run_ctx: dict[str, dict] = {}
+_run_ctx_lock = threading.Lock()
+
+
+def _current_run_id_from_writer() -> str | None:
+    """Find run_id by matching active writer threads (used in callbacks)."""
+    current = threading.current_thread()
+    with _run_ctx_lock:
+        for rid, ctx in _run_ctx.items():
+            writer = ctx.get("writer")
+            if writer and writer._thread is current:
+                return rid
+    return None
+
+
+def _step_callback_fn(payload: Any) -> None:
+    """Module-level step callback — Pydantic-safe (no closure captures).
+
+    Looks up the run context from _run_ctx using the current thread's run_id.
+    Enqueues a step record for swarm_run_steps without blocking the crew thread.
+    """
+    # Find which run_id this step belongs to by matching active context threads.
+    run_id: str | None = None
+    with _run_ctx_lock:
+        # Only one run is active per process (single-worker uvicorn).
+        # If multiple runs were concurrent, we'd need a thread-local run_id.
+        # For now: pick the first active ctx (safe for sequential single-worker).
+        for rid in list(_run_ctx.keys()):
+            run_id = rid
+            break
+    if not run_id:
+        return
+
+    with _run_ctx_lock:
+        ctx = _run_ctx.get(run_id)
+    if ctx is None:
+        return
+
+    writer: _StepWriter = ctx["writer"]
+    agent_obj_to_id: dict[int, str] = ctx["agent_obj_to_id"]
+    tasks_meta: list[dict] = ctx["tasks_meta"]
+    step_state: dict = ctx["step_state"]
+
+    try:
+        step_state["step_number"] += 1
+        now = time.monotonic()
+        latency_ms = int((now - step_state["last_t"]) * 1000)
+        step_state["last_t"] = now
+
+        agent_id: str | None = None
+        task_id: str | None = None
+        output_text: str | None = None
+        status = "completed"
+
+        agent_attr = getattr(payload, "agent", None)
+        if isinstance(agent_attr, Agent):
+            agent_id = agent_obj_to_id.get(id(agent_attr))
+        elif isinstance(agent_attr, str):
+            # Fallback: match by role string
+            for db_id, a_id in agent_obj_to_id.items():
+                agent_id = str(a_id)
+                break
+
+        for attr in ("output", "log", "raw", "result", "input"):
+            val = getattr(payload, attr, None)
+            if val:
+                output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
+                break
+
+        idx = step_state["current_task_idx"]
+        if 0 <= idx < len(tasks_meta):
+            meta = tasks_meta[idx]
+            task_id = meta.get("task_id")
+            if agent_id is None:
+                agent_id = meta.get("agent_id")
+
+        if getattr(payload, "error", None):
+            status = "failed"
+            output_text = str(getattr(payload, "error"))[:_STEP_OUTPUT_PREVIEW_CHARS]
+
+        writer.enqueue(
+            run_id=run_id,
+            agent_id=agent_id,
+            task_id=task_id,
+            step_number=step_state["step_number"],
+            output_text=output_text,
+            latency_ms=latency_ms,
+            status=status,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_step_callback_fn failed run=%s step=%s: %s", run_id, step_state.get("step_number"), exc)
+
+
+def _task_callback_fn(task_output: Any) -> None:
+    """Module-level task callback — Pydantic-safe (no closure captures).
+
+    Called at end of each task. Persists a task-completion step and advances
+    the current_task_idx pointer in step_state.
+    """
+    run_id: str | None = None
+    with _run_ctx_lock:
+        for rid in list(_run_ctx.keys()):
+            run_id = rid
+            break
+    if not run_id:
+        return
+
+    with _run_ctx_lock:
+        ctx = _run_ctx.get(run_id)
+    if ctx is None:
+        return
+
+    writer: _StepWriter = ctx["writer"]
+    tasks_meta: list[dict] = ctx["tasks_meta"]
+    step_state: dict = ctx["step_state"]
+
+    try:
+        current_idx = step_state["current_task_idx"]
+        if 0 <= current_idx < len(tasks_meta):
+            meta = tasks_meta[current_idx]
+            output_text: str | None = None
+            for attr in ("raw", "output", "result", "description"):
+                val = getattr(task_output, attr, None)
+                if val:
+                    output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
+                    break
+            step_state["step_number"] += 1
+            writer.enqueue(
+                run_id=run_id,
+                agent_id=meta.get("agent_id"),
+                task_id=meta.get("task_id"),
+                step_number=step_state["step_number"],
+                output_text=output_text,
+                latency_ms=0,
+                status="completed",
+            )
+        step_state["current_task_idx"] += 1
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_task_callback_fn failed run=%s task_idx=%s: %s", run_id, step_state.get("current_task_idx"), exc)
+
+
 def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
     """Charge un swarm DB et renvoie un Crew CrewAI prêt à être kickoff.
 
@@ -698,33 +850,40 @@ def create_dynamic_crew(swarm_id: str, run_id: str | None = None) -> Crew:
         "verbose": True,
     }
 
-    # H3 fix : step_callback + task_callback SÉPARÉS avec state isolé.
-    # Avant : un seul `callback` était installé pour les deux hooks → mélange
-    # step+task et faux step_number. Maintenant : deux closures distinctes
-    # qui partagent `step_state` via fermeture explicite.
+    # Step/task callbacks via registre module-level (pas de closures).
     #
-    # P0-2 — writes non-bloquants : un _StepWriter (queue + worker daemon)
-    # est instancié ici et enregistré dans _run_writers[run_id].
-    # Les closures step_cb / task_cb ne font que enqueue() — zéro HTTP dans
-    # le thread du crew. flush_run_steps(run_id) est appelé par le flow
-    # AVANT que le run passe completed/failed pour garantir que tous les
-    # steps queués sont persistés.
-    # HOTFIX 2026-05-18 : les callbacks step_callback/task_callback causent
-    # des blocages avec CrewAI 1.14 quand ils sont des closures non-
-    # sérialisables. Les runs produisent 2 steps puis restent figés jusqu'au
-    # timeout. Désactivés temporairement — le résultat final est persisté
-    # par finalize() et les steps ne le sont plus (perte acceptable vs
-    # blocage total). TODO V2 : réactiver avec des fonctions module-level.
+    # WHY module-level functions: CrewAI 1.14 + Pydantic v2 sérialisent les
+    # callbacks via callable_to_string (PlainSerializer). Les closures capturant
+    # des objets non-JSON-serialisables (Agent, _StepWriter, dict avec objets)
+    # causaient un blocage lors de la sérialisation interne du Crew (HOTFIX
+    # 2026-05-18). En passant des fonctions de niveau module, Pydantic sérialise
+    # uniquement le qualified name (str) — aucune capture, zéro blocage.
     #
-    # if run_id:
-    #     tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
-    #     writer = _StepWriter(run_id)
-    #     with _run_writers_lock:
-    #         _run_writers[run_id] = writer
-    #     step_cb, step_state = _build_step_callback(run_id, agents_map, tasks_meta, writer)
-    #     task_cb = _build_task_callback(run_id, step_state, tasks_meta, writer)
-    #     crew_kwargs["step_callback"] = step_cb
-    #     crew_kwargs["task_callback"] = task_cb
+    # Le contexte (writer, agents_map, tasks_meta, step_state) est stocké dans
+    # _run_ctx[run_id] — un dict module-level qui ne passe JAMAIS dans Pydantic.
+    # Les fonctions _step_callback_fn / _task_callback_fn lisent depuis ce registre.
+    if run_id:
+        tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
+        writer = _StepWriter(run_id)
+        with _run_writers_lock:
+            _run_writers[run_id] = writer
+        agent_obj_to_id: dict[int, str] = {
+            id(agent): db_id for db_id, agent in agents_map.items()
+        }
+        step_state: dict[str, Any] = {
+            "step_number": 0,
+            "current_task_idx": 0,
+            "last_t": time.monotonic(),
+        }
+        with _run_ctx_lock:
+            _run_ctx[run_id] = {
+                "writer": writer,
+                "agent_obj_to_id": agent_obj_to_id,
+                "tasks_meta": tasks_meta,
+                "step_state": step_state,
+            }
+        crew_kwargs["step_callback"] = _step_callback_fn
+        crew_kwargs["task_callback"] = _task_callback_fn
 
     return Crew(**crew_kwargs)
 

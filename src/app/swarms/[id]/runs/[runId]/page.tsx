@@ -142,7 +142,17 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             label: "Tokens out",
             value: run.total_tokens_out.toLocaleString("en-US"),
           },
-          { label: "Cost $", value: run.total_cost_usd.toFixed(4) },
+          {
+            label: "Cost $",
+            // Avoid misleading $0.0000 when tokens were consumed but pricing is unavailable.
+            // total_cost_usd stays 0 because Kimi/Hypercli pricing is not published.
+            value:
+              run.total_cost_usd > 0
+                ? `$${run.total_cost_usd.toFixed(4)}`
+                : run.total_tokens_in + run.total_tokens_out > 0
+                ? "—"
+                : "$0.0000",
+          },
           { label: "Steps", value: run.steps.length },
         ]}
       />
