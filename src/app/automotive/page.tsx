@@ -423,7 +423,7 @@ export default async function AutomotivePage() {
           {/* Véhicules analysés */}
           <div style={{ marginBottom: SPACING.xxl }}>
             <SectionLabel text={`Véhicules analysés — ${total}`} />
-            <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
+            <div className="ct-card" style={{ padding: 0, overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.sm }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
@@ -501,7 +501,7 @@ export default async function AutomotivePage() {
           {/* Activité récente — timeline */}
           <div style={{ marginBottom: SPACING.xxl }}>
             <SectionLabel text="Activité récente" />
-            <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
+            <div className="ct-card" style={{ padding: 0, overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.sm }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>

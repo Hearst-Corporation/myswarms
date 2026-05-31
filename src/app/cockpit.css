@@ -458,6 +458,11 @@ html, body {
   gap: var(--ct-space-lg);
   margin-bottom: var(--ct-space-xl);
 }
+@media (max-width: 640px) {
+  .ct-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
 .ct-kpi-card {
   background: var(--ct-surface-1);
   border: 1px solid var(--ct-border);
