@@ -46,6 +46,29 @@ def _require_owner_id(owner_id: str | None) -> str:
     except ValueError:
         raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
     return owner_id
+
+
+def _deny_if_global_template(loaded: dict | None, swarm_id: str) -> None:
+    """Raise 403 if the loaded swarm is a global template (owner_id IS NULL AND is_template=True).
+
+    Global templates are read/run-only for all users — no write or delete allowed.
+    Call this on any mutating endpoint (PATCH, DELETE) after fetching the swarm,
+    before performing any mutation.
+
+    `loaded` is the dict returned by swarm_store.get_swarm() — shape:
+        {"swarm": {...}, "agents": [...], "tasks": [...], "tool_bindings": [...]}
+    """
+    if loaded is None:
+        return  # caller will raise 404 separately
+    swarm = loaded.get("swarm") or {}
+    if swarm.get("is_template") and swarm.get("owner_id") is None:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Swarm {swarm_id!r} is a global template and cannot be modified or deleted. "
+                "Global templates are read/run-only for all users."
+            ),
+        )
 from ..crews.dynamic_crew import flush_run_steps
 from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
 from ..persistence import swarm_store
@@ -513,11 +536,13 @@ def update_swarm_endpoint(
 
     `owner_id` requis (UUID) — scope la lecture pré-update et l'UPDATE scalaire.
     Le swarm est validé via `get_swarm(.., owner_id=)` → 404 si mismatch.
+    Global templates (owner_id IS NULL AND is_template=True) → 403.
     """
     oid = _require_owner_id(owner_id)
     guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
+    _deny_if_global_template(guard, swarm_id)
 
     # `exclude_unset=True` : seules les clés POSÉES dans le body JSON apparaissent.
     # C'est la clé du fix : on ne re-set jamais une valeur "par défaut Pydantic"
@@ -597,11 +622,13 @@ def delete_swarm_endpoint(
     """Soft delete : marque `is_active=false`.
 
     `owner_id` requis (UUID) — scope la suppression sur ce propriétaire.
+    Global templates (owner_id IS NULL AND is_template=True) → 403.
     """
     oid = _require_owner_id(owner_id)
     guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
+    _deny_if_global_template(guard, swarm_id)
     ok = swarm_store.delete_swarm(swarm_id, owner_id=oid)
     if not ok:
         raise HTTPException(
