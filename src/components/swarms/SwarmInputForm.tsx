@@ -63,6 +63,48 @@ function Field({ field, error }: { field: InputField; error?: string }) {
   const id = `swarm-input-${field.key}`;
   const borderColor = error ? "var(--ct-alert-error-border)" : undefined;
 
+  let control: React.ReactNode;
+  if (field.type === "select" && field.options) {
+    control = (
+      <select
+        id={id}
+        name={field.key}
+        defaultValue=""
+        style={{ ...inputBase, borderColor, appearance: "none", cursor: "pointer" }}
+      >
+        <option value="" disabled>
+          {field.placeholder || `Choisir…`}
+        </option>
+        {field.options.map((opt) => (
+          <option key={opt} value={opt}>
+            {opt}
+          </option>
+        ))}
+      </select>
+    );
+  } else if (field.type === "textarea") {
+    control = (
+      <textarea
+        id={id}
+        name={field.key}
+        placeholder={field.placeholder}
+        rows={3}
+        style={{ ...inputBase, resize: "vertical", borderColor }}
+      />
+    );
+  } else {
+    control = (
+      <input
+        id={id}
+        name={field.key}
+        type={field.type}
+        placeholder={field.placeholder}
+        step={field.type === "number" ? "any" : undefined}
+        style={{ ...inputBase, borderColor }}
+      />
+    );
+  }
+
   return (
     <div style={fieldWrapStyle}>
       <label htmlFor={id} style={labelStyle}>
@@ -72,24 +114,7 @@ function Field({ field, error }: { field: InputField; error?: string }) {
         )}
       </label>
 
-      {field.type === "textarea" ? (
-        <textarea
-          id={id}
-          name={field.key}
-          placeholder={field.placeholder}
-          rows={3}
-          style={{ ...inputBase, resize: "vertical", borderColor }}
-        />
-      ) : (
-        <input
-          id={id}
-          name={field.key}
-          type={field.type}
-          placeholder={field.placeholder}
-          step={field.type === "number" ? "any" : undefined}
-          style={{ ...inputBase, borderColor }}
-        />
-      )}
+      {control}
 
       {error ? (
         <span style={{ ...hintStyle, color: "var(--ct-alert-error-text)" }}>
@@ -130,6 +155,8 @@ export function SwarmInputForm({ action, fields }: Props) {
         } catch {
           errors[field.key] = "Must be a valid URL (https://…)";
         }
+      } else if (field.type === "select" && field.required && !val) {
+        errors[field.key] = `${field.label} is required`;
       }
     }
 

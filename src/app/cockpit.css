@@ -702,3 +702,33 @@ select:focus-visible {
   font-style: italic;
 }
 
+.md-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 12px;
+}
+
+.md-table th {
+  background: var(--ct-surface-3);
+  color: var(--ct-text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 10px;
+  padding: 6px 10px;
+  border: 1px solid var(--ct-border);
+  text-align: left;
+}
+
+.md-table td {
+  padding: 5px 10px;
+  border: 1px solid var(--ct-border-soft);
+  color: var(--ct-text-body);
+  vertical-align: top;
+}
+
+.md-table tr:nth-child(even) td {
+  background: var(--ct-surface-2);
+}
+

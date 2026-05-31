@@ -54,6 +54,30 @@ function markdownToHtml(md: string): string {
       continue;
     }
 
+    // Table — collect header + separator + rows
+    if (/^\|/.test(line)) {
+      const tableLines: string[] = [];
+      while (i < lines.length && /^\|/.test(lines[i])) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      if (tableLines.length >= 2) {
+        const [header, , ...rows] = tableLines; // skip separator line (index 1)
+        const parseCells = (row: string) =>
+          row.split("|").slice(1, -1).map((c) => inline(c.trim()));
+        const thCells = parseCells(header);
+        const thead = `<thead><tr>${thCells.map((c) => `<th>${c}</th>`).join("")}</tr></thead>`;
+        const tbody = rows
+          .map((row) => {
+            const cells = parseCells(row);
+            return `<tr>${cells.map((c) => `<td>${c}</td>`).join("")}</tr>`;
+          })
+          .join("");
+        out.push(`<table class="md-table"><${thead}<tbody>${tbody}</tbody></table>`);
+      }
+      continue;
+    }
+
     // Unordered list — collect consecutive items
     if (/^[-*]\s/.test(line)) {
       const items: string[] = [];
