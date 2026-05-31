@@ -17,6 +17,8 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
 import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
+import { MarkdownReport } from "@/components/swarms/MarkdownReport";
+import { isMarkdown } from "@/lib/swarms/markdown";
 import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
@@ -177,23 +179,30 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
       {run.result_text != null ? (
         <div className="ct-card">
           <div className="ct-card-title">Result</div>
-          <pre
-            style={{
-              background: "var(--ct-surface-2)",
-              border: "1px solid var(--ct-border)",
-              borderRadius: RADIUS.md,
-              padding: SPACING.md,
-              fontSize: FONT.sm,
-              color: "var(--ct-text-primary)",
-              fontFamily: "var(--font-mono)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-              overflow: "auto",
-              maxHeight: "var(--ct-result-max-h)",
-            }}
-          >
-            {prettyJsonOrRaw(run.result_text)}
-          </pre>
+          {isMarkdown(run.result_text) ? (
+            <MarkdownReport
+              text={run.result_text}
+              title={`run-${runId.slice(0, 8)}`}
+            />
+          ) : (
+            <pre
+              style={{
+                background: "var(--ct-surface-2)",
+                border: "1px solid var(--ct-border)",
+                borderRadius: RADIUS.md,
+                padding: SPACING.md,
+                fontSize: FONT.sm,
+                color: "var(--ct-text-primary)",
+                fontFamily: "var(--font-mono)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                overflow: "auto",
+                maxHeight: "var(--ct-result-max-h)",
+              }}
+            >
+              {prettyJsonOrRaw(run.result_text)}
+            </pre>
+          )}
         </div>
       ) : null}
 

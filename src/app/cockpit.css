@@ -619,3 +619,86 @@ select:focus-visible {
    `bottom: 24px` se chevauchaient — on garde le nôtre, plus riche. ── */
 .ct-hub-bar { display: none !important; }
 
+/* ── Markdown Report viewer (.md-report) ─────────────────────────────────── */
+/* Rendu lisible pour les résultats Markdown des swarms (APM Vehicle Research, etc.) */
+
+.md-report {
+  line-height: 1.65;
+  color: var(--ct-text-body);
+  font-size: 13px;
+}
+
+.md-report h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ct-text-strong);
+  margin: 0 0 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--ct-border);
+}
+
+.md-report h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ct-text-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 24px 0 8px;
+}
+
+.md-report h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ct-text-primary);
+  margin: 16px 0 6px;
+}
+
+.md-report p {
+  margin: 0 0 10px;
+  color: var(--ct-text-body);
+}
+
+.md-report ul, .md-report ol {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.md-report li {
+  margin-bottom: 4px;
+  color: var(--ct-text-body);
+}
+
+.md-report strong {
+  font-weight: 700;
+  color: var(--ct-text-strong);
+}
+
+.md-report em {
+  font-style: italic;
+  color: var(--ct-text-muted);
+}
+
+.md-report code {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  background: var(--ct-surface-3);
+  border: 1px solid var(--ct-border-soft);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--ct-accent-strong);
+}
+
+.md-report hr {
+  border: none;
+  border-top: 1px solid var(--ct-border-soft);
+  margin: 20px 0;
+}
+
+.md-report blockquote {
+  border-left: 3px solid var(--ct-accent-strong);
+  margin: 0 0 10px;
+  padding: 4px 0 4px 14px;
+  color: var(--ct-text-muted);
+  font-style: italic;
+}
+
