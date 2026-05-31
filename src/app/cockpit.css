@@ -278,16 +278,18 @@ html, body {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 120px;
+  height: 150px;
   pointer-events: none;
   z-index: 29;
-  /* --ct-bg-deep = #030d14 = rgb(3,13,20). Use exact values so the fade
-     lands on the actual background colour, not a slightly-off approximation. */
+  /* --ct-bg-deep = #030d14 = rgb(3,13,20). 4-stop gradient for a deeper,
+     premium fade: opaque zone starts at 35% so text disappears well before
+     the nav bar. Bottom is fully opaque (alpha 1.0). */
   background: linear-gradient(
     to bottom,
-    rgba(3, 13, 20, 0) 0%,
-    rgba(3, 13, 20, 0.75) 55%,
-    rgba(3, 13, 20, 0.97) 100%
+    rgba(3, 13, 20, 0)    0%,
+    rgba(3, 13, 20, 0.55) 35%,
+    rgba(3, 13, 20, 0.88) 68%,
+    rgba(3, 13, 20, 1)   100%
   );
 }
 
