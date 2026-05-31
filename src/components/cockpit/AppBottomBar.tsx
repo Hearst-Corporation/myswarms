@@ -102,6 +102,7 @@ export function AppBottomBar() {
   };
 
   return (
+    <>
     <nav className="ct-bottom-bar" role="navigation" aria-label="Main navigation">
       <div className="ct-bottom-bar-inner">
         <span className="ct-bottom-label">{sectionLabel}</span>
@@ -215,5 +216,10 @@ export function AppBottomBar() {
         </div>
       </div>
     </nav>
+    {/* Scroll fade scrim — sits above scrollable content, below bottom bar.
+        Real DOM element so it works regardless of parent overflow:hidden.
+        pointer-events:none keeps all nav and chat clicks passthrough. */}
+    <div className="ct-bottom-bar-scrim" aria-hidden="true" />
+    </>
   );
 }
