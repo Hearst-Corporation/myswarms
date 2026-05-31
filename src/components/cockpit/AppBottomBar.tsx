@@ -25,7 +25,7 @@ export function AppBottomBar() {
   const isCrewsArea = pathname.startsWith("/crews");
   const isToolsArea = pathname.startsWith("/tools");
   const isWorkspaceArea = pathname.startsWith("/workspace");
-  const isAutomotiveArea = pathname.startsWith("/automotive");
+  const isAutomotiveArea = pathname.startsWith("/automobile") || pathname.startsWith("/automotive");
   const detailMatch = pathname.match(SWARM_DETAIL_REGEX);
   const isSwarmDetail = Boolean(detailMatch);
   const isSwarmEdit = SWARM_EDIT_REGEX.test(pathname);
@@ -45,7 +45,7 @@ export function AppBottomBar() {
           : isWorkspaceArea
             ? "Workspace"
             : isAutomotiveArea
-              ? "Automotive"
+              ? "Automobile"
               : "Cockpit";
 
   const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
@@ -138,10 +138,10 @@ export function AppBottomBar() {
             Workspace
           </Link>
           <Link
-            href="/automotive"
+            href="/automobile"
             className={`ct-seg-btn ${isAutomotiveArea ? "active" : ""}`}
           >
-            Automotive
+            Automobile
           </Link>
         </div>
 
