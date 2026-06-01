@@ -97,7 +97,7 @@ export function UserTable({ users, superAdminEmail, onRefresh }: UserTableProps)
                           padding: `1px ${SPACING.xs}px`,
                           borderRadius: RADIUS.full,
                           background: "var(--ct-accent-strong)",
-                          color: "#fff",
+                          color: "var(--ct-text-strong)",
                           textTransform: "uppercase",
                           letterSpacing: LETTER_SPACING.wide,
                         }}>
@@ -112,7 +112,7 @@ export function UserTable({ users, superAdminEmail, onRefresh }: UserTableProps)
                       fontWeight: FONT_WEIGHT.bold,
                       padding: `1px ${SPACING.xs}px`,
                       borderRadius: RADIUS.full,
-                      background: u.role === "admin" ? "rgba(99,102,241,.15)" : "var(--ct-surface-3)",
+                      background: u.role === "admin" ? "var(--ct-status-running-bg)" : "var(--ct-surface-3)",
                       color: u.role === "admin" ? "var(--ct-accent-strong)" : "var(--ct-text-muted)",
                       textTransform: "uppercase",
                       letterSpacing: LETTER_SPACING.wide,
@@ -122,7 +122,7 @@ export function UserTable({ users, superAdminEmail, onRefresh }: UserTableProps)
                   </td>
                   <td style={tdStyle}>
                     {u.email_confirmed_at
-                      ? <span style={{ color: "var(--ct-status-success)" }}>✓</span>
+                      ? <span style={{ color: "var(--ct-status-completed)" }}>✓</span>
                       : <span style={{ color: "var(--ct-text-faint)" }}>En attente</span>}
                   </td>
                   <td style={{ ...tdStyle, color: "var(--ct-text-muted)", fontSize: FONT.xs }}>{formatDate(u.last_sign_in_at)}</td>

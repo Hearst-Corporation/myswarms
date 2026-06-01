@@ -39,7 +39,7 @@ export function ConnectButton({ toolkit, label }: ConnectButtonProps) {
       <span
         style={{
           fontSize: FONT.xs,
-          color: "var(--ct-status-success)",
+          color: "var(--ct-status-completed)",
           fontWeight: FONT_WEIGHT.bold,
         }}
       >

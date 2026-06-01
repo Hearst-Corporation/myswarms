@@ -9,6 +9,8 @@ import { formatDate } from "@/lib/utils/format";
 import type { SwarmRun } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
+import { extractRecommendation } from "@/lib/swarms/recommendation";
+import type { Recommendation } from "@/lib/swarms/recommendation";
 
 export const metadata = { title: "Automobile — MySwarms" };
 export const dynamic = "force-dynamic";
@@ -18,19 +20,6 @@ const APM_SWARM_ID = "cccccccc-0001-0001-0001-000000000001";
 const APM_RUN_LIMIT = 50;
 
 // ── Domain helpers ────────────────────────────────────────────────────────────
-
-const REC_REGEX = /\*\*(APPELER|ATTENDRE|ÉVITER|EVITER)\*\*/i;
-
-type Recommendation = "APPELER" | "ATTENDRE" | "ÉVITER" | "UNKNOWN";
-
-function parseRecommendation(resultText: string | null | undefined): Recommendation {
-  if (!resultText) return "UNKNOWN";
-  const m = resultText.match(REC_REGEX);
-  if (!m) return "UNKNOWN";
-  const v = m[1].toUpperCase();
-  if (v === "EVITER") return "ÉVITER";
-  return v as Recommendation;
-}
 
 function getVehicleLabel(inputs: Record<string, unknown>): string {
   const parts: string[] = [];
@@ -224,7 +213,7 @@ export default async function AutomobilePage() {
     : null;
 
   // Recommendations
-  const recs = runs.map((r) => parseRecommendation(r.result_text));
+  const recs = runs.map((r) => extractRecommendation(r.result_text));
   const recCounts = {
     APPELER: recs.filter((r) => r === "APPELER").length,
     ATTENDRE: recs.filter((r) => r === "ATTENDRE").length,
@@ -441,7 +430,7 @@ export default async function AutomobilePage() {
                   {recentRuns.map((r) => {
                     const inp = r.inputs_json ?? {};
                     const label = getVehicleLabel(inp);
-                    const rec = parseRecommendation(r.result_text);
+                    const rec = extractRecommendation(r.result_text);
                     const price = inp.price_eur
                       ? `${Number(inp.price_eur).toLocaleString("fr-FR")} €`
                       : "—";

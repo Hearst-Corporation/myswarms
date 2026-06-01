@@ -57,6 +57,7 @@
   --ct-alert-error-text: #fca5a5;
 
   /* ── Status colors (dark-mode) ── */
+  --ct-state-ok: #22c55e;
   --ct-status-completed: rgba(34, 197, 94, 0.85);
   --ct-status-completed-bg: rgba(34, 197, 94, 0.12);
   --ct-status-completed-border: rgba(34, 197, 94, 0.25);
@@ -81,7 +82,7 @@
   --cos-warn: #ffb454;
   --cos-info: #6ea8ff;
 
-  font-family: var(--ct-font-sans);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 
   --ct-alert-warning-bg: rgba(245, 158, 11, 0.10);
@@ -128,169 +129,15 @@
   --ct-badge-padding-md: 4px 10px;
   --ct-badge-padding-sm: 2px 8px;
 
-  /* ── Spacing scale (aligné sur SPACING TS dans src/lib/ui/tokens.ts) ── */
-  --ct-space-hair: 2px;
-  --ct-space-xs: 4px;
-  --ct-space-xxs: 6px;
-  --ct-space-sm: 8px;
-  --ct-space-s: 10px;
-  --ct-space-md: 12px;
-  --ct-space-lg: 16px;
-  --ct-space-lx: 20px;
-  --ct-space-xl: 24px;
-  --ct-space-xxl: 32px;
-
-  /* ── Font sizes (aligné sur FONT TS dans src/lib/ui/tokens.ts) ── */
-  --ct-font-size-nano: 9px;
+  /* ── Typographie complémentaire ── */
   --ct-font-size-xs: 10px;
-  --ct-font-size-xxs: 11px;
-  --ct-font-size-sm: 12px;
-  --ct-font-size-base: 13px;
-  --ct-font-size-md: 14px;
-  --ct-font-size-lg: 16px;
-  --ct-font-size-xl: 18px;
-  --ct-font-size-display: 22px;
-  --ct-font-size-xxl: 28px;
-
-  /* ── Font family (Cockpit brand : Inter) ── */
-  --ct-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 html, body {
   height: 100%;
   overflow: hidden;
   background: var(--ct-bg-deep);
-}
-
-/* ── ROOT ── */
-.ct-root {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
-  color: var(--ct-text-primary);
-}
-
-/* ── FONDS ── */
-.ct-ambient-deep {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  background: var(--ct-bg-deep);
-}
-.ct-ambient-glow {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.6;
-  background: radial-gradient(ellipse 80% 60% at 50% 30%, var(--ct-accent-maroon) 0%, transparent 70%);
-}
-
-/* ── LAYOUT ── */
-.ct-panels-row {
-  position: relative;
-  z-index: 10;
-  display: flex;
-  flex-direction: row;
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-/* ── RAIL GAUCHE ── */
-.ct-rail-left {
-  position: relative;
-  z-index: 20;
-  flex-shrink: 0;
-  width: var(--ct-rail-left);
-  height: 100%;
-  background: var(--ct-surface-2);
-  border-right: 1px solid var(--ct-border-strong);
-  backdrop-filter: blur(60px) saturate(110%) brightness(105%);
-  -webkit-backdrop-filter: blur(60px) saturate(110%) brightness(105%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: var(--ct-space-xxl) 0;
-}
-.ct-logo-slot {
-  width: var(--ct-logo-size);
-  height: var(--ct-logo-size);
-  border-radius: var(--ct-radius-nav);
-  background: var(--ct-surface-3);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--ct-space-xl);
-  text-decoration: none;
-}
-.ct-logo-dot {
-  width: var(--ct-space-lg);
-  height: var(--ct-space-lg);
-  border-radius: 50%;
-  background: var(--ct-text-strong);
-}
-.ct-spacer { flex: 1; }
-.ct-avatar {
-  width: var(--ct-logo-size);
-  height: var(--ct-logo-size);
-  border-radius: 50%;
-  background: var(--ct-surface-3);
-  color: var(--ct-text-strong);
-  font-size: var(--ct-font-size-base);
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: default;
-  border: none;
-}
-
-/* ── CENTRE ── */
-.ct-center-panel {
-  position: relative;
-  flex: 1;
-  min-width: 520px;
-  height: 100%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.ct-page-area {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: var(--ct-space-xxl) 40px 80px;
-}
-
-/* ── BOTTOM BAR SCRIM ── */
-/* Gradient fade above the bottom bar so scrolled content disappears cleanly.
-   Rendered as a real DOM element (sibling of .ct-bottom-bar) inside
-   .ct-center-panel via AppBottomBar.tsx.
-   pointer-events:none preserves all clicks through to nav and chat input.
-   z-index 29 = below bottom bar (30), above scrollable page content. */
-.ct-bottom-bar-scrim {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 150px;
-  pointer-events: none;
-  z-index: 29;
-  /* --ct-bg-deep = #030d14 = rgb(3,13,20). 4-stop gradient for a deeper,
-     premium fade: opaque zone starts at 35% so text disappears well before
-     the nav bar. Bottom is fully opaque (alpha 1.0). */
-  background: linear-gradient(
-    to bottom,
-    rgba(3, 13, 20, 0)    0%,
-    rgba(3, 13, 20, 0.55) 35%,
-    rgba(3, 13, 20, 0.88) 68%,
-    rgba(3, 13, 20, 1)   100%
-  );
 }
 
 /* ── BOTTOM BAR ── */
@@ -301,10 +148,9 @@ html, body {
   transform: translateX(-50%);
   z-index: 30;
   width: max-content;
-  max-width: calc(100% - 32px);
-  overflow: hidden;
-  padding: var(--ct-space-md) 28px;
-  border-radius: var(--ct-radius-pill);
+  max-width: calc(100% - 48px);
+  padding: 12px 28px;
+  border-radius: 9999px;
   background: var(--ct-surface-2);
   border: 1px solid var(--ct-border-strong);
   backdrop-filter: blur(60px) saturate(110%) brightness(105%);
@@ -319,14 +165,10 @@ html, body {
   z-index: 1;
   display: flex;
   align-items: center;
-  gap: var(--ct-space-lx);
-  overflow-x: auto;
-  max-width: 100%;
-  scrollbar-width: none;
+  gap: 20px;
 }
-.ct-bottom-bar-inner::-webkit-scrollbar { display: none; }
 .ct-bottom-label {
-  font-size: var(--ct-font-size-sm);
+  font-size: 12px;
   font-weight: 500;
   color: var(--ct-text-body);
   white-space: nowrap;
@@ -334,27 +176,27 @@ html, body {
 .ct-seg-track {
   display: flex;
   align-items: center;
-  padding: var(--ct-space-xs);
+  padding: 4px;
   background: rgba(0,0,0,0.2);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1);
-  border-radius: var(--ct-radius-pill);
+  border-radius: 9999px;
 }
 .ct-seg-btn {
   appearance: none;
   border: none;
   background: transparent;
   color: var(--ct-text-primary);
-  padding: var(--ct-space-sm) var(--ct-space-lg);
-  font-size: var(--ct-font-size-sm);
+  padding: 8px 16px;
+  font-size: 12px;
   font-weight: 500;
   font-family: inherit;
-  border-radius: var(--ct-radius-pill);
+  border-radius: 9999px;
   cursor: pointer;
   text-decoration: none;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
-  gap: var(--ct-space-sm);
+  gap: 8px;
   transition: background var(--ct-dur-base) var(--ct-ease), color var(--ct-dur-base) var(--ct-ease);
 }
 .ct-seg-btn:hover:not(:disabled) {
@@ -385,125 +227,42 @@ html, body {
   cursor: not-allowed;
 }
 
-/* ── RAIL DROIT ── */
-.ct-rail-right {
-  position: relative;
-  z-index: 20;
-  flex-shrink: 0;
-  width: var(--ct-rail-right);
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  background: var(--ct-surface-2);
-  border-left: 1px solid var(--ct-border-strong);
-  backdrop-filter: blur(24px) saturate(150%);
-  -webkit-backdrop-filter: blur(24px) saturate(150%);
-}
-.ct-rail-right-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--ct-space-lx) var(--ct-space-lx) var(--ct-space-md);
-  border-bottom: 1px solid var(--ct-border);
-}
-.ct-rail-right-title {
-  font-size: var(--ct-font-size-xxs);
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ct-text-muted);
-}
-.ct-rail-right-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--ct-surface-2);
-  border: 1px solid var(--ct-border);
-  color: var(--ct-text-body);
-  font-size: var(--ct-font-size-xl);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  font-family: inherit;
-  transition: background var(--ct-dur-base) var(--ct-ease), color var(--ct-dur-base) var(--ct-ease);
-}
-.ct-rail-right-btn:hover { background: rgba(255,255,255,0.05); }
-.ct-rail-right-btn:focus-visible { outline: 2px solid var(--ct-accent-strong); outline-offset: 2px; }
-.ct-rail-right-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: var(--ct-space-lx);
-}
-
 /* ── COMPOSANTS DE PAGE ── */
 .ct-eyebrow {
-  font-size: var(--ct-font-size-xs);
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ct-text-muted);
-  margin-bottom: var(--ct-space-sm);
+  margin-bottom: 8px;
   display: block;
 }
 .ct-title {
-  font-size: var(--ct-font-size-xxl);
+  font-size: 28px;
   font-weight: 800;
   color: var(--ct-text-primary);
   letter-spacing: -0.02em;
-  margin-bottom: var(--ct-space-sm);
+  margin-bottom: 8px;
 }
 .ct-sub {
-  font-size: var(--ct-font-size-base);
+  font-size: 13px;
   color: var(--ct-text-muted);
-  margin-bottom: var(--ct-space-xxl);
+  margin-bottom: 32px;
 }
 .ct-kpi-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--ct-space-lg);
-  margin-bottom: var(--ct-space-xl);
-}
-@media (max-width: 640px) {
-  .ct-kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Mobile : masquer les rails gauche/droite pour que le centre panel
-     prenne toute la largeur et que la bottom bar soit entièrement visible. */
-  .ct-rail-left,
-  .ct-rail-right {
-    display: none !important;
-  }
-  .ct-center-panel {
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  /* Bottom bar mobile : couvre toute la largeur, scrollable horizontalement */
-  .ct-bottom-bar {
-    left: 16px !important;
-    right: 16px !important;
-    transform: none !important;
-    width: auto !important;
-    max-width: none !important;
-    overflow: visible !important;
-  }
-  .ct-bottom-bar-inner {
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .ct-bottom-bar-inner::-webkit-scrollbar { display: none; }
+  gap: 16px;
+  margin-bottom: 24px;
 }
 .ct-kpi-card {
   background: var(--ct-surface-1);
   border: 1px solid var(--ct-border);
-  border-radius: var(--ct-radius-lg);
-  padding: var(--ct-space-lx) var(--ct-space-xl);
+  border-radius: 12px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: var(--ct-space-sm);
+  gap: 8px;
   box-shadow: var(--ct-shadow-depth);
 }
 .ct-kpi-card.accent {
@@ -515,14 +274,14 @@ html, body {
   border-color: var(--ct-border-accent);
 }
 .ct-kpi-label {
-  font-size: var(--ct-font-size-xs);
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ct-text-muted);
 }
 .ct-kpi-value {
-  font-size: var(--ct-font-size-xxl);
+  font-size: 28px;
   font-weight: 800;
   color: var(--ct-text-primary);
   letter-spacing: -0.02em;
@@ -530,26 +289,26 @@ html, body {
 .ct-card {
   background: var(--ct-surface-1);
   border: 1px solid var(--ct-border);
-  border-radius: var(--ct-radius-lg);
-  padding: var(--ct-space-lx) var(--ct-space-xl);
-  margin-bottom: var(--ct-space-lg);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
   box-shadow: var(--ct-shadow-depth);
 }
 .ct-card-title {
-  font-size: var(--ct-font-size-xs);
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--ct-text-muted);
-  margin-bottom: var(--ct-space-md);
+  margin-bottom: 12px;
 }
 .ct-card-body {
-  font-size: var(--ct-font-size-base);
+  font-size: 13px;
   color: var(--ct-text-body);
   line-height: 1.6;
 }
 .ct-placeholder {
-  font-size: var(--ct-font-size-sm);
+  font-size: 12px;
   color: var(--ct-text-muted);
   font-style: italic;
   line-height: 1.6;
@@ -574,36 +333,21 @@ html, body {
   align-items: center;
   color: var(--ct-text-muted);
   text-decoration: none;
-  font-size: var(--ct-font-size-sm);
+  font-size: 12px;
   transition: color var(--ct-dur-base) var(--ct-ease);
 }
 .ct-breadcrumb-link:hover { color: var(--ct-text-primary); }
 .ct-breadcrumb-link:focus-visible { outline: 2px solid var(--ct-accent-strong); outline-offset: 2px; }
 
-/* ── RAIL GAUCHE — navigation links ── */
-.ct-rail-left a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--ct-logo-size);
-  height: var(--ct-logo-size);
-  border-radius: var(--ct-radius-nav);
-  color: var(--ct-text-muted);
-  text-decoration: none;
-  transition: background var(--ct-dur-base) var(--ct-ease), color var(--ct-dur-base) var(--ct-ease);
-}
-.ct-rail-left a:hover { background: rgba(255,255,255,0.05); color: var(--ct-text-primary); }
-.ct-rail-left a:focus-visible { outline: 2px solid var(--ct-accent-strong); outline-offset: 2px; }
-
 /* Form label */
 .ct-form-label {
-  font-size: var(--ct-font-size-xs);
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ct-text-muted);
   display: block;
-  margin-bottom: var(--ct-space-xxs);
+  margin-bottom: 6px;
 }
 
 /* Focus visible — inputs et textareas */
@@ -622,11 +366,11 @@ select:focus-visible {
 .ct-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: var(--ct-font-size-base);
+  font-size: 13px;
 }
 .ct-th {
-  padding: var(--ct-space-s) var(--ct-space-lg);
-  font-size: var(--ct-font-size-xs);
+  padding: 10px 16px;
+  font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.10em;
   text-transform: uppercase;
@@ -636,7 +380,7 @@ select:focus-visible {
   background: var(--ct-surface-1);
 }
 .ct-td {
-  padding: var(--ct-space-s) var(--ct-space-lg);
+  padding: 10px 16px;
   border-bottom: 1px solid var(--ct-border-soft);
   color: var(--ct-text-body);
   vertical-align: middle;
@@ -660,137 +404,85 @@ select:focus-visible {
 }
 
 /* Scrollbars */
-::-webkit-scrollbar { width: var(--ct-space-sm); height: var(--ct-space-sm); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: var(--ct-radius-sm); }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.12); }
 
-/* ── ACCESSIBILITÉ — prefers-reduced-motion (WCAG 2.3.3) ── */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
+/* ── BOTTOM BAR SCRIM ── */
+.ct-bottom-bar-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 150px;
+  pointer-events: none;
+  z-index: 29;
+  /* --ct-bg-deep = #030d14 = rgb(3,13,20). 4-stop gradient for a deeper,
+     premium fade: opaque zone starts at 35% so text disappears well before
+     the nav bar. Bottom is fully opaque (alpha 1.0). */
+  background: linear-gradient(
+    to bottom,
+    rgba(3, 13, 20, 0)    0%,
+    rgba(3, 13, 20, 0.55) 35%,
+    rgba(3, 13, 20, 0.88) 68%,
+    rgba(3, 13, 20, 1)   100%
+  );
 }
 
-/* ── Masquer la HubBottomBar du shell : notre AppBottomBar (`.ct-bottom-bar`)
-   couvre le même rôle (section label + nav globale) + contexte additionnel
-   (builder tabs, swarm actions, +New, Refresh). Deux pills flottants au même
-   `bottom: 24px` se chevauchaient — on garde le nôtre, plus riche. ── */
-.ct-hub-bar { display: none !important; }
-
-/* ── Markdown Report viewer (.md-report) ─────────────────────────────────── */
-/* Rendu lisible pour les résultats Markdown des swarms (APM Vehicle Research, etc.) */
-
+/* ── Markdown Report viewer ── */
 .md-report {
-  line-height: 1.65;
-  color: var(--ct-text-body);
-  font-size: 13px;
-}
-
-.md-report h1 {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--ct-text-strong);
-  margin: 0 0 16px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--ct-border);
-}
-
-.md-report h2 {
   font-size: 14px;
-  font-weight: 700;
-  color: var(--ct-text-strong);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 24px 0 8px;
-}
-
-.md-report h3 {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ct-text-primary);
-  margin: 16px 0 6px;
-}
-
-.md-report p {
-  margin: 0 0 10px;
+  line-height: 1.7;
   color: var(--ct-text-body);
 }
-
-.md-report ul, .md-report ol {
-  margin: 0 0 12px;
-  padding-left: 20px;
-}
-
-.md-report li {
-  margin-bottom: 4px;
-  color: var(--ct-text-body);
-}
-
-.md-report strong {
-  font-weight: 700;
-  color: var(--ct-text-strong);
-}
-
-.md-report em {
-  font-style: italic;
-  color: var(--ct-text-muted);
-}
-
-.md-report code {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
+.md-report h1 { font-size: 20px; font-weight: 800; color: var(--ct-text-strong); margin: 24px 0 12px; }
+.md-report h2 { font-size: 16px; font-weight: 700; color: var(--ct-text-primary); margin: 20px 0 10px; }
+.md-report h3 { font-size: 14px; font-weight: 600; color: var(--ct-text-primary); margin: 16px 0 8px; }
+.md-report p  { margin: 8px 0; }
+.md-report ul, .md-report ol { padding-left: 24px; margin: 8px 0; }
+.md-report li { margin: 4px 0; }
+.md-report strong { color: var(--ct-text-strong); font-weight: 700; }
+.md-report em    { color: var(--ct-text-muted); font-style: italic; }
+.md-report code  {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 12px;
   background: var(--ct-surface-3);
-  border: 1px solid var(--ct-border-soft);
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 1px 5px;
-  color: var(--ct-accent-strong);
 }
-
-.md-report hr {
-  border: none;
-  border-top: 1px solid var(--ct-border-soft);
-  margin: 20px 0;
-}
-
+.md-report hr { border: none; border-top: 1px solid var(--ct-border); margin: 16px 0; }
 .md-report blockquote {
   border-left: 3px solid var(--ct-accent-strong);
-  margin: 0 0 10px;
-  padding: 4px 0 4px 14px;
+  padding-left: 12px;
   color: var(--ct-text-muted);
   font-style: italic;
+  margin: 12px 0;
 }
-
 .md-table {
   width: 100%;
   border-collapse: collapse;
   margin: 12px 0;
-  font-size: 12px;
+  font-size: 13px;
 }
-
 .md-table th {
-  background: var(--ct-surface-3);
-  color: var(--ct-text-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-size: 10px;
-  padding: 6px 10px;
-  border: 1px solid var(--ct-border);
-  text-align: left;
-}
-
-.md-table td {
-  padding: 5px 10px;
-  border: 1px solid var(--ct-border-soft);
-  color: var(--ct-text-body);
-  vertical-align: top;
-}
-
-.md-table tr:nth-child(even) td {
   background: var(--ct-surface-2);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ct-text-muted);
+  border-bottom: 1px solid var(--ct-border);
 }
+.md-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ct-border-soft);
+  color: var(--ct-text-body);
+}
+.md-table tr:nth-child(even) td { background: var(--ct-surface-1); }
 
+/* Masquer la HubBottomBar du shell Cockpit — AppBottomBar (`.ct-bottom-bar`)
+   la remplace. Sans cet override, deux pills se superposent à bottom:24px. */
+.ct-hub-bar { display: none !important; }

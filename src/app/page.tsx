@@ -1,55 +1,56 @@
-import "./dashboard.css";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { crewaiClient } from "@/lib/crewai/client";
-import { swarmsClient } from "@/lib/crewai/swarms";
-import type { RunSummary, RunStep, Decision } from "@/lib/crewai/types";
-import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
-import { KickoffForm, type KickoffFormState } from "@/components/runs/KickoffForm";
-import { AutoRefresh } from "@/components/runs/AutoRefresh";
-import { deriveViewModel } from "@/lib/crews/deriveViewModel";
-import { AgentStatePanel } from "@/components/crews/AgentStatePanel";
-import { DecisionCard } from "@/components/crews/DecisionCard";
-import { AgentDiff } from "@/components/crews/AgentDiff";
-import { DayTimeline } from "@/components/crews/DayTimeline";
-import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs";
-import { RunsSparkline } from "@/components/dashboard/RunsSparkline";
-import { StorageBreakdown } from "@/components/dashboard/StorageBreakdown";
-import { SuccessCircle } from "@/components/dashboard/SuccessCircle";
-import { RunLogs } from "@/components/dashboard/RunLogs";
-import { SwarmFleet } from "@/components/dashboard/SwarmFleet";
-import { Chevron } from "@/components/ui/Chevron";
 import { requireOwnerId } from "@/lib/auth/owner";
-import { FONT } from "@/lib/ui/tokens";
+import { swarmsClient } from "@/lib/crewai/swarms";
+import { StatusBadge } from "@/components/runs/StatusBadge";
+import { formatDate } from "@/lib/utils/format";
+import {
+  FONT,
+  FONT_WEIGHT,
+  LETTER_SPACING,
+  SPACING,
+} from "@/lib/ui/tokens";
+import type { SwarmListItem, SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 
-const CREW_NAME = "chief-of-staff";
-const ALLOWED_TRIGGERS = ["morning", "evening", "intraday", "on_demand", "webhook"] as const;
-type Trigger = (typeof ALLOWED_TRIGGERS)[number];
+export const metadata = { title: "MySwarms · Dashboard" };
+export const dynamic = "force-dynamic";
 
-async function triggerKickoff(
-  _prevState: KickoffFormState,
-  formData: FormData,
-): Promise<KickoffFormState> {
-  "use server";
-  const raw = formData.get("trigger");
-  const trigger: Trigger = (ALLOWED_TRIGGERS as readonly string[]).includes(String(raw))
-    ? (raw as Trigger)
-    : "on_demand";
+const thStyle: React.CSSProperties = {
+  padding: `${SPACING.md}px ${SPACING.lx}px`,
+  fontSize: FONT.xs,
+  fontWeight: FONT_WEIGHT.bold,
+  letterSpacing: LETTER_SPACING.wide,
+  textTransform: "uppercase",
+  color: "var(--ct-text-muted)",
+  textAlign: "left",
+};
 
-  let kickoffId: string;
-  try {
-    const result = await crewaiClient.kickoff(CREW_NAME, { trigger });
-    kickoffId = result.kickoff_id;
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : "Failed to start run" };
-  }
-
-  // redirect outside try/catch — Next.js redirect throws an internal NEXT_REDIRECT signal
-  redirect(`/crews/${CREW_NAME}/runs/${kickoffId}`);
+function DurationLabel({
+  startedAt,
+  finishedAt,
+}: {
+  startedAt: string | null | undefined;
+  finishedAt: string | null | undefined;
+}) {
+  if (!startedAt) return <span style={{ color: "var(--ct-text-faint)" }}>—</span>;
+  const end = finishedAt ? new Date(finishedAt) : null;
+  if (!end) return <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.sm }}>en cours</span>;
+  const ms = end.getTime() - new Date(startedAt).getTime();
+  if (ms < 0) return <span style={{ color: "var(--ct-text-faint)" }}>—</span>;
+  const s = Math.round(ms / 1000);
+  if (s < 60) return <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.sm }}>{s}s</span>;
+  return <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.sm }}>{Math.round(s / 60)}m</span>;
 }
 
-export const metadata = { title: "MySwarms · Daily Chief of Staff" };
-export const dynamic = "force-dynamic";
+function TokensLabel({ tokensIn, tokensOut }: { tokensIn: number; tokensOut: number }) {
+  const total = tokensIn + tokensOut;
+  if (total === 0) return <span style={{ color: "var(--ct-text-faint)" }}>—</span>;
+  return (
+    <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.sm, fontFamily: "monospace" }}>
+      {total.toLocaleString()}
+    </span>
+  );
+}
 
 export default async function Home() {
   let ownerId: string;
@@ -59,220 +60,276 @@ export default async function Home() {
     redirect("/login");
   }
 
-  let runs: RunSummary[] = [];
-  let listError: string | null = null;
+  let swarms: SwarmListItem[] = [];
   try {
-    runs = await crewaiClient.listRuns("chief-of-staff", 1, { ownerId });
-  } catch (err) {
-    listError = err instanceof Error ? err.message : "Failed to load runs";
-  }
-
-  const latestRun = runs[0] ?? null;
-  const now = new Date();
-
-  let steps: RunStep[] = [];
-  let decisions: Decision[] = [];
-  let partialDataError: string | null = null;
-  if (latestRun) {
-    try {
-      [steps, decisions] = await Promise.all([
-        crewaiClient.listSteps("chief-of-staff", latestRun.kickoff_id, { ownerId }),
-        crewaiClient.listDecisions("chief-of-staff", latestRun.kickoff_id, { ownerId }),
-      ]);
-    } catch (err) {
-      partialDataError = err instanceof Error ? err.message : "Partial data unavailable";
-    }
-  }
-
-  const vm = deriveViewModel(latestRun, steps, decisions, now);
-
-  // Formatage pour AgentStatePanel
-  const lastRunAt = latestRun?.started_at
-    ? new Date(latestRun.started_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-    : null;
-
-  // Formatage pour AgentDiff
-  const sinceLabel = lastRunAt ? `since ${lastRunAt}` : "—";
-  const elapsed = latestRun?.finished_at && latestRun?.started_at
-    ? `${Math.round((new Date(latestRun.finished_at).getTime() - new Date(latestRun.started_at).getTime()) / 60_000)} min`
-    : "—";
-
-  // ── KPIs dérivés ────────────────────────────────────────────────────────────
-  // TODO: runsToday — nécessite listRuns avec filtre date (API non dispo en V1)
-  const runsToday = runs.length > 0 ? 1 : 0;
-
-  const successRate =
-    vm.runStats && vm.runStats.total > 0
-      ? Math.round(
-          ((vm.runStats.total - (vm.runStats.p0 > 0 ? 0 : 0)) / vm.runStats.total) * 100,
-        )
-      : latestRun?.status === "completed"
-      ? 100
-      : latestRun?.status === "failed"
-      ? 0
-      : 0;
-
-  const activeAgents = vm.agentRows.filter((r) => r.status === "active").length;
-  const p0Count = vm.runStats?.p0 ?? (vm.p0Item ? 1 : 0);
-
-  // ── Sparkline 7J ────────────────────────────────────────────────────────────
-  // TODO: remplacer par un vrai appel listRuns par jour quand l'API le supporte
-  const sparklineValues: number[] = [0, 0, 0, 0, 0, 0, runs.length > 0 ? 1 : 0];
-
-  // ── Cost segments placeholder ─────────────────────────────────────────────
-  const costSegments = [
-    { label: "Claude Sonnet", value: 4.2, color: "var(--ct-accent-strong)" },
-    { label: "Kimi K2.6", value: 1.8, color: "var(--ct-accent-maroon)" },
-  ];
-
-  // ── Swarm Fleet ──────────────────────────────────────────────────────────
-  let swarmList: SwarmListItem[] = [];
-  try {
-    swarmList = await swarmsClient.list(ownerId);
+    swarms = await swarmsClient.list(ownerId);
   } catch {
-    // Silencieux — le widget affiche un CTA vide
+    // silencieux
   }
+  const userSwarms = swarms.filter((s) => !s.is_template && s.is_active !== false);
 
-  const swarmFleet = swarmList.map((s) => ({
-    id: s.id,
-    name: s.name,
-    isActive: s.is_active,
-  }));
+  const recentRuns: Array<SwarmRunSummary & { swarmName: string; swarmId: string }> = [];
+  await Promise.allSettled(
+    userSwarms.slice(0, 5).map(async (s) => {
+      try {
+        const runs = await swarmsClient.listRuns(s.id, 5, ownerId);
+        for (const r of runs) recentRuns.push({ ...r, swarmName: s.name, swarmId: s.id });
+      } catch {
+        // silencieux
+      }
+    }),
+  );
+  recentRuns.sort((a, b) => (b.started_at ?? "").localeCompare(a.started_at ?? ""));
+  const top10 = recentRuns.slice(0, 10);
 
-  // ── Live logs dérivés des steps ───────────────────────────────────────────
-  const recentSteps = steps.slice(-12).map((s) => ({
-    time: s.started_at
-      ? new Date(s.started_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-      : "—",
-    agent: s.agent_name,
-    action: s.finished_at ? "done" : "running",
-  }));
+  const activeSwarmCount = userSwarms.length;
+  const completedCount = top10.filter((r) => r.status === "completed").length;
+  const failedCount = top10.filter((r) => r.status === "failed").length;
+  const total = completedCount + failedCount;
+  const successRate = total > 0 ? Math.round((completedCount / total) * 100) : null;
+
+  const today = new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <main>
-      <AutoRefresh active={latestRun?.status === "running"} />
-
-      {/* Header — UN SEUL h1 */}
+      {/* Header */}
       <div
         style={{
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          marginBottom: 32,
+          marginBottom: SPACING.xxl,
         }}
       >
         <div>
           <span className="ct-eyebrow">Cockpit · MySwarms</span>
           <h1 className="ct-title">Orchestration Dashboard</h1>
-          <p className="ct-sub">
-            {lastRunAt ? `Last run · ${lastRunAt}` : "No recent run"}
-          </p>
-          <Link href="/crews/chief-of-staff/history" className="ct-link" style={{ fontSize: FONT.sm }}>
-            View run history<Chevron direction="right" />
-          </Link>
+          <p className="ct-sub">{today}</p>
         </div>
-        <KickoffForm action={triggerKickoff} />
+        <Link
+          href="/swarms/new"
+          className="ct-seg-btn primary"
+          style={{ fontSize: FONT.sm, whiteSpace: "nowrap" }}
+        >
+          + Nouveau swarm
+        </Link>
       </div>
 
-      {/* Alertes */}
-      {listError && (
+      {/* KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: SPACING.lg,
+          marginBottom: SPACING.xxl,
+        }}
+      >
+        <div className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
+          <div
+            style={{
+              fontSize: FONT.xs,
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
+              textTransform: "uppercase",
+              color: "var(--ct-text-muted)",
+              marginBottom: SPACING.sm,
+            }}
+          >
+            Swarms actifs
+          </div>
+          <div
+            style={{
+              fontSize: FONT.xxl,
+              fontWeight: FONT_WEIGHT.extrabold,
+              color: "var(--ct-accent-strong)",
+              lineHeight: 1,
+            }}
+          >
+            {activeSwarmCount}
+          </div>
+          <div style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)", marginTop: SPACING.xs }}>
+            non-templates · actifs
+          </div>
+        </div>
+
+        <div className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
+          <div
+            style={{
+              fontSize: FONT.xs,
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
+              textTransform: "uppercase",
+              color: "var(--ct-text-muted)",
+              marginBottom: SPACING.sm,
+            }}
+          >
+            Runs complétés
+          </div>
+          <div
+            style={{
+              fontSize: FONT.xxl,
+              fontWeight: FONT_WEIGHT.extrabold,
+              color:
+                completedCount > 0
+                  ? "var(--ct-status-completed)"
+                  : "var(--ct-text-strong)",
+              lineHeight: 1,
+            }}
+          >
+            {completedCount}
+          </div>
+          <div style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)", marginTop: SPACING.xs }}>
+            sur les 10 derniers runs
+          </div>
+        </div>
+
+        <div className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
+          <div
+            style={{
+              fontSize: FONT.xs,
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
+              textTransform: "uppercase",
+              color: "var(--ct-text-muted)",
+              marginBottom: SPACING.sm,
+            }}
+          >
+            Taux de succès
+          </div>
+          <div
+            style={{
+              fontSize: FONT.xxl,
+              fontWeight: FONT_WEIGHT.extrabold,
+              color:
+                successRate === null
+                  ? "var(--ct-text-faint)"
+                  : successRate >= 80
+                  ? "var(--ct-status-completed)"
+                  : successRate >= 50
+                  ? "var(--ct-status-paused)"
+                  : "var(--ct-alert-error-text)",
+              lineHeight: 1,
+            }}
+          >
+            {successRate !== null ? `${successRate}%` : "—"}
+          </div>
+          <div style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)", marginTop: SPACING.xs }}>
+            {total > 0 ? `${completedCount}/${total} runs` : "aucun run récent"}
+          </div>
+        </div>
+      </div>
+
+      {/* Table des derniers runs */}
+      <div style={{ marginBottom: SPACING.xxl }}>
         <div
-          className="ct-card"
-          role="alert"
           style={{
-            borderColor: "var(--ct-alert-error-border)",
-            background: "var(--ct-alert-error-bg)",
-            color: "var(--ct-alert-error-text)",
-            marginBottom: 16,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: SPACING.md,
           }}
         >
-          {listError}
+          <span
+            style={{
+              fontSize: FONT.xs,
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
+              textTransform: "uppercase",
+              color: "var(--ct-text-muted)",
+            }}
+          >
+            Derniers runs — {top10.length}
+          </span>
+          <Link href="/swarms" className="ct-link" style={{ fontSize: FONT.sm }}>
+            Voir tous les swarms →
+          </Link>
         </div>
-      )}
-      {partialDataError && (
-        <div
-          className="ct-card"
-          role="alert"
-          style={{
-            borderColor: "var(--ct-alert-error-border)",
-            background: "var(--ct-alert-error-bg)",
-            color: "var(--ct-alert-error-text)",
-            marginBottom: 16,
-          }}
-        >
-          Partial data — steps unavailable{partialDataError ? ` (${partialDataError})` : ""}
+
+        <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
+          {top10.length === 0 ? (
+            <div
+              className="ct-placeholder"
+              style={{ padding: `${SPACING.xl}px ${SPACING.lx}px` }}
+            >
+              Aucun run récent.{" "}
+              <Link href="/swarms/new" className="ct-link">
+                Créer un swarm →
+              </Link>
+            </div>
+          ) : (
+            <table
+              style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}
+            >
+              <thead>
+                <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
+                  <th style={thStyle}>Swarm</th>
+                  <th style={thStyle}>Status</th>
+                  <th style={thStyle}>Démarré</th>
+                  <th style={thStyle}>Durée</th>
+                  <th style={thStyle}>Tokens</th>
+                  <th style={thStyle}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {top10.map((r) => (
+                  <tr key={r.id} style={{ borderBottom: "1px solid var(--ct-border-soft)" }}>
+                    <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
+                      <Link
+                        href={`/swarms/${r.swarmId}`}
+                        className="ct-link"
+                        style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT.sm }}
+                      >
+                        {r.swarmName}
+                      </Link>
+                    </td>
+                    <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
+                      <StatusBadge status={r.status} />
+                    </td>
+                    <td
+                      style={{
+                        padding: `${SPACING.s}px ${SPACING.lx}px`,
+                        color: "var(--ct-text-muted)",
+                        fontSize: FONT.sm,
+                      }}
+                    >
+                      {formatDate(r.started_at)}
+                    </td>
+                    <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
+                      <DurationLabel
+                        startedAt={r.started_at}
+                        finishedAt={r.finished_at}
+                      />
+                    </td>
+                    <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
+                      <TokensLabel
+                        tokensIn={r.total_tokens_in ?? 0}
+                        tokensOut={r.total_tokens_out ?? 0}
+                      />
+                    </td>
+                    <td
+                      style={{
+                        padding: `${SPACING.s}px ${SPACING.lx}px`,
+                        textAlign: "right",
+                      }}
+                    >
+                      <Link
+                        href={`/swarms/${r.swarmId}/runs/${r.id}`}
+                        style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
+                      >
+                        View →
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-      )}
-
-      {/* ── Bento grid ─────────────────────────────────────────────────────── */}
-      <div className="bento">
-        {/* KPIs — full width */}
-        <section className="b-kpis">
-          <DashboardKPIs
-            runsToday={runsToday}
-            successRate={successRate}
-            activeAgents={activeAgents}
-            p0Count={p0Count}
-          />
-        </section>
-
-        {/* P0 HITL — colonne large */}
-        <section className="b-p0">
-          <DecisionCard
-            p0Item={vm.p0Item}
-            draftText={vm.draftText}
-            runId={latestRun?.kickoff_id ?? null}
-          />
-        </section>
-
-        {/* Live logs — colonne droite */}
-        <section className="b-logs">
-          <RunLogs steps={recentSteps} />
-        </section>
-
-        {/* Timeline — full width */}
-        <section className="b-timeline">
-          <DayTimeline markers={vm.timelineMarkers} />
-        </section>
-
-        {/* Agents */}
-        <section className="b-agents">
-          <AgentStatePanel
-            agentRows={vm.agentRows}
-            runStats={vm.runStats}
-            lastRunAt={lastRunAt}
-            runStatus={latestRun?.status ?? null}
-          />
-        </section>
-
-        {/* Feed diff */}
-        <section className="b-feed">
-          <AgentDiff
-            items={vm.diffItems}
-            sinceLabel={sinceLabel}
-            elapsed={elapsed}
-          />
-        </section>
-
-        {/* Sparkline */}
-        <section className="b-spark">
-          <RunsSparkline values={sparklineValues} />
-        </section>
-
-        {/* Cost breakdown */}
-        <section className="b-cost">
-          <StorageBreakdown segments={costSegments} />
-        </section>
-
-        {/* Success rate */}
-        <section className="b-success">
-          <SuccessCircle percent={successRate} />
-        </section>
-
-        {/* Swarm fleet */}
-        <section className="b-fleet">
-          <SwarmFleet swarms={swarmFleet} />
-        </section>
       </div>
     </main>
   );

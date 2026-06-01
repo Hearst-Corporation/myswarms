@@ -21,24 +21,19 @@ export default async function SwarmsPage() {
 
   const totalSwarms = swarms.length;
   const activeRuns = swarms.filter((s) => s.last_run_status === "running").length;
-  // V1 : pas encore d'agrégat 30j depuis engine — tiret court en attendant (TODO V2)
-  const runs30d = "—";
-  const successRate = "—";
 
   return (
     <>
       <div className="ct-eyebrow">Cockpit · MySwarms</div>
       <h1 className="ct-title">Swarms</h1>
       <p className="ct-sub">
-        Configure your multi-agent crews, trigger them on demand or via schedules.
+        Configure tes crews multi-agents, lance-les à la demande ou sur déclencheurs.
       </p>
 
       <KPIDashboard
         kpis={[
           { label: "Total swarms", value: totalSwarms, accent: true },
           { label: "Active runs", value: activeRuns },
-          { label: "Runs 30d", value: runs30d },
-          { label: "Success rate", value: successRate },
         ]}
       />
 
@@ -51,10 +46,10 @@ export default async function SwarmsPage() {
         }}
       >
         <div className="ct-eyebrow">
-          All swarms
+          Tous les swarms
         </div>
         <Link href="/swarms/new" className="ct-seg-btn primary">
-          + New swarm
+          + Nouveau swarm
         </Link>
       </div>
 

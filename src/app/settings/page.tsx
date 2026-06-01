@@ -155,17 +155,17 @@ function TabIntegrations() {
         <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `${SPACING.md}px 0` }}>
           Recevez les rapports d&apos;analyse directement dans vos outils.
         </p>
-        <IntegrationRow
+        <SourceRow
           name="Telegram"
           description="Rapport envoyé dans un channel Telegram après chaque run"
           status="coming_soon"
         />
-        <IntegrationRow
+        <SourceRow
           name="Email"
           description="Rapport PDF envoyé par email via Resend"
           status="coming_soon"
         />
-        <IntegrationRow
+        <SourceRow
           name="Slack"
           description="Notification Slack avec résumé et recommandation"
           status="coming_soon"
@@ -175,12 +175,12 @@ function TabIntegrations() {
       {/* Section Export */}
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
         <SectionLabel text="Export" />
-        <IntegrationRow
+        <SourceRow
           name="Google Sheets"
           description="Exporter automatiquement les analyses dans un spreadsheet"
           status="coming_soon"
         />
-        <IntegrationRow
+        <SourceRow
           name="Notion"
           description="Créer une page Notion par analyse"
           status="coming_soon"
@@ -190,7 +190,7 @@ function TabIntegrations() {
       {/* Section Observabilité */}
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
         <SectionLabel text="Observabilité" />
-        <IntegrationRow
+        <SourceRow
           name="Langfuse"
           description="Traces LLM, coûts et latences par run"
           status="active"
@@ -209,13 +209,13 @@ function TabIntegrations() {
         <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.md }}>
           Outils disponibles pour les agents CrewAI dans tes swarms.
         </p>
-        <IntegrationRow
+        <SourceRow
           name="Gmail"
           description="Envoyer, lire et gérer les emails via les agents"
           status="active"
           detail="Connecté via Composio"
         />
-        <IntegrationRow
+        <SourceRow
           name="Trello"
           description="Créer et déplacer des cartes Trello via les agents"
           status="active"
@@ -259,9 +259,9 @@ type Status = "active" | "coming_soon" | "error";
 
 function StatusChip({ status, detail }: { status: Status; detail?: string }) {
   const map: Record<Status, { label: string; color: string; bg: string }> = {
-    active:      { label: "Actif",   color: "var(--ct-status-success)",     bg: "var(--ct-status-success-bg, rgba(34,197,94,.12))" },
+    active:      { label: "Actif",   color: "var(--ct-status-completed)",   bg: "var(--ct-status-completed-bg)" },
     coming_soon: { label: "Bientôt", color: "var(--ct-text-faint)",         bg: "var(--ct-surface-3)" },
-    error:       { label: "Erreur",  color: "var(--ct-alert-error-text)",   bg: "var(--ct-alert-error-bg, rgba(239,68,68,.12))" },
+    error:       { label: "Erreur",  color: "var(--ct-alert-error-text)",   bg: "var(--ct-alert-error-bg)" },
   };
   const { label, color, bg } = map[status];
   return (
@@ -311,20 +311,6 @@ function SourceRow({
       <StatusChip status={status} detail={detail} />
     </div>
   );
-}
-
-function IntegrationRow({
-  name,
-  description,
-  status,
-  detail,
-}: {
-  name: string;
-  description: string;
-  status: Status;
-  detail?: string;
-}) {
-  return <SourceRow name={name} description={description} status={status} detail={detail} />;
 }
 
 // ConnectedRow — utilise le ConnectButton (island client)

@@ -5,24 +5,25 @@ import { withSentryConfig } from "@sentry/nextjs";
 const isDev = process.env.NODE_ENV !== "production";
 
 const nextConfig: NextConfig = {
-  devIndicators: false,
   turbopack: {
     root: path.resolve(__dirname),
   },
-  experimental: {
-    optimizePackageImports: [
-      "@hearst/cockpit-shell",
-      "@hearst/hub-sdk",
-      "@supabase/supabase-js",
-      "@sentry/nextjs",
-      "openai",
-    ],
+  async redirects() {
+    return [
+      {
+        source: '/automotive',
+        destination: '/automobile',
+        permanent: true,
+      },
+    ];
   },
   async headers() {
-    // Autorise toujours l'embed depuis le hub Hearst Cockpit (localhost:4200/4201).
-    // Ces origines locales ne peuvent jamais être servies en prod → aucun risque.
-    const frameAncestors =
-      "frame-ancestors 'self' http://localhost:4200 http://localhost:4201";
+    // En dev local, on autorise l'embed dans le hub Hearst (localhost:4200/4201)
+    // pour que les <webview> Electron puissent charger Hive.
+    // En production, frame-ancestors reste strict ('none').
+    const frameAncestors = isDev
+      ? "frame-ancestors 'self' http://localhost:4200 http://localhost:4201"
+      : "frame-ancestors 'none'";
 
     return [
       {
@@ -45,17 +46,10 @@ const nextConfig: NextConfig = {
               .filter(Boolean)
               .join("; "),
           },
-          // Pas de X-Frame-Options : il bloque toute embed cross-origin et ne
-          // supporte pas de whitelist. Le CSP frame-ancestors ci-dessus suffit.
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            key: "X-Frame-Options",
+            // ALLOWALL en dev (hub embed), DENY en prod
+            value: isDev ? "ALLOWALL" : "DENY",
           },
         ],
       },

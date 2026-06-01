@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { extractRecommendation } from "@/lib/swarms/recommendation";
 export { isMarkdown } from "@/lib/swarms/markdown";
 
 // ── Markdown → HTML parser (pas de dépendance externe) ───────────────────────
@@ -124,26 +125,14 @@ function markdownToHtml(md: string): string {
   return out.join("\n");
 }
 
-// ── Extraction de la recommandation finale ────────────────────────────────────
+// ── Couleurs par recommandation ───────────────────────────────────────────────
 
 const REC_COLORS: Record<string, string> = {
   APPELER: "var(--ct-state-ok)",
   ATTENDRE: "var(--ct-accent-strong)",
   ÉVITER: "var(--ct-alert-error-text)",
-  EVITER: "var(--ct-alert-error-text)",
-  CALL: "var(--ct-state-ok)",
-  WAIT: "var(--ct-accent-strong)",
-  AVOID: "var(--ct-alert-error-text)",
+  UNKNOWN: "var(--ct-text-primary)",
 };
-
-function extractRecommendation(text: string): string | null {
-  const m = text.match(/##\s*Recommendation\s*\n+\*\*([A-ZÉÈÊ]+)\*\*/i);
-  if (m) return m[1].toUpperCase();
-  for (const key of Object.keys(REC_COLORS)) {
-    if (new RegExp(`\\*\\*${key}\\*\\*`, "i").test(text)) return key.toUpperCase();
-  }
-  return null;
-}
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -157,7 +146,8 @@ interface MarkdownReportProps {
 export function MarkdownReport({ text, title }: MarkdownReportProps) {
   const html = markdownToHtml(text);
   const rec = extractRecommendation(text);
-  const recColor = rec ? (REC_COLORS[rec] ?? "var(--ct-text-primary)") : null;
+  const hasRec = rec !== "UNKNOWN";
+  const recColor = REC_COLORS[rec] ?? "var(--ct-text-primary)";
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -176,7 +166,7 @@ export function MarkdownReport({ text, title }: MarkdownReportProps) {
   return (
     <div>
       {/* Recommendation banner */}
-      {rec && (
+      {hasRec && (
         <div
           style={{
             display: "flex",
@@ -196,7 +186,7 @@ export function MarkdownReport({ text, title }: MarkdownReportProps) {
             style={{
               fontSize: FONT.lg,
               fontWeight: FONT_WEIGHT.extrabold,
-              color: recColor ?? undefined,
+              color: recColor,
               letterSpacing: "0.04em",
             }}
           >
