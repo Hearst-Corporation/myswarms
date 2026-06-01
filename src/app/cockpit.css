@@ -672,3 +672,14 @@ select:focus-visible {
   .ct-page-area { padding: 24px 16px 96px; }
 }
 
+/* ── ACCENT AUTOMOBILE (placeholder — à finaliser) ──
+   Appliqué quand <html data-product="automobile"> (posé par DashboardSwitcher
+   selon la route). Couleurs PROVISOIRES — ajuster ces 4 variables pour le
+   branding automobile définitif. */
+[data-product="automobile"] {
+  --ct-accent-strong: #2f9e6e;
+  --ct-accent-soft: rgba(47, 158, 110, 0.14);
+  --ct-border-accent: rgba(47, 158, 110, 0.45);
+  --ct-accent-maroon: rgba(47, 158, 110, 0.28);
+}
+

@@ -9,6 +9,7 @@ import { BUILDER_TABS, type BuilderTabId, parseBuilderTab } from "@/lib/swarms/b
 import { useSwarmTemplate } from "@/lib/swarms/templateContext";
 import { MODULES } from "@/lib/tenant/modules";
 import { useTenantConfig } from "@/components/cockpit/TenantConfigProvider";
+import { DashboardSwitcher } from "@/components/cockpit/DashboardSwitcher";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
@@ -67,6 +68,8 @@ export function AppBottomBar() {
     <>
     <nav className="ct-bottom-bar" role="navigation" aria-label="Main navigation">
       <div className="ct-bottom-bar-inner">
+        {/* Switcher de dashboard (Automobile ↔ Admin) — pilote aussi l'accent */}
+        <DashboardSwitcher />
         <span className="ct-bottom-label">{sectionLabel}</span>
 
         {/* Mode builder — onglets Agents/Tasks/Tools REMPLACENT la nav principale */}
