@@ -1,0 +1,129 @@
+/* Visualisations Automobile — animations CSS pures (aucun JS state, SSR-safe).
+   Style "control-room AI" : glass, gradients, glow, motion. Tokens cockpit only. */
+
+.av-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.av-card {
+  position: relative;
+  background:
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--ct-accent-strong) 8%, transparent), transparent 60%),
+    var(--ct-surface-2);
+  border: 1px solid var(--ct-border);
+  border-radius: 16px;
+  padding: 18px;
+  overflow: hidden;
+  animation: av-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.av-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ct-accent-strong) 60%, transparent), transparent);
+  opacity: 0.7;
+}
+.av-card:nth-child(2) { animation-delay: 0.06s; }
+.av-card:nth-child(3) { animation-delay: 0.12s; }
+.av-card:nth-child(4) { animation-delay: 0.18s; }
+
+.av-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ct-text-muted);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.av-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--ct-state-ok);
+}
+.av-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ct-state-ok);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct-state-ok) 70%, transparent);
+  animation: av-pulse 1.6s ease-out infinite;
+}
+
+/* Donut */
+.av-donut-track { fill: none; stroke: var(--ct-surface-3); }
+.av-donut-seg {
+  fill: none;
+  stroke-linecap: round;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  animation: av-draw 0.9s ease-out both;
+}
+.av-donut-seg:nth-child(2) { animation-delay: 0.08s; }
+.av-donut-seg:nth-child(3) { animation-delay: 0.16s; }
+.av-donut-seg:nth-child(4) { animation-delay: 0.24s; }
+
+/* Bars (grow via scaleX, marche pour toute largeur) */
+.av-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transform-origin: left center;
+  animation: av-grow-x 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Price-vs-market band */
+.av-dot {
+  animation: av-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Sparkline / area */
+.av-area-path { animation: av-fade 0.8s ease-out both; }
+.av-line-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: av-line 1.1s ease-out forwards;
+  /* pathLength=1 normalisé via attribut pathLength sur le <path> */
+}
+
+@keyframes av-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes av-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes av-draw {
+  from { stroke-dashoffset: 390; }
+}
+@keyframes av-pop {
+  from { opacity: 0; transform: scale(0); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes av-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes av-line {
+  to { stroke-dashoffset: 0; }
+}
+@keyframes av-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct-state-ok) 60%, transparent); }
+  70% { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .av-card, .av-donut-seg, .av-bar-fill, .av-dot, .av-area-path, .av-line-path { animation: none; }
+  .av-line-path { stroke-dashoffset: 0; }
+}

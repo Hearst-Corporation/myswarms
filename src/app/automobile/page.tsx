@@ -16,7 +16,9 @@ import { getMarketIndex, type MarketIndex } from "@/lib/market/apmClient";
 import { getSourceName } from "@/lib/automobile/source";
 import { DecisionBadge } from "@/components/automobile/DecisionBadge";
 import { getDecisionsForRuns, type VehicleDecisionStatus } from "@/lib/automobile/decisions";
-import { getEffectiveDecision, isDecisionOpen } from "@/lib/automobile/decisionStatus";
+import { getEffectiveDecision, isDecisionOpen, VEHICLE_DECISION_STATUSES } from "@/lib/automobile/decisionStatus";
+import { AutoRefresh } from "@/components/runs/AutoRefresh";
+import { AutomobileCharts, type AutomobileChartsData } from "@/components/automobile/charts/AutomobileCharts";
 
 export const metadata = { title: "Automobile — MySwarms" };
 export const dynamic = "force-dynamic";
@@ -275,8 +277,69 @@ export default async function AutomobilePage() {
   const topSources = getTopCounts(runs.map((run) => getSourceName(asText(run.inputs_json?.source_url))), 5);
   const topCountries = getTopCounts(runs.map((run) => asText(run.inputs_json?.country)), 5);
 
+  // ── Données visualisations live (réelles) ──────────────────────────────────
+  const hasActiveRun = summaries.some((s) => s.status === "running");
+  const decisionColor: Record<VehicleDecisionStatus, string> = {
+    a_decider: "var(--ct-text-faint)",
+    appeler: "var(--ct-accent-strong)",
+    ignorer: "var(--ct-text-faint)",
+    appele: "var(--ct-state-ok)",
+    negociation: "var(--ct-accent-strong)",
+    achete: "var(--ct-state-ok)",
+    perdu: "var(--ct-alert-error-text)",
+  };
+  const decisionCounts = new Map<VehicleDecisionStatus, number>();
+  for (const st of decisions.values()) decisionCounts.set(st, (decisionCounts.get(st) ?? 0) + 1);
+
+  const marketByLabel = new Map(
+    marketSignals.filter((m) => m.market).map((m) => [m.label, m.market!] as const),
+  );
+  const priceVsMarket: AutomobileChartsData["priceVsMarket"] = [];
+  const seenPvm = new Set<string>();
+  for (const run of recentRuns) {
+    const make = asText(run.inputs_json?.make);
+    const model = asText(run.inputs_json?.model);
+    const price = asNumber(run.inputs_json?.price_eur);
+    if (!make || !model || !price || price <= 0) continue;
+    const label = `${make} ${model}`;
+    const mkt = marketByLabel.get(label);
+    if (
+      !mkt ||
+      mkt.medianPrice == null ||
+      mkt.p15Price == null ||
+      mkt.p85Price == null ||
+      seenPvm.has(label)
+    )
+      continue;
+    seenPvm.add(label);
+    priceVsMarket.push({ label, price, p15: mkt.p15Price, median: mkt.medianPrice, p85: mkt.p85Price });
+    if (priceVsMarket.length >= 5) break;
+  }
+
+  const chartsData: AutomobileChartsData = {
+    total: runs.length,
+    recommendations: [
+      { key: "APPELER", label: "Appeler", count: recommendations.APPELER, color: "var(--ct-state-ok)" },
+      { key: "ATTENDRE", label: "Attendre", count: recommendations.ATTENDRE, color: "var(--ct-accent-strong)" },
+      { key: "EVITER", label: "Éviter", count: recommendations["ÉVITER"], color: "var(--ct-alert-error-text)" },
+      { key: "UNKNOWN", label: "Inconnu", count: recommendations.UNKNOWN, color: "var(--ct-text-faint)" },
+    ],
+    decisions: VEHICLE_DECISION_STATUSES.map((s) => ({
+      key: s.value,
+      label: s.label,
+      count: decisionCounts.get(s.value) ?? 0,
+      color: decisionColor[s.value],
+    })).filter((s) => s.count > 0),
+    priceVsMarket,
+    tokensSeries: [...recentRuns].reverse().map((r) => r.total_tokens_in + r.total_tokens_out),
+    live: hasActiveRun,
+  };
+
   return (
     <>
+      {/* Refresh live tant qu'un run est en cours */}
+      <AutoRefresh active={hasActiveRun} seconds={6} />
+
       {/* Header */}
       <div className="ct-eyebrow">Cockpit · MySwarms</div>
       <div
@@ -357,6 +420,25 @@ export default async function AutomobilePage() {
           <KPICard label="Tokens" value={totalTokens.toLocaleString("fr-FR")} />
         </div>
       )}
+
+      {/* Visualisations live */}
+      {!loadError && runs.length > 0 ? (
+        <div style={{ marginBottom: SPACING.xxl }}>
+          <div
+            style={{
+              fontSize: FONT.xs,
+              fontWeight: FONT_WEIGHT.bold,
+              letterSpacing: LETTER_SPACING.wide,
+              textTransform: "uppercase",
+              color: "var(--ct-text-muted)",
+              marginBottom: SPACING.md,
+            }}
+          >
+            Visualisations
+          </div>
+          <AutomobileCharts data={chartsData} />
+        </div>
+      ) : null}
 
       {/* Intelligence marché */}
       {!loadError && runs.length > 0 ? (
