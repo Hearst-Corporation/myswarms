@@ -682,7 +682,13 @@ select:focus-visible {
   --ct-accent-soft: rgba(202, 173, 135, 0.14);
   --ct-border-accent: rgba(202, 173, 135, 0.45);
   --ct-accent-maroon: rgba(202, 173, 135, 0.20); /* glow premium chaud */
+  --ct-brand-hive: #caad87;                /* mark du rail en or */
 }
-/* Rouge corail Azur (#fe3e54) dispo comme CTA dédié si besoin — non mappé sur
-   --ct-alert-error-text pour ne pas confondre action et erreur. */
+/* Boutons d'action (CTA) en rouge corail Azur #fe3e54 — la couleur d'action de
+   la marque (cf. boutons du site). Le blanc DS est remplacé dans l'espace auto. */
+[data-product="automobile"] .ct-seg-btn.primary {
+  background: #fe3e54;
+  color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(254, 62, 84, 0.25);
+}
 
