@@ -678,11 +678,13 @@ select:focus-visible {
    or champagne #caad87 (signature premium) · rouge corail #fe3e54 (action) ·
    charcoal #272a34 (base sombre). */
 [data-product="automobile"] {
-  --ct-accent-strong: #caad87;             /* or champagne — accent principal */
-  --ct-accent-soft: rgba(202, 173, 135, 0.14);
-  --ct-border-accent: rgba(202, 173, 135, 0.45);
-  --ct-accent-maroon: rgba(202, 173, 135, 0.20); /* glow premium chaud */
-  --ct-brand-hive: #caad87;                /* mark du rail en or */
+  --ct-accent-strong: #d4bb90;             /* or réel du logo Azur */
+  --ct-accent-soft: rgba(212, 187, 144, 0.16);
+  --ct-border-accent: rgba(212, 187, 144, 0.45);
+  /* Glow ambiant SOLIDE (chaud) — même intensité que l'original #1a4a6a, sinon
+     l'effet de profondeur « Apple Vision » s'aplatit. Ne PAS mettre en rgba faible. */
+  --ct-accent-maroon: #4a3818;
+  --ct-brand-hive: #d4bb90;                /* mark du rail en or */
 }
 /* Boutons d'action (CTA) en rouge corail Azur #fe3e54 — la couleur d'action de
    la marque (cf. boutons du site). Le blanc DS est remplacé dans l'espace auto. */
