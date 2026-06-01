@@ -58,7 +58,7 @@ export function UserTable({ users, superAdminEmail, onRefresh }: UserTableProps)
   const tdStyle: React.CSSProperties = {
     padding: `${SPACING.sm}px ${SPACING.md}px`,
     fontSize: FONT.sm,
-    color: "var(--ct-text-base)",
+    color: "var(--ct-text-body)",
     borderBottom: "1px solid var(--ct-border)",
     verticalAlign: "middle",
   };

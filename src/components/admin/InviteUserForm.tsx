@@ -40,7 +40,7 @@ export function InviteUserForm({ onSuccess }: InviteUserFormProps) {
   return (
     <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
       <div style={{ display: "flex", gap: SPACING.md, flexWrap: "wrap" }}>
-        <div style={{ flex: 2, minWidth: 200, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
+        <div style={{ flex: 2, minWidth: 140, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
           <label style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Email
           </label>
@@ -55,13 +55,13 @@ export function InviteUserForm({ onSuccess }: InviteUserFormProps) {
               border: "1px solid var(--ct-border)",
               borderRadius: RADIUS.md,
               padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-base)",
+              color: "var(--ct-text-body)",
               fontSize: FONT.sm,
               outline: "none",
             }}
           />
         </div>
-        <div style={{ flex: 2, minWidth: 200, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
+        <div style={{ flex: 2, minWidth: 140, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
           <label style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Mot de passe
           </label>
@@ -77,13 +77,13 @@ export function InviteUserForm({ onSuccess }: InviteUserFormProps) {
               border: "1px solid var(--ct-border)",
               borderRadius: RADIUS.md,
               padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-base)",
+              color: "var(--ct-text-body)",
               fontSize: FONT.sm,
               outline: "none",
             }}
           />
         </div>
-        <div style={{ flex: 1, minWidth: 120, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
+        <div style={{ flex: 1, minWidth: 100, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
           <label style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Rôle
           </label>
@@ -95,7 +95,7 @@ export function InviteUserForm({ onSuccess }: InviteUserFormProps) {
               border: "1px solid var(--ct-border)",
               borderRadius: RADIUS.md,
               padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-base)",
+              color: "var(--ct-text-body)",
               fontSize: FONT.sm,
               outline: "none",
             }}

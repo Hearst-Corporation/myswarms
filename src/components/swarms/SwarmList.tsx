@@ -3,9 +3,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { Chevron } from "@/components/ui/Chevron";
 
-// FONT.xs = 10 — taille exacte pour les badge labels TEMPLATE.
 const BADGE_FONT_SIZE = FONT.xs;
 
 interface SwarmListProps {
@@ -23,7 +21,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
         className="ct-card"
         style={{ borderColor: "var(--ct-border-accent)" }}
       >
-        <div className="ct-card-title">Error</div>
+        <div className="ct-card-title">Erreur</div>
         <p className="ct-card-body">{error}</p>
       </div>
     );
@@ -32,11 +30,11 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
   if (swarms.length === 0) {
     return (
       <div className="ct-card">
-        <div className="ct-card-title">No swarm</div>
+        <div className="ct-card-title">Aucun swarm</div>
         <p className="ct-card-body">
-          Create your first swarm to get started.{" "}
+          Crée ton premier swarm pour démarrer.{" "}
           <Link href="/swarms/new" style={{ color: "var(--ct-accent-strong)" }}>
-            New swarm <Chevron direction="right" />
+            Nouveau swarm →
           </Link>
         </p>
       </div>
@@ -46,7 +44,7 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
   return (
     <div
       className="ct-card"
-      style={{ padding: 0, overflow: "hidden" }}
+      style={{ padding: 0, overflowX: "auto" }}
     >
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}>
         <thead>
@@ -56,11 +54,11 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
               textAlign: "left",
             }}
           >
-            <th style={thStyle}>Name</th>
+            <th style={thStyle}>Nom</th>
             <th style={thStyle}>Agents</th>
-            <th style={thStyle}>Last run</th>
-            <th style={thStyle}>Status</th>
-            <th style={thStyle}>Updated</th>
+            <th style={thStyle}>Dernière run</th>
+            <th style={thStyle}>Statut</th>
+            <th style={thStyle}>MAJ</th>
             <th style={thStyle}></th>
           </tr>
         </thead>
@@ -108,14 +106,12 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
                 {formatDate(s.updated_at)}
               </td>
               <td style={{ ...tdStyle, textAlign: "right" }}>
-                {s.is_template ? null : (
-                  <Link
-                    href={`/swarms/${s.id}/edit`}
-                    style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
-                  >
-                    Edit
-                  </Link>
-                )}
+                <Link
+                  href={`/swarms/${s.id}/edit`}
+                  style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
+                >
+                  Éditer
+                </Link>
               </td>
             </tr>
           ))}
@@ -125,8 +121,6 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
   );
 }
 
-// Padding table compacte : lx = 20 pour horizontal, md = 12 pour vertical TH,
-// xxs = 6 additionnel pour TD (md+xxs = 18 ≈ entre md et lg — s utilisé comme proxy).
 const TH_PADDING = `${SPACING.md}px ${SPACING.lx}px`;
 const TD_PADDING = `${SPACING.s}px ${SPACING.lx}px`;
 

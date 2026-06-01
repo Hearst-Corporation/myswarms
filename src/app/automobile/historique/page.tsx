@@ -8,6 +8,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
 import type { SwarmRunSummary, SwarmRun } from "@/lib/forms/swarmSchemas";
+import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
 
 export const metadata = { title: "Historique — Automobile" };
 export const dynamic = "force-dynamic";
@@ -79,23 +80,7 @@ const FILTER_OPTS: Array<{ label: string; value: string }> = [
   { label: "ÉVITER", value: "ÉVITER" },
 ];
 
-const thStyle: React.CSSProperties = {
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.wide,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-  textAlign: "left" as const,
-  whiteSpace: "nowrap",
-};
 
-const tdStyle: React.CSSProperties = {
-  padding: `${SPACING.s}px ${SPACING.md}px`,
-  color: "var(--ct-text-body)",
-  fontSize: FONT.sm,
-  verticalAlign: "middle",
-};
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 

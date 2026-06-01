@@ -110,7 +110,7 @@ function Field({ field, error }: { field: InputField; error?: string }) {
       <label htmlFor={id} style={labelStyle}>
         {field.label}
         {field.required && (
-          <span style={{ color: "var(--ct-accent-strong)", marginLeft: 3 }}>*</span>
+          <span style={{ color: "var(--ct-accent-strong)", marginLeft: SPACING.hair }}>*</span>
         )}
       </label>
 
@@ -193,7 +193,7 @@ export function SwarmInputForm({ action, fields }: Props) {
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
             gap: SPACING.lg,
           }}
         >

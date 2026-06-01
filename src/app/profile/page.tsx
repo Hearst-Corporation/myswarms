@@ -86,7 +86,7 @@ function Field({ label, value, mono = false }: { label: string; value: string; m
       </span>
       <span style={{
         fontSize: FONT.sm,
-        color: "var(--ct-text-base)",
+        color: "var(--ct-text-body)",
         fontFamily: mono ? "monospace" : undefined,
         wordBreak: "break-all",
         borderRadius: RADIUS.sm,

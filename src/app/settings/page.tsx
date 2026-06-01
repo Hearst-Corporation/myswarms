@@ -245,7 +245,7 @@ function Field({ label, value, mono = false }: { label: string; value: string; m
       <span
         style={{
           fontSize: FONT.sm,
-          color: "var(--ct-text-base)",
+          color: "var(--ct-text-body)",
           fontFamily: mono ? "monospace" : undefined,
         }}
       >
@@ -303,7 +303,7 @@ function SourceRow({
       }}
     >
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-base)", margin: 0 }}>
+        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-body)", margin: 0 }}>
           {name}
         </p>
         <p style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", margin: `2px 0 0` }}>{description}</p>
@@ -335,7 +335,7 @@ function ConnectedRow({
       }}
     >
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-base)", margin: 0 }}>
+        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-body)", margin: 0 }}>
           {name}
         </p>
         <p style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", margin: `2px 0 0` }}>{description}</p>

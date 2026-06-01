@@ -89,7 +89,6 @@ export default async function LoginPage({
         <h1
           className="ct-title"
           style={{
-            fontSize: FONT.display,
             marginBottom: SPACING.xxs,
             textAlign: "center",
           }}
