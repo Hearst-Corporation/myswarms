@@ -197,6 +197,31 @@ function TabIntegrations() {
           detail="Connecté — traces visibles sur langfuse.cloud"
         />
       </section>
+
+      {/* Section Outils agents */}
+      <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.md }}>
+          <SectionLabel text="Outils agents" />
+          <Link href="/tools" style={{ fontSize: FONT.xs, color: "var(--ct-accent-strong)" }}>
+            Voir le catalog →
+          </Link>
+        </div>
+        <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.md }}>
+          Outils disponibles pour les agents CrewAI dans tes swarms.
+        </p>
+        <IntegrationRow
+          name="Gmail"
+          description="Envoyer, lire et gérer les emails via les agents"
+          status="active"
+          detail="Connecté via Composio"
+        />
+        <IntegrationRow
+          name="Trello"
+          description="Créer et déplacer des cartes Trello via les agents"
+          status="active"
+          detail="Connecté via Composio"
+        />
+      </section>
     </div>
   );
 }

@@ -38,15 +38,13 @@ export function AppBottomBar() {
     ? "Cockpit"
     : isSwarmsArea
       ? "Swarms"
-      : isCrewsArea
-        ? "Crews"
-        : isToolsArea
-          ? "Tools"
-          : isWorkspaceArea
-            ? "Workspace"
-            : isAutomotiveArea
-              ? "Automobile"
-              : "Cockpit";
+      : isAutomotiveArea
+        ? "Automobile"
+        : isWorkspaceArea
+          ? "Paramètres"
+          : isCrewsArea || isToolsArea
+            ? "Cockpit"
+            : "Cockpit";
 
   const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
 
@@ -111,31 +109,13 @@ export function AppBottomBar() {
 
         <div className="ct-seg-track">
           <Link href="/" className={`ct-seg-btn ${isHome ? "active" : ""}`}>
-            Overview
+            Accueil
           </Link>
           <Link
             href="/swarms"
             className={`ct-seg-btn ${isSwarmsArea ? "active" : ""}`}
           >
             Swarms
-          </Link>
-          <Link
-            href="/crews"
-            className={`ct-seg-btn ${isCrewsArea ? "active" : ""}`}
-          >
-            Crews
-          </Link>
-          <Link
-            href="/tools"
-            className={`ct-seg-btn ${isToolsArea ? "active" : ""}`}
-          >
-            Tools
-          </Link>
-          <Link
-            href="/workspace"
-            className={`ct-seg-btn ${isWorkspaceArea ? "active" : ""}`}
-          >
-            Workspace
           </Link>
           <Link
             href="/automobile"
