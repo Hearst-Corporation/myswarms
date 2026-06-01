@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useRef } from "react";
+import { useCallback, useRef } from "react";
 import { BottomBarSwarmActions } from "@/components/swarms/BottomBarSwarmActions";
 import { LaunchButton } from "@/components/cockpit/LaunchButton";
 import { BUILDER_TABS, type BuilderTabId, parseBuilderTab } from "@/lib/swarms/builderTabs";
@@ -13,6 +13,24 @@ import { DashboardSwitcher } from "@/components/cockpit/DashboardSwitcher";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
+
+const AUTOMOBILE_MODULES = [
+  { id: "dashboard", label: "Dashboard", href: "/automobile" },
+  { id: "nouvelle", label: "Nouvelle analyse", href: "/automobile/nouvelle" },
+  { id: "historique", label: "Historique", href: "/automobile/historique" },
+  { id: "marche", label: "Marché", href: "/automobile/marche" },
+  { id: "sourcing", label: "Sourcing", href: "/automobile/sourcing" },
+];
+
+const MASTER_MODULES = [
+  { id: "accueil", label: "Accueil", href: "/" },
+  { id: "workspace", label: "Workspace", href: "/workspace" },
+  { id: "swarms", label: "Swarms", href: "/swarms" },
+  { id: "crews", label: "Crews", href: "/crews/chief-of-staff" },
+  { id: "tools", label: "Tools", href: "/tools" },
+  { id: "automobile", label: "Automobile", href: "/automobile" },
+  { id: "admin", label: "Admin", href: "/admin/users" },
+];
 
 export function AppBottomBar() {
   const pathname = usePathname() ?? "/";
@@ -25,7 +43,7 @@ export function AppBottomBar() {
 
   const isHome = pathname === "/";
   const isSwarmsArea = pathname.startsWith("/swarms");
-  const isAutomotiveArea = pathname.startsWith("/automobile") || pathname.startsWith("/automotive");
+  const isAutomotiveArea = pathname.startsWith("/automobile");
   const detailMatch = pathname.match(SWARM_DETAIL_REGEX);
   const isSwarmDetail = Boolean(detailMatch);
   const isSwarmEdit = SWARM_EDIT_REGEX.test(pathname);
@@ -42,11 +60,11 @@ export function AppBottomBar() {
 
   const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
 
-  const navigateToTab = (tabId: BuilderTabId) => {
+  const navigateToTab = useCallback((tabId: BuilderTabId) => {
     const params = new URLSearchParams(Array.from(searchParams.entries()));
     params.set("tab", tabId);
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-  };
+  }, [pathname, router, searchParams]);
 
   const handleTablistKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const tabs = tablistRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
@@ -112,29 +130,51 @@ export function AppBottomBar() {
           </>
         ) : (
           <>
-            {/* Mode navigation normale — modules pilotés par le tenant */}
             <div className="ct-seg-track">
-              {visibleModules.map((m) => {
-                const active =
-                  m.href === "/" ? isHome : pathname.startsWith(m.href);
-                return (
-                  <Link
-                    key={m.id}
-                    href={m.href}
-                    className={`ct-seg-btn ${active ? "active" : ""}`}
-                  >
-                    {m.label}
-                  </Link>
-                );
-              })}
-              {/* Admin — visible uniquement pour le super-admin */}
-              {isSuperAdmin && (
-                <Link
-                  href="/admin/users"
-                  className={`ct-seg-btn ${pathname.startsWith("/admin") ? "active" : ""}`}
-                >
-                  Admin
-                </Link>
+              {/* Espace Automobile — prioritaire pour tout le monde (super-admin inclus) */}
+              {isAutomotiveArea ? (
+                <>
+                  {isSuperAdmin && (
+                    <Link href="/" className="ct-seg-btn">← Master</Link>
+                  )}
+                  {AUTOMOBILE_MODULES.map((m) => (
+                    <Link
+                      key={m.id}
+                      href={m.href}
+                      className={`ct-seg-btn ${pathname === m.href || (m.href !== "/automobile" && pathname.startsWith(m.href)) ? "active" : ""}`}
+                    >
+                      {m.label}
+                    </Link>
+                  ))}
+                </>
+              ) : isSuperAdmin ? (
+                /* Master — super-admin hors automobile : tous les modules */
+                MASTER_MODULES.map((m) => {
+                  const active = m.href === "/" ? isHome : pathname.startsWith(m.href);
+                  return (
+                    <Link
+                      key={m.id}
+                      href={m.href}
+                      className={`ct-seg-btn ${active ? "active" : ""}`}
+                    >
+                      {m.label}
+                    </Link>
+                  );
+                })
+              ) : (
+                /* Espace Hive (utilisateur normal, hors automobile) */
+                visibleModules.map((m) => {
+                  const active = m.href === "/" ? isHome : pathname.startsWith(m.href);
+                  return (
+                    <Link
+                      key={m.id}
+                      href={m.href}
+                      className={`ct-seg-btn ${active ? "active" : ""}`}
+                    >
+                      {m.label}
+                    </Link>
+                  );
+                })
               )}
             </div>
 

@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { getMarketIndex } from "@/lib/market/apmClient";
 import { MarketSearchForm } from "@/components/automobile/MarketSearchForm";
+import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { Chevron } from "@/components/ui/Chevron";
 import { FONT, FONT_WEIGHT, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
+
+const TITLE_LOGO_SIZE = 48;
 
 export const metadata = { title: "Cote marché — Automobile" };
 export const dynamic = "force-dynamic";
@@ -46,12 +49,12 @@ export default async function CoteMarchePage({ searchParams }: PageProps) {
         </p>
       </div>
 
-      <div className="ct-card" style={{ padding: `${SPACING.lx}px`, maxWidth: 640, marginBottom: SPACING.xl }}>
+      <div className="ct-card" style={{ padding: `${SPACING.lx}px`, marginBottom: SPACING.xl }}>
         <MarketSearchForm defaultMake={make} defaultModel={model} defaultFuel={fuel} />
       </div>
 
       {hasQuery && !market && (
-        <div className="ct-card" style={{ maxWidth: 640 }}>
+        <div className="ct-card">
           <div className="ct-card-title">Pas de données</div>
           <p className="ct-card-body">
             Aucune cote marché exploitable pour {make} {model}
@@ -62,12 +65,22 @@ export default async function CoteMarchePage({ searchParams }: PageProps) {
       )}
 
       {market && (
-        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg, maxWidth: 720 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg, width: "100%" }}>
           {/* Cote principale */}
           <div className="ct-card" style={{ borderColor: "var(--ct-accent-strong)" }}>
-            <div className="ct-card-title">
-              Cote médiane — {market.make} {market.model}
-              {market.fuel ? ` · ${market.fuel}` : ""}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: SPACING.md,
+                marginBottom: SPACING.md,
+              }}
+            >
+              <BrandLogo brand={market.make} size={TITLE_LOGO_SIZE} />
+              <div className="ct-card-title" style={{ marginBottom: 0 }}>
+                Cote médiane — {market.make} {market.model}
+                {market.fuel ? ` · ${market.fuel}` : ""}
+              </div>
             </div>
             <div
               style={{

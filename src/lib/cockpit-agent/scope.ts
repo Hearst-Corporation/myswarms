@@ -1,3 +1,4 @@
+import "server-only";
 import path from "node:path";
 
 export const PROJECT_ROOT = process.cwd();

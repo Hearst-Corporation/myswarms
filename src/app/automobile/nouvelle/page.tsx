@@ -92,7 +92,6 @@ export default async function NouvelleAnalysePage() {
           role="alert"
           style={{
             padding: `${SPACING.lx}px`,
-            maxWidth: 640,
             borderColor: "var(--ct-alert-error-border)",
             background: "var(--ct-alert-error-bg)",
           }}
@@ -109,7 +108,7 @@ export default async function NouvelleAnalysePage() {
           </Link>
         </div>
       ) : (
-        <div className="ct-card" style={{ padding: `${SPACING.lx}px`, maxWidth: 640 }}>
+        <div className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
           <SwarmInputForm action={triggerAnalyse} fields={inputFields} />
         </div>
       )}

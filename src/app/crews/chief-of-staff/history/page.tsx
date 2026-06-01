@@ -18,7 +18,7 @@ export default async function ChiefOfStaffHistoryPage() {
   try {
     ownerId = await requireOwnerId();
   } catch {
-    redirect("/login");
+    redirect("/login?returnTo=/crews/chief-of-staff/history");
   }
 
   let runs: RunSummary[] = [];

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 export { isMarkdown } from "@/lib/swarms/markdown";
@@ -144,7 +144,7 @@ interface MarkdownReportProps {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export function MarkdownReport({ text, title }: MarkdownReportProps) {
-  const html = markdownToHtml(text);
+  const html = useMemo(() => markdownToHtml(text), [text]);
   const rec = extractRecommendation(text);
   const hasRec = rec !== "UNKNOWN";
   const recColor = REC_COLORS[rec] ?? "var(--ct-text-primary)";

@@ -28,7 +28,7 @@ export default async function RunDetailPage({ params }: PageProps) {
   try {
     ownerId = await requireOwnerId();
   } catch {
-    redirect("/login");
+    redirect(`/login?returnTo=${encodeURIComponent(`/crews/chief-of-staff/runs/${runId}`)}`);
   }
 
   // Validate UUID v4 format before hitting microservice.

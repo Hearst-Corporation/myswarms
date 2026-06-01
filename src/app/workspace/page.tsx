@@ -218,7 +218,7 @@ export default async function WorkspacePage() {
   // Auth — redirect if not logged in
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+  if (!user) redirect("/login?returnTo=/workspace");
 
   const ownerId = await getOwnerId();
 

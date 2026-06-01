@@ -24,7 +24,7 @@ export default async function AutomobilePage() {
   try {
     ownerId = await requireOwnerId();
   } catch (e) {
-    if (e instanceof OwnerAuthError) redirect("/login");
+    if (e instanceof OwnerAuthError) redirect("/login?returnTo=/automobile");
     throw e;
   }
 

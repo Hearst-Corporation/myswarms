@@ -5,6 +5,7 @@ import { swarmsClient } from "@/lib/crewai/swarms";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
 import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
+import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
@@ -16,6 +17,7 @@ export const metadata = { title: "Historique — Automobile" };
 export const dynamic = "force-dynamic";
 
 const RUN_LIMIT = 50;
+const ROW_LOGO_SIZE = 32;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,7 +52,7 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
   try {
     ownerId = await requireOwnerId();
   } catch (e) {
-    if (e instanceof OwnerAuthError) redirect("/login");
+    if (e instanceof OwnerAuthError) redirect("/login?returnTo=/automobile/historique");
     throw e;
   }
 
@@ -208,6 +210,7 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.sm }}>
                 <thead>
                   <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
+                    <th style={thStyle}>Marque</th>
                     <th style={thStyle}>Véhicule</th>
                     <th style={thStyle}>Recommandation</th>
                     <th style={thStyle}>Statut</th>
@@ -220,6 +223,7 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
                   {filtered.map((run, idx) => {
                     const inp = run.inputs_json ?? {};
                     const label = getVehicleLabel(inp);
+                    const brand = inp.make ? String(inp.make) : "";
                     const rec = extractRecommendation(run.result_text);
                     const dur = getDurationMs(run);
                     return (
@@ -232,6 +236,11 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
                               : "none",
                         }}
                       >
+                        {/* Marque */}
+                        <td style={tdStyle}>
+                          <BrandLogo brand={brand} size={ROW_LOGO_SIZE} />
+                        </td>
+
                         {/* Véhicule */}
                         <td style={{ ...tdStyle, fontWeight: FONT_WEIGHT.semibold }}>
                           <div style={{ color: "var(--ct-text-primary)" }}>{label}</div>

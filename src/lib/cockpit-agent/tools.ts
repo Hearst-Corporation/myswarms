@@ -1,3 +1,4 @@
+import "server-only";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";

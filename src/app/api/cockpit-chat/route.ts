@@ -10,6 +10,8 @@ import { runAgent } from "@/lib/cockpit-agent/runtime";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const MAX_HISTORY_MESSAGES = 50;
+
 const BodySchema = z.object({
   chatId: z.string().nullish(),
   message: z.string().min(1, "Message vide"),
@@ -83,9 +85,11 @@ const cockpitPersistence: ChatPersistence = {
         .from("cockpit_messages")
         .select("id, role, content, created_at")
         .eq("chat_id", chatId)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: false })
+        .limit(MAX_HISTORY_MESSAGES);
       if (error || !data) return [];
-      return data.map((row) => ({
+      const ordered = [...data].reverse();
+      return ordered.map((row) => ({
         id: row.id,
         role: row.role as "user" | "assistant",
         content: row.content,

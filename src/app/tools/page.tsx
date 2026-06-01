@@ -1,4 +1,4 @@
-import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
+import { createClient } from "@/lib/supabase/server";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import type { Tool } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
@@ -6,25 +6,41 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-async function loadTools(): Promise<{ tools: Tool[]; engineError: string | null }> {
+/**
+ * Charge les tools depuis Supabase directement — sans passer par le moteur Python.
+ * Retourne les tools de l'owner courant PLUS les tools globaux (owner_id IS NULL),
+ * qui sont accessibles grâce à la policy "tools_global_read" (lecture publique
+ * pour authentifiés sur owner_id IS NULL).
+ */
+async function loadTools(): Promise<{ tools: Tool[]; dbError: string | null }> {
   try {
     const ownerId = await requireOwnerId();
-    const tools = await swarmsClient.listTools(ownerId);
-    return { tools, engineError: null };
+    const supabase = await createClient();
+
+    const { data, error } = await supabase
+      .from("tools")
+      .select("id, owner_id, name, category, description, endpoint_url, auth_type, schema_json, is_active, created_at, updated_at")
+      .or(`owner_id.eq.${ownerId},owner_id.is.null`)
+      .eq("is_active", true)
+      .order("name");
+
+    if (error) {
+      return { tools: [], dbError: error.message };
+    }
+
+    // Cast minimal — le schéma Zod ToolSchema valide à la création, pas ici
+    return { tools: (data ?? []) as Tool[], dbError: null };
   } catch (err) {
     if (err instanceof OwnerAuthError) {
-      redirect("/login");
-    }
-    if (err instanceof SwarmEngineError && err.status === 404) {
-      return { tools: [], engineError: null };
+      redirect("/login?returnTo=/tools");
     }
     const message = err instanceof Error ? err.message : "Unknown error";
-    return { tools: [], engineError: message };
+    return { tools: [], dbError: message };
   }
 }
 
 export default async function ToolsPage() {
-  const { tools, engineError } = await loadTools();
+  const { tools, dbError } = await loadTools();
   const grouped = tools.reduce<Record<string, Tool[]>>((acc, tool) => {
     const cat = tool.category ?? "Other";
     (acc[cat] ??= []).push(tool);
@@ -42,7 +58,7 @@ export default async function ToolsPage() {
         {tools.length} tool{tools.length > 1 ? "s" : ""} available for your agents.
       </p>
 
-      {engineError ? (
+      {dbError ? (
         <div
           className="ct-card"
           style={{
@@ -54,25 +70,18 @@ export default async function ToolsPage() {
             className="ct-card-title"
             style={{ color: "var(--ct-alert-warning-text)" }}
           >
-            CrewAI engine unreachable
+            Erreur de chargement du catalog
           </div>
           <div className="ct-card-body">
-            <code>{engineError}</code>
-            <div style={{ marginTop: SPACING.sm }}>
-              Start the Python microservice to see the catalog:{" "}
-              <code>
-                cd services/crewai-engine &amp;&amp; uv run uvicorn src.main:app
-                --reload --port 8000
-              </code>
-            </div>
+            <code>{dbError}</code>
           </div>
         </div>
       ) : tools.length === 0 ? (
         <div className="ct-card">
-          <div className="ct-card-title">Empty catalog</div>
+          <div className="ct-card-title">Catalog vide</div>
           <div className="ct-placeholder">
-            The CrewAI engine references no tool for this user.
-            Provision some via Supabase migration or the engine API.
+            Aucun tool trouvé pour cet utilisateur.
+            Provisionnez-en via une migration Supabase.
           </div>
         </div>
       ) : (
