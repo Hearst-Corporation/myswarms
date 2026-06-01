@@ -733,4 +733,12 @@ select:focus-visible {
   color: #1c160c;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 4px 12px rgba(212, 187, 144, 0.22);
 }
+/* Logo automobile : la couronne Azur remplace le mark Hive (H) dans le rail. */
+[data-product="automobile"] .ct-rail-top-badge svg { display: none !important; }
+[data-product="automobile"] .ct-rail-top-badge {
+  background-image: url("/brand/azur-crown.png");
+  background-size: 38px auto;
+  background-repeat: no-repeat;
+  background-position: center;
+}
 
