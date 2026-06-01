@@ -7,7 +7,10 @@
  */
 export const MODULES = [
   { id: "accueil", label: "Accueil", href: "/" },
+  { id: "workspace", label: "Workspace", href: "/workspace" },
   { id: "swarms", label: "Swarms", href: "/swarms" },
+  { id: "crews", label: "Crews", href: "/crews/chief-of-staff" },
+  { id: "tools", label: "Tools", href: "/tools" },
   { id: "automobile", label: "Automobile", href: "/automobile" },
 ] as const;
 
