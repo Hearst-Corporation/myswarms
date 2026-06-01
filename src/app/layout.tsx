@@ -6,6 +6,7 @@ import { HiveShell } from "@/components/HiveShell";
 import { HubSessionBridge } from "@/components/HubSessionBridge";
 import { TenantConfigProvider } from "@/components/cockpit/TenantConfigProvider";
 import { getTenantConfig } from "@/lib/tenant/config";
+import { getSuperAdmin } from "@/lib/auth/superAdmin";
 
 export const metadata: Metadata = {
   title: "Hearst Hive",
@@ -17,12 +18,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const tenantConfig = await getTenantConfig();
+  const [tenantConfig, superAdmin] = await Promise.all([
+    getTenantConfig(),
+    getSuperAdmin(),
+  ]);
   return (
     <html lang="fr">
       <body>
         <HubSessionBridge />
-        <TenantConfigProvider value={tenantConfig}>
+        <TenantConfigProvider value={{ ...tenantConfig, isSuperAdmin: superAdmin !== null }}>
           <HiveShell>{children}</HiveShell>
         </TenantConfigProvider>
       </body>

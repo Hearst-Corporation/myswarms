@@ -19,7 +19,7 @@ export function AppBottomBar() {
   const searchParams = useSearchParams();
   const tablistRef = useRef<HTMLDivElement>(null);
   const { isTemplate: swarmIsTemplate } = useSwarmTemplate();
-  const { modules } = useTenantConfig();
+  const { modules, isSuperAdmin } = useTenantConfig();
   const visibleModules = MODULES.filter((m) => modules.includes(m.id));
 
   const isHome = pathname === "/";
@@ -124,6 +124,15 @@ export function AppBottomBar() {
                   </Link>
                 );
               })}
+              {/* Admin — visible uniquement pour le super-admin */}
+              {isSuperAdmin && (
+                <Link
+                  href="/admin/users"
+                  className={`ct-seg-btn ${pathname.startsWith("/admin") ? "active" : ""}`}
+                >
+                  Admin
+                </Link>
+              )}
             </div>
 
             {/* Actions contextuelles sur un swarm */}

@@ -11,11 +11,13 @@ import { ALL_MODULE_IDS, type ModuleId } from "@/lib/tenant/modules";
 interface TenantConfigValue {
   modules: ModuleId[];
   product: string;
+  isSuperAdmin: boolean;
 }
 
 const TenantConfigContext = createContext<TenantConfigValue>({
   modules: ALL_MODULE_IDS,
   product: "hive",
+  isSuperAdmin: false,
 });
 
 export function TenantConfigProvider({
