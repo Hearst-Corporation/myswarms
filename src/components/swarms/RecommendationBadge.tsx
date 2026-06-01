@@ -2,19 +2,21 @@ import type { Recommendation } from "@/lib/swarms/recommendation";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
 
 /**
- * Badge de recommandation APM — composant partagé (remplace les 3 copies
- * locales qui existaient dans automobile/page.tsx, historique/page.tsx et
- * [runId]/page.tsx). Palette sémantique : vert (APPELER) / bordeaux (ATTENDRE)
- * / rouge (ÉVITER) / neutre (UNKNOWN).
+ * Badge de recommandation APM — couleurs pilotées par CSS variables
+ * (`--rec-<state>-color` / `--rec-<state>-bg`, définies dans cockpit.css).
+ *
+ * Défaut : palette sémantique vert/bordeaux/rouge.
+ * Espace automobile ([data-product="automobile"]) : accent or + léger dégradé,
+ * différencié par intensité (pas de teinte verte/rouge).
  *
  * `size="sm"` (défaut) : pill compact pour les listes/tableaux.
  * `size="md"` : grand badge pour la page de détail d'un run.
  */
-const REC_STYLE: Record<Recommendation, { color: string; bg: string; label: string }> = {
-  APPELER:  { color: "var(--ct-state-ok)",         bg: "rgba(39,174,96,0.12)", label: "Appeler" },
-  ATTENDRE: { color: "var(--ct-accent-strong)",    bg: "rgba(192,57,43,0.10)", label: "Attendre" },
-  "ÉVITER": { color: "var(--ct-alert-error-text)", bg: "rgba(231,76,60,0.12)", label: "Éviter" },
-  UNKNOWN:  { color: "var(--ct-text-faint)",       bg: "var(--ct-surface-3)",  label: "—" },
+const REC_META: Record<Recommendation, { key: string; label: string }> = {
+  APPELER:  { key: "appeler", label: "Appeler" },
+  ATTENDRE: { key: "attendre", label: "Attendre" },
+  "ÉVITER": { key: "eviter", label: "Éviter" },
+  UNKNOWN:  { key: "unknown", label: "—" },
 };
 
 export function RecommendationBadge({
@@ -24,7 +26,7 @@ export function RecommendationBadge({
   rec: Recommendation;
   size?: "sm" | "md";
 }) {
-  const s = REC_STYLE[rec];
+  const m = REC_META[rec];
   const isMd = size === "md";
   return (
     <span
@@ -36,11 +38,11 @@ export function RecommendationBadge({
         fontWeight: FONT_WEIGHT.bold,
         letterSpacing: LETTER_SPACING.wide,
         textTransform: "uppercase",
-        color: s.color,
-        background: s.bg,
+        color: `var(--rec-${m.key}-color)`,
+        background: `var(--rec-${m.key}-bg)`,
       }}
     >
-      {rec === "UNKNOWN" ? "—" : isMd ? s.label : rec}
+      {rec === "UNKNOWN" ? "—" : isMd ? m.label : rec}
     </span>
   );
 }

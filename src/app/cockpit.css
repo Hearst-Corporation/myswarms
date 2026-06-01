@@ -677,6 +677,18 @@ select:focus-visible {
    selon la route). Palette extraite d'azur-premium-motors.fr :
    or champagne #caad87 (signature premium) · rouge corail #fe3e54 (action) ·
    charcoal #272a34 (base sombre). */
+/* Badges de recommandation — couleurs thémables (défaut = sémantique). */
+:root {
+  --rec-appeler-color: var(--ct-state-ok);
+  --rec-appeler-bg: rgba(39, 174, 96, 0.12);
+  --rec-attendre-color: var(--ct-accent-strong);
+  --rec-attendre-bg: rgba(192, 57, 43, 0.10);
+  --rec-eviter-color: var(--ct-alert-error-text);
+  --rec-eviter-bg: rgba(231, 76, 60, 0.12);
+  --rec-unknown-color: var(--ct-text-faint);
+  --rec-unknown-bg: var(--ct-surface-3);
+}
+
 [data-product="automobile"] {
   --ct-accent-strong: #d4bb90;             /* or réel du logo Azur */
   --ct-accent-soft: rgba(212, 187, 144, 0.16);
@@ -685,6 +697,17 @@ select:focus-visible {
      l'effet de profondeur « Apple Vision » s'aplatit. Ne PAS mettre en rgba faible. */
   --ct-accent-maroon: #4a3818;
   --ct-brand-hive: #d4bb90;                /* mark du rail en or */
+
+  /* Badges reco : accent or + léger dégradé, différenciés par INTENSITÉ
+     (rempli → soft → effacé) plutôt que par teinte verte/rouge. */
+  --rec-appeler-color: #1c160c;
+  --rec-appeler-bg: linear-gradient(135deg, #e3cb9c, #d4bb90);
+  --rec-attendre-color: #d4bb90;
+  --rec-attendre-bg: linear-gradient(135deg, rgba(212, 187, 144, 0.24), rgba(212, 187, 144, 0.08));
+  --rec-eviter-color: var(--ct-text-muted);
+  --rec-eviter-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  --rec-unknown-color: var(--ct-text-faint);
+  --rec-unknown-bg: rgba(255, 255, 255, 0.04);
 }
 /* Boutons d'action (CTA) en rouge corail Azur #fe3e54 — la couleur d'action de
    la marque (cf. boutons du site). Le blanc DS est remplacé dans l'espace auto. */
