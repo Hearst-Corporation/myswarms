@@ -246,7 +246,7 @@ class TestRetry:
             tools = cs.get_composio_tools_for_toolkits(["gmail"])
 
         assert tools == [], "Should return [] after exhausting all retries"
-        assert ("gmail",) not in cs._tools_cache, "Failures must not be cached"
+        assert ("", "gmail") not in cs._tools_cache, "Failures must not be cached"
 
     def test_failures_not_cached(self, cs) -> None:
         """A failed call must not be cached; the next call must retry successfully."""
@@ -397,7 +397,7 @@ class TestFailSoft:
 
         assert tools == [], "ImportError must return [] fail-soft"
         # Must be cached as [] (package won't re-appear at runtime)
-        assert ("gmail",) in cs._tools_cache, "ImportError result must be cached"
+        assert ("", "gmail") in cs._tools_cache, "ImportError result must be cached"
 
 
 # ---------------------------------------------------------------------------
@@ -498,36 +498,6 @@ class TestRoundRobinTruncation:
 class TestComposioClientAuthErrors:
     """FIX B: composio_client.AuthenticationError / PermissionDeniedError must
     be detected as non-retriable auth errors — no retry, CB not armed, [] returned."""
-
-    def _make_cc_auth_error(self) -> Exception:
-        """Build a real composio_client.AuthenticationError instance."""
-        from composio_client._exceptions import AuthenticationError
-        # AuthenticationError requires an httpx.Response; use a mock
-        response_mock = MagicMock()
-        response_mock.status_code = 401
-        response_mock.headers = {}
-        response_mock.text = "Unauthorized"
-        try:
-            return AuthenticationError(response=response_mock, body={})
-        except Exception:
-            # Fallback: just instantiate with no args if signature differs
-            err = Exception("401 Unauthorized")
-            err.__class__ = AuthenticationError
-            return err
-
-    def _make_cc_perm_error(self) -> Exception:
-        """Build a real composio_client.PermissionDeniedError instance."""
-        from composio_client._exceptions import PermissionDeniedError
-        response_mock = MagicMock()
-        response_mock.status_code = 403
-        response_mock.headers = {}
-        response_mock.text = "Forbidden"
-        try:
-            return PermissionDeniedError(response=response_mock, body={})
-        except Exception:
-            err = Exception("403 Forbidden")
-            err.__class__ = PermissionDeniedError
-            return err
 
     def test_is_auth_error_detects_authentication_error(self, cs) -> None:
         """_is_auth_error() must return True for composio_client.AuthenticationError."""

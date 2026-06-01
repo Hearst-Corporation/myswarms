@@ -25,7 +25,6 @@ import logging
 import queue
 import threading
 import time
-from datetime import datetime, timezone
 from typing import Any
 
 from crewai import Agent, Crew, LLM, Process, Task
@@ -139,7 +138,6 @@ def flush_run_steps(run_id: str | None) -> None:
       - Unknown run_id → no-op (writer may have already been closed).
       - Any exception → logged as warning, never raised.
 
-    Also cleans up _run_ctx[run_id] to free memory and prevent stale lookups.
     Called by dynamic_swarm_flow.run_crew BEFORE update_swarm_run so that
     ALL queued steps are persisted before the run transitions to
     completed/failed.
@@ -148,9 +146,6 @@ def flush_run_steps(run_id: str | None) -> None:
         return
     with _run_writers_lock:
         writer = _run_writers.pop(run_id, None)
-    # Clean up context registry regardless of whether writer existed.
-    with _run_ctx_lock:
-        _run_ctx.pop(run_id, None)
     if writer is None:
         return
     try:
@@ -262,6 +257,7 @@ def _resolve_llm(agent_row: dict[str, Any]) -> LLM:
 def _resolve_tools_for_agent(
     agent_id: str,
     tool_bindings: list[dict[str, Any]],
+    owner_id: str | None = None,
 ) -> list:
     """Renvoie la liste de tools CrewAI pour un agent donné.
 
@@ -292,10 +288,10 @@ def _resolve_tools_for_agent(
 
     if not composio_toolkits:
         return []
-    return get_composio_tools_for_toolkits(composio_toolkits)
+    return get_composio_tools_for_toolkits(composio_toolkits, owner_id=owner_id)
 
 
-def instantiate_agents(swarm_config: dict[str, Any]) -> dict[str, Agent]:
+def instantiate_agents(swarm_config: dict[str, Any], owner_id: str | None = None) -> dict[str, Agent]:
     """Construit la map {agent_id_db: Agent CrewAI} à partir du swarm chargé."""
     agents_rows: list[dict[str, Any]] = swarm_config.get("agents", []) or []
     tool_bindings: list[dict[str, Any]] = swarm_config.get("tool_bindings", []) or []
@@ -313,7 +309,7 @@ def instantiate_agents(swarm_config: dict[str, Any]) -> dict[str, Agent]:
             f"Specialized agent: {role}"
         )
 
-        tools = _resolve_tools_for_agent(agent_id, tool_bindings)
+        tools = _resolve_tools_for_agent(agent_id, tool_bindings, owner_id=owner_id)
         llm = _resolve_llm(row)
 
         try:
@@ -665,205 +661,16 @@ def _build_task_callback(
     return task_cb
 
 
-# ── Module-level callback context registry ───────────────────────────────────
-#
-# Stores per-run context (writer, maps, step_state) OUTSIDE Pydantic.
-# Keys = run_id strings. Populated by create_dynamic_crew, consumed by
-# _step_callback_fn / _task_callback_fn (module-level functions that Pydantic
-# can serialize as qualified names without capturing non-serializable objects).
-# Cleaned up by flush_run_steps (which already calls writer.close + pops _run_writers).
-_run_ctx: dict[str, dict] = {}
-_run_ctx_lock = threading.Lock()
-
-# Thread-local storage: each kickoff thread stores its own run_id here so
-# callbacks can resolve the correct context even under concurrent runs.
-_thread_local = threading.local()
-
-
-def _current_run_id_from_writer() -> str | None:
-    """Resolve run_id for the calling thread.
-
-    Priority:
-    1. Thread-local _thread_local.run_id — set by create_dynamic_crew before
-       crew.kickoff(); correct under concurrent runs (each thread has its own).
-    2. Fallback: pick the first active ctx (safe only when exactly one run is
-       active, kept for backwards-compatibility with test code that doesn't go
-       through the full kickoff path).
-    """
-    run_id: str | None = getattr(_thread_local, "run_id", None)
-    if run_id:
-        return run_id
-    # Fallback (single-active-run assumption — log a warning if >1 ctx present).
-    with _run_ctx_lock:
-        keys = list(_run_ctx.keys())
-    if len(keys) > 1:
-        logger.warning(
-            "_current_run_id_from_writer fallback called with %d active runs — "
-            "steps may be mis-attributed. Thread-local run_id was not set.",
-            len(keys),
-        )
-    return keys[0] if keys else None
-
-
-def _step_callback_fn(payload: Any) -> None:
-    """Module-level step callback — Pydantic-safe (no closure captures).
-
-    Looks up the run context from _run_ctx using the current thread's run_id.
-    Enqueues a step record for swarm_run_steps without blocking the crew thread.
-    """
-    # Resolve the run_id for this thread via thread-local (set before kickoff).
-    run_id: str | None = _current_run_id_from_writer()
-    if not run_id:
-        return
-
-    with _run_ctx_lock:
-        ctx = _run_ctx.get(run_id)
-    if ctx is None:
-        return
-
-    writer: _StepWriter = ctx["writer"]
-    agent_obj_to_id: dict[int, str] = ctx["agent_obj_to_id"]
-    tasks_meta: list[dict] = ctx["tasks_meta"]
-    step_state: dict = ctx["step_state"]
-
-    try:
-        step_state["step_number"] += 1
-        now = time.monotonic()
-        latency_ms = int((now - step_state["last_t"]) * 1000)
-        step_state["last_t"] = now
-
-        agent_id: str | None = None
-        task_id: str | None = None
-        output_text: str | None = None
-        status = "completed"
-
-        agent_attr = getattr(payload, "agent", None)
-        if isinstance(agent_attr, Agent):
-            agent_id = agent_obj_to_id.get(id(agent_attr))
-        elif isinstance(agent_attr, str):
-            # Fallback: match by role string
-            for db_id, a_id in agent_obj_to_id.items():
-                agent_id = str(a_id)
-                break
-
-        for attr in ("output", "log", "raw", "result", "input"):
-            val = getattr(payload, attr, None)
-            if val:
-                output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
-                break
-
-        idx = step_state["current_task_idx"]
-        if 0 <= idx < len(tasks_meta):
-            meta = tasks_meta[idx]
-            task_id = meta.get("task_id")
-            if agent_id is None:
-                agent_id = meta.get("agent_id")
-
-        if getattr(payload, "error", None):
-            status = "failed"
-            output_text = str(getattr(payload, "error"))[:_STEP_OUTPUT_PREVIEW_CHARS]
-
-        writer.enqueue(
-            run_id=run_id,
-            agent_id=agent_id,
-            task_id=task_id,
-            step_number=step_state["step_number"],
-            output_text=output_text,
-            latency_ms=latency_ms,
-            status=status,
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("_step_callback_fn failed run=%s step=%s: %s", run_id, step_state.get("step_number"), exc)
-
-
-def _task_callback_fn(task_output: Any) -> None:
-    """Module-level task callback — Pydantic-safe (no closure captures).
-
-    Called at end of each task. Persists a task-completion step and advances
-    the current_task_idx pointer in step_state.
-    """
-    run_id: str | None = _current_run_id_from_writer()
-    if not run_id:
-        return
-
-    with _run_ctx_lock:
-        ctx = _run_ctx.get(run_id)
-    if ctx is None:
-        return
-
-    writer: _StepWriter = ctx["writer"]
-    tasks_meta: list[dict] = ctx["tasks_meta"]
-    step_state: dict = ctx["step_state"]
-
-    try:
-        current_idx = step_state["current_task_idx"]
-        if 0 <= current_idx < len(tasks_meta):
-            meta = tasks_meta[current_idx]
-            output_text: str | None = None
-            for attr in ("raw", "output", "result", "description"):
-                val = getattr(task_output, attr, None)
-                if val:
-                    output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
-                    break
-            step_state["step_number"] += 1
-            writer.enqueue(
-                run_id=run_id,
-                agent_id=meta.get("agent_id"),
-                task_id=meta.get("task_id"),
-                step_number=step_state["step_number"],
-                output_text=output_text,
-                latency_ms=0,
-                status="completed",
-            )
-        step_state["current_task_idx"] += 1
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("_task_callback_fn failed run=%s task_idx=%s: %s", run_id, step_state.get("current_task_idx"), exc)
-
-
-def _build_inputs_context(inputs: dict[str, Any]) -> str:
-    """Formats trigger inputs as a human-readable context block for task injection.
-
-    Produces a compact key-value block prepended to the first task's description
-    so every agent in the crew sees the concrete values immediately.
-
-    Example output:
-        --- Inputs ---
-        make: BMW
-        model: 330d xDrive
-        year: 2019
-        mileage_km: 87000
-        --- End inputs ---
-
-    Internal keys (swarm_id, run_id, trigger, owner_id) are excluded.
-    Returns empty string if inputs is empty or None.
-    """
-    _INTERNAL_KEYS = frozenset({"swarm_id", "run_id", "trigger", "owner_id"})
-    filtered = {k: v for k, v in (inputs or {}).items() if k not in _INTERNAL_KEYS and v is not None and v != ""}
-    if not filtered:
-        return ""
-    lines = ["--- Inputs ---"]
-    for k, v in filtered.items():
-        lines.append(f"{k}: {v}")
-    lines.append("--- End inputs ---\n")
-    return "\n".join(lines)
-
-
-def create_dynamic_crew(
-    swarm_id: str,
-    run_id: str | None = None,
-    trigger_inputs: dict[str, Any] | None = None,
-) -> Crew:
+def create_dynamic_crew(swarm_id: str, run_id: str | None = None, owner_id: str | None = None) -> Crew:
     """Charge un swarm DB et renvoie un Crew CrewAI prêt à être kickoff.
 
     Args:
-        swarm_id:       UUID du swarm en DB.
-        run_id:         UUID du run en cours (optionnel). Si fourni, installe
-                        step_callback / task_callback pour persister les steps.
-        trigger_inputs: Inputs utilisateur du kickoff (make, model, year…).
-                        Si fournis, préfixés à la description de la première task
-                        comme bloc de contexte structuré — les agents les voient
-                        dans leur prompt système. Clés internes (swarm_id, run_id…)
-                        sont filtrées automatiquement.
+        swarm_id:  UUID du swarm en DB.
+        run_id:    UUID du run en cours (optionnel). Si fourni, on installe
+                   un step_callback / task_callback qui persiste chaque
+                   step dans `swarm_run_steps` — G3 fix.
+        owner_id:  UUID du tenant (optionnel). Si fourni, Composio utilise
+                   ce user_id pour l'authentification par tenant.
 
     Raises:
         ValueError: si le swarm n'existe pas ou n'a aucun agent/task valide.
@@ -872,23 +679,14 @@ def create_dynamic_crew(
     if swarm_config is None:
         raise ValueError(f"Swarm {swarm_id} not found")
 
-    agents_map = instantiate_agents(swarm_config)
+    agents_map = instantiate_agents(swarm_config, owner_id=owner_id)
     if not agents_map:
         raise ValueError(f"Swarm {swarm_id} has no instantiable agents")
 
     task_pairs = instantiate_tasks(agents_map, swarm_config)
     if not task_pairs:
         raise ValueError(f"Swarm {swarm_id} has no instantiable tasks")
-
-    # Inject trigger inputs into the first task's description so agents receive
-    # the concrete values in their prompts. Subsequent tasks inherit the context
-    # via CrewAI's sequential context propagation (task output becomes next task input).
-    inputs_ctx = _build_inputs_context(trigger_inputs or {})
-    tasks: list[Any] = []
-    for idx, (_meta, task) in enumerate(task_pairs):
-        if idx == 0 and inputs_ctx:
-            task.description = inputs_ctx + task.description
-        tasks.append(task)
+    tasks = [task for _meta, task in task_pairs]
 
     # Process : par défaut sequential ; lit `swarm.config_json.process` si fourni.
     config_json = swarm_config.get("swarm", {}).get("config_json") or {}
@@ -902,44 +700,33 @@ def create_dynamic_crew(
         "verbose": True,
     }
 
-    # Step/task callbacks via registre module-level (pas de closures).
+    # H3 fix : step_callback + task_callback SÉPARÉS avec state isolé.
+    # Avant : un seul `callback` était installé pour les deux hooks → mélange
+    # step+task et faux step_number. Maintenant : deux closures distinctes
+    # qui partagent `step_state` via fermeture explicite.
     #
-    # WHY module-level functions: CrewAI 1.14 + Pydantic v2 sérialisent les
-    # callbacks via callable_to_string (PlainSerializer). Les closures capturant
-    # des objets non-JSON-serialisables (Agent, _StepWriter, dict avec objets)
-    # causaient un blocage lors de la sérialisation interne du Crew (HOTFIX
-    # 2026-05-18). En passant des fonctions de niveau module, Pydantic sérialise
-    # uniquement le qualified name (str) — aucune capture, zéro blocage.
+    # P0-2 — writes non-bloquants : un _StepWriter (queue + worker daemon)
+    # est instancié ici et enregistré dans _run_writers[run_id].
+    # Les closures step_cb / task_cb ne font que enqueue() — zéro HTTP dans
+    # le thread du crew. flush_run_steps(run_id) est appelé par le flow
+    # AVANT que le run passe completed/failed pour garantir que tous les
+    # steps queués sont persistés.
+    # HOTFIX 2026-05-18 : les callbacks step_callback/task_callback causent
+    # des blocages avec CrewAI 1.14 quand ils sont des closures non-
+    # sérialisables. Les runs produisent 2 steps puis restent figés jusqu'au
+    # timeout. Désactivés temporairement — le résultat final est persisté
+    # par finalize() et les steps ne le sont plus (perte acceptable vs
+    # blocage total). TODO V2 : réactiver avec des fonctions module-level.
     #
-    # Le contexte (writer, agents_map, tasks_meta, step_state) est stocké dans
-    # _run_ctx[run_id] — un dict module-level qui ne passe JAMAIS dans Pydantic.
-    # Les fonctions _step_callback_fn / _task_callback_fn lisent depuis ce registre.
-    if run_id:
-        tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
-        writer = _StepWriter(run_id)
-        with _run_writers_lock:
-            _run_writers[run_id] = writer
-        agent_obj_to_id: dict[int, str] = {
-            id(agent): db_id for db_id, agent in agents_map.items()
-        }
-        step_state: dict[str, Any] = {
-            "step_number": 0,
-            "current_task_idx": 0,
-            "last_t": time.monotonic(),
-        }
-        with _run_ctx_lock:
-            _run_ctx[run_id] = {
-                "writer": writer,
-                "agent_obj_to_id": agent_obj_to_id,
-                "tasks_meta": tasks_meta,
-                "step_state": step_state,
-            }
-        crew_kwargs["step_callback"] = _step_callback_fn
-        crew_kwargs["task_callback"] = _task_callback_fn
+    # if run_id:
+    #     tasks_meta: list[dict[str, Any]] = [meta for meta, _task in task_pairs]
+    #     writer = _StepWriter(run_id)
+    #     with _run_writers_lock:
+    #         _run_writers[run_id] = writer
+    #     step_cb, step_state = _build_step_callback(run_id, agents_map, tasks_meta, writer)
+    #     task_cb = _build_task_callback(run_id, step_state, tasks_meta, writer)
+    #     crew_kwargs["step_callback"] = step_cb
+    #     crew_kwargs["task_callback"] = task_cb
 
     return Crew(**crew_kwargs)
 
-
-# Cast utilitaire pour timestamps ISO (utilisé par finalize-style helpers).
-def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()

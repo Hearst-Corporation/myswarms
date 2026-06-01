@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { createClient } from "@/lib/supabase/server";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { ConnectButton } from "@/components/settings/ConnectButton";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
-export const metadata = { title: "Paramètres — MySwarms" };
+export const metadata = { title: "Paramètres — Hearst Hive" };
 export const dynamic = "force-dynamic";
 
 type Tab = "profil" | "sources" | "integrations";
@@ -31,7 +32,6 @@ export default async function SettingsPage({ searchParams }: PageProps) {
   const { tab } = await searchParams;
   const activeTab: Tab = (TABS.find((t) => t.id === tab)?.id) ?? "profil";
 
-  // Lire les infos utilisateur depuis Supabase
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -44,10 +44,7 @@ export default async function SettingsPage({ searchParams }: PageProps) {
       </div>
 
       {/* Tab bar */}
-      <div
-        className="ct-seg-track"
-        style={{ marginBottom: SPACING.xl }}
-      >
+      <div className="ct-seg-track" style={{ marginBottom: SPACING.xl }}>
         {TABS.map((t) => (
           <Link
             key={t.id}
@@ -91,7 +88,7 @@ function TabProfil({ email, ownerId }: { email: string | null; ownerId: string }
           <Field label="Endpoint" value="https://api.hypercli.com/v1" mono />
         </div>
         <p style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)", marginTop: SPACING.md }}>
-          Le provider LLM est géré globalement. Pour changer de modèle, contactez l'administrateur.
+          Le provider LLM est géré globalement. Pour changer de modèle, contactez l&apos;administrateur.
         </p>
       </section>
 
@@ -113,47 +110,14 @@ function TabSources() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl }}>
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-        <SectionLabel text="Sources automobile" />
+        <SectionLabel text="Sources de données" />
         <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `${SPACING.md}px 0` }}>
-          Configurez les sources depuis lesquelles la plateforme peut extraire des données de véhicules.
+          Configurez les sources depuis lesquelles les agents peuvent extraire des données.
         </p>
-        <SourceRow
-          name="AutoScout24"
-          description="Extraction depuis une URL d'annonce AutoScout24.de / .fr / .be"
-          status="coming_soon"
-        />
-        <SourceRow
-          name="LeBonCoin"
-          description="Extraction depuis une URL d'annonce LeBonCoin.fr"
-          status="coming_soon"
-        />
-        <SourceRow
-          name="Mobile.de"
-          description="Extraction depuis une URL d'annonce Mobile.de"
-          status="coming_soon"
-        />
-        <SourceRow
-          name="URL manuelle"
-          description="Coller une URL d'annonce — extraction automatique des champs"
-          status="coming_soon"
-        />
-      </section>
-
-      <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-        <SectionLabel text="VIN & historique véhicule" />
-        <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `${SPACING.md}px 0` }}>
-          Connectez un service de décodage VIN pour enrichir automatiquement chaque analyse.
-        </p>
-        <SourceRow
-          name="Vincario"
-          description="Décodage VIN + historique kilométrique (3 checks/mois gratuits)"
-          status="coming_soon"
-        />
-        <SourceRow
-          name="AutoDNA"
-          description="Rapport complet historique accident / total loss ($1–3/check)"
-          status="coming_soon"
-        />
+        <SourceRow name="Gmail" description="Lecture et envoi d'emails via les agents CrewAI" status="coming_soon" />
+        <SourceRow name="Slack" description="Messages et notifications Slack via les agents" status="coming_soon" />
+        <SourceRow name="Google Drive" description="Accès aux documents Drive depuis les agents" status="coming_soon" />
+        <SourceRow name="Notion" description="Lecture et écriture de pages Notion" status="coming_soon" />
       </section>
     </div>
   );
@@ -164,10 +128,29 @@ function TabSources() {
 function TabIntegrations() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl }}>
+      {/* Section Composio — intégrations actives */}
+      <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
+        <SectionLabel text="Outils connectés (Composio)" />
+        <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `${SPACING.md}px 0` }}>
+          Connectez vos comptes pour que les agents puissent agir en votre nom.
+        </p>
+        <ConnectedRow
+          name="Gmail"
+          description="Envoyer et lire des emails via les agents CrewAI"
+          toolkit="gmail"
+        />
+        <ConnectedRow
+          name="Trello"
+          description="Créer et déplacer des cartes Trello via les agents CrewAI"
+          toolkit="trello"
+        />
+      </section>
+
+      {/* Section Notifications */}
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
         <SectionLabel text="Notifications" />
         <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `${SPACING.md}px 0` }}>
-          Recevez les rapports d'analyse directement dans vos outils.
+          Recevez les rapports d&apos;analyse directement dans vos outils.
         </p>
         <IntegrationRow
           name="Telegram"
@@ -186,6 +169,7 @@ function TabIntegrations() {
         />
       </section>
 
+      {/* Section Export */}
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
         <SectionLabel text="Export" />
         <IntegrationRow
@@ -200,6 +184,7 @@ function TabIntegrations() {
         />
       </section>
 
+      {/* Section Observabilité */}
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
         <SectionLabel text="Observabilité" />
         <IntegrationRow
@@ -218,10 +203,24 @@ function TabIntegrations() {
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <span
+        style={{
+          fontSize: FONT.xs,
+          color: "var(--ct-text-faint)",
+          fontWeight: FONT_WEIGHT.bold,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+        }}
+      >
         {label}
       </span>
-      <span style={{ fontSize: FONT.sm, color: "var(--ct-text-base)", fontFamily: mono ? "monospace" : undefined }}>
+      <span
+        style={{
+          fontSize: FONT.sm,
+          color: "var(--ct-text-base)",
+          fontFamily: mono ? "monospace" : undefined,
+        }}
+      >
         {value}
       </span>
     </div>
@@ -232,28 +231,53 @@ type Status = "active" | "coming_soon" | "error";
 
 function StatusChip({ status, detail }: { status: Status; detail?: string }) {
   const map: Record<Status, { label: string; color: string; bg: string }> = {
-    active:      { label: "Actif",       color: "var(--ct-status-success)", bg: "var(--ct-status-success-bg, rgba(34,197,94,.12))" },
-    coming_soon: { label: "Bientôt",     color: "var(--ct-text-faint)",     bg: "var(--ct-surface-3)" },
-    error:       { label: "Erreur",      color: "var(--ct-alert-error-text)", bg: "var(--ct-alert-error-bg, rgba(239,68,68,.12))" },
+    active:      { label: "Actif",   color: "var(--ct-status-success)",     bg: "var(--ct-status-success-bg, rgba(34,197,94,.12))" },
+    coming_soon: { label: "Bientôt", color: "var(--ct-text-faint)",         bg: "var(--ct-surface-3)" },
+    error:       { label: "Erreur",  color: "var(--ct-alert-error-text)",   bg: "var(--ct-alert-error-bg, rgba(239,68,68,.12))" },
   };
   const { label, color, bg } = map[status];
   return (
-    <span style={{ fontSize: FONT.xs, fontWeight: FONT_WEIGHT.bold, padding: `2px ${SPACING.s}px`, borderRadius: RADIUS.full, color, background: bg }}>
+    <span
+      style={{
+        fontSize: FONT.xs,
+        fontWeight: FONT_WEIGHT.bold,
+        padding: `2px ${SPACING.s}px`,
+        borderRadius: RADIUS.full,
+        color,
+        background: bg,
+      }}
+    >
       {detail ?? label}
     </span>
   );
 }
 
-function SourceRow({ name, description, status, detail }: { name: string; description: string; status: Status; detail?: string }) {
+function SourceRow({
+  name,
+  description,
+  status,
+  detail,
+}: {
+  name: string;
+  description: string;
+  status: Status;
+  detail?: string;
+}) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      padding: `${SPACING.md}px 0`,
-      borderBottom: "1px solid var(--ct-border)",
-      gap: SPACING.lg,
-    }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: `${SPACING.md}px 0`,
+        borderBottom: "1px solid var(--ct-border)",
+        gap: SPACING.lg,
+      }}
+    >
       <div style={{ flex: 1 }}>
-        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-base)", margin: 0 }}>{name}</p>
+        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-base)", margin: 0 }}>
+          {name}
+        </p>
         <p style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", margin: `2px 0 0` }}>{description}</p>
       </div>
       <StatusChip status={status} detail={detail} />
@@ -261,6 +285,48 @@ function SourceRow({ name, description, status, detail }: { name: string; descri
   );
 }
 
-function IntegrationRow({ name, description, status, detail }: { name: string; description: string; status: Status; detail?: string }) {
+function IntegrationRow({
+  name,
+  description,
+  status,
+  detail,
+}: {
+  name: string;
+  description: string;
+  status: Status;
+  detail?: string;
+}) {
   return <SourceRow name={name} description={description} status={status} detail={detail} />;
+}
+
+// ConnectedRow — utilise le ConnectButton (island client)
+function ConnectedRow({
+  name,
+  description,
+  toolkit,
+}: {
+  name: string;
+  description: string;
+  toolkit: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: `${SPACING.md}px 0`,
+        borderBottom: "1px solid var(--ct-border)",
+        gap: SPACING.lg,
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        <p style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.bold, color: "var(--ct-text-base)", margin: 0 }}>
+          {name}
+        </p>
+        <p style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", margin: `2px 0 0` }}>{description}</p>
+      </div>
+      <ConnectButton toolkit={toolkit} label={name} />
+    </div>
+  );
 }

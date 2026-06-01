@@ -18,7 +18,7 @@ from crewai import Flow
 from crewai.flow.flow import listen, start
 from pydantic import BaseModel, Field
 
-from ..crews.dynamic_crew import create_dynamic_crew, flush_run_steps, _thread_local
+from ..crews.dynamic_crew import create_dynamic_crew, flush_run_steps
 from ..persistence import swarm_store
 
 logger = logging.getLogger(__name__)
@@ -180,18 +180,8 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
             # G3 fix : on passe run_id pour que `create_dynamic_crew` installe
             # le step_callback / task_callback qui persiste les steps dans
             # `swarm_run_steps`.
-            crew = create_dynamic_crew(
-                swarm_id,
-                run_id=run_id,
-                trigger_inputs=self.state.inputs or {},
-            )
-            # Set thread-local run_id so callbacks resolve the correct context
-            # even when multiple runs execute concurrently in the same process.
-            _thread_local.run_id = run_id
-            try:
-                result = crew.kickoff()
-            finally:
-                _thread_local.run_id = None
+            crew = create_dynamic_crew(swarm_id, run_id=run_id, owner_id=self.state.owner_id)
+            result = crew.kickoff(inputs=self.state.inputs or {})
 
             # P0-2 : drain le writer AVANT de toucher swarm_runs.
             flush_run_steps(run_id)

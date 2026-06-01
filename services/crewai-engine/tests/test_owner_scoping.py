@@ -18,6 +18,10 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+# Valid UUIDs used as owner_id fixtures (swarm_store now validates UUID format).
+_OWNER_A = "aaaaaaaa-0000-4000-8000-000000000001"
+_OWNER_B = "bbbbbbbb-0000-4000-8000-000000000002"
+
 
 
 # ── Stub builder ─────────────────────────────────────────────────────────────
@@ -56,7 +60,7 @@ class TestGetSwarmOwnerScoping:
 
         stub = _chain(data=None)
         with patch.object(swarm_store, "_get_client", return_value=stub):
-            result = swarm_store.get_swarm("swarm-id-1", owner_id="owner_B")
+            result = swarm_store.get_swarm("swarm-id-1", owner_id=_OWNER_B)
         assert result is None, "Should return None for wrong owner"
 
     def test_returns_swarm_when_owner_matches(self):
@@ -67,7 +71,7 @@ class TestGetSwarmOwnerScoping:
         """
         from src.persistence import swarm_store  # noqa: PLC0415
 
-        swarm_row = {"id": "swarm-id-1", "owner_id": "owner_A", "name": "My swarm"}
+        swarm_row = {"id": "swarm-id-1", "owner_id": _OWNER_A, "name": "My swarm"}
 
         result_swarm = MagicMock()
         result_swarm.data = swarm_row
@@ -77,7 +81,7 @@ class TestGetSwarmOwnerScoping:
         # get_swarm makes: 1 swarm query (with or_ filter) + 3 sub-queries (agents/tasks/bindings).
         stub = _chain(side_effect=[result_swarm, result_empty, result_empty, result_empty])
         with patch.object(swarm_store, "_get_client", return_value=stub):
-            result = swarm_store.get_swarm("swarm-id-1", owner_id="owner_A")
+            result = swarm_store.get_swarm("swarm-id-1", owner_id=_OWNER_A)
 
         assert result is not None, "Should find swarm for correct owner"
         assert result["swarm"] == swarm_row
@@ -101,7 +105,7 @@ class TestGetSwarmRunOwnerScoping:
 
         stub = _chain(side_effect=[result_run, result_no_swarm])
         with patch.object(swarm_store, "_get_client", return_value=stub):
-            result = swarm_store.get_swarm_run("run-1", owner_id="owner_B")
+            result = swarm_store.get_swarm_run("run-1", owner_id=_OWNER_B)
 
         assert result is None, "Run should be invisible when owner mismatches"
 
@@ -120,7 +124,7 @@ class TestGetSwarmRunOwnerScoping:
 
         stub = _chain(side_effect=[result_run, result_owner_ok])
         with patch.object(swarm_store, "_get_client", return_value=stub):
-            result = swarm_store.get_swarm_run("run-1", owner_id="owner_A")
+            result = swarm_store.get_swarm_run("run-1", owner_id=_OWNER_A)
 
         assert result is not None
         assert result["id"] == "run-1"
@@ -140,7 +144,7 @@ class TestListSwarmRunsOwnerScoping:
         stub = _chain(data=None)
         stub.execute.return_value = result_owner_check
         with patch.object(swarm_store, "_get_client", return_value=stub):
-            result = swarm_store.list_swarm_runs("swarm-1", owner_id="owner_B")
+            result = swarm_store.list_swarm_runs("swarm-1", owner_id=_OWNER_B)
 
         assert result == [], "Should return empty list for wrong owner"
 

@@ -119,7 +119,7 @@ def _is_auth_error(exc: Exception) -> bool:
     """
     # FIX B — composio_client stainless-generated exceptions (401 / 403)
     try:
-        from composio_client._exceptions import (  # type: ignore[import-untyped] -- package sans stubs mypy
+        from composio_client._exceptions import (  # type: ignore[import-untyped]
             AuthenticationError as _CCAuth,
             PermissionDeniedError as _CCPerm,
         )
@@ -130,7 +130,7 @@ def _is_auth_error(exc: Exception) -> bool:
 
     # composio high-level SDK exceptions
     try:
-        from composio.exceptions import ApiKeyError, HTTPError  # type: ignore[import-untyped] -- package sans stubs mypy
+        from composio.exceptions import ApiKeyError, HTTPError  # type: ignore[import-untyped]
         if isinstance(exc, ApiKeyError):
             return True
         if isinstance(exc, HTTPError) and exc.status_code in (401, 403):
@@ -220,7 +220,7 @@ _RETRY_ATTEMPTS = 3
 _RETRY_BACKOFF_SECONDS = [2, 4]
 
 
-def get_composio_tools_for_toolkits(toolkits: list[str]) -> list:
+def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = None) -> list:
     """Return Composio tool objects for the given toolkit names.
 
     Uses ``SESSION_PRESET_DIRECT_TOOLS`` + ``preload={"tools": "all"}`` to
@@ -247,7 +247,7 @@ def get_composio_tools_for_toolkits(toolkits: list[str]) -> list:
     - ``[COMPOSIO_TOOLS_TRUNCATED]`` — when raw count exceeds _MAX_TOOLS_PER_AGENT;
       includes per-toolkit breakdown (e.g. "capped to 60: GMAIL=20 SLACK=20 TELEGRAM=20").
     """
-    cache_key = tuple(sorted(toolkits))
+    cache_key = (owner_id or "", *sorted(toolkits))
 
     # FIX C: atomic check-then-read under lock
     with _state_lock:
@@ -280,8 +280,8 @@ def get_composio_tools_for_toolkits(toolkits: list[str]) -> list:
 
     # --- Import guard ---------------------------------------------------------
     try:
-        from composio import Composio, SESSION_PRESET_DIRECT_TOOLS  # type: ignore[import-untyped] -- package sans stubs mypy
-        from composio_crewai import CrewAIProvider  # type: ignore[import-untyped] -- package sans stubs mypy
+        from composio import Composio, SESSION_PRESET_DIRECT_TOOLS  # type: ignore[import-untyped]
+        from composio_crewai import CrewAIProvider  # type: ignore[import-untyped]
     except ImportError:
         logger.warning(
             "[COMPOSIO_DOWN] composio / composio-crewai not installed — "
@@ -305,7 +305,7 @@ def get_composio_tools_for_toolkits(toolkits: list[str]) -> list:
             # from session.tools().  Without this, the SDK always returns 6
             # meta-router tools regardless of how many toolkits are specified.
             session = composio.create(
-                user_id=settings.COMPOSIO_USER_ID,
+                user_id=owner_id or settings.COMPOSIO_USER_ID,
                 toolkits=toolkits,
                 session_preset=SESSION_PRESET_DIRECT_TOOLS,
                 preload={"tools": "all"},
@@ -318,7 +318,7 @@ def get_composio_tools_for_toolkits(toolkits: list[str]) -> list:
                 raw_count,
                 attempt,
                 _RETRY_ATTEMPTS,
-                settings.COMPOSIO_USER_ID,
+                owner_id or settings.COMPOSIO_USER_ID,
             )
 
             # FIX A: round-robin cap — ensures no toolkit is fully silenced.

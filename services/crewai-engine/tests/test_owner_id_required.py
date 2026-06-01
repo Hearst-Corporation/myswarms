@@ -45,16 +45,18 @@ def _empty_client():
 
 # ── Parametrised: endpoints that MUST enforce owner_id ───────────────────────
 
+VALID_UUID = "11111111-1111-1111-1111-111111111111"
+INVALID_UUID = "not-a-uuid"
+
 OWNER_REQUIRED_GET = [
     "/v1/swarms",
     "/v1/swarms/some-id",
     "/v1/swarms/some-id/runs",
     "/v1/tools",
     "/v1/crews/chief-of-staff/runs",
+    f"/v1/swarms/{VALID_UUID}/status/{VALID_UUID}",
+    f"/v1/runs/{VALID_UUID}",
 ]
-
-VALID_UUID = "11111111-1111-1111-1111-111111111111"
-INVALID_UUID = "not-a-uuid"
 
 
 class TestOwnerIdRequired:
@@ -198,7 +200,6 @@ class TestCrossTenantIsolation:
 
         calls = []
         stub = _empty_client()
-        original_eq = stub.eq
 
         def eq_tracking(col, val):
             if col == "owner_id":

@@ -29,8 +29,6 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from uuid import UUID as _UUID
-
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
@@ -39,43 +37,39 @@ from ..crews.dynamic_crew import flush_run_steps
 from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
 from ..persistence import swarm_store
 
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
+
 
 def _require_owner_id(owner_id: str | None) -> str:
     """Raise 400 if owner_id is absent or not a valid UUID."""
     if not owner_id or not owner_id.strip():
         raise HTTPException(status_code=400, detail="owner_id is required")
     try:
-        _UUID(owner_id)
+        UUID(owner_id)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
     return owner_id
 
-
 def _deny_if_global_template(loaded: dict | None, swarm_id: str) -> None:
-    """Raise 403 if the loaded swarm is a global template (owner_id IS NULL AND is_template=True).
+    """Raise 403 if the loaded swarm is a global template (owner_id=None, is_template=True).
 
-    Global templates are read/run-only for all users — no write or delete allowed.
-    Call this on any mutating endpoint (PATCH, DELETE) after fetching the swarm,
-    before performing any mutation.
-
-    `loaded` is the dict returned by swarm_store.get_swarm() — shape:
-        {"swarm": {...}, "agents": [...], "tasks": [...], "tool_bindings": [...]}
+    Global templates are read/run-only — they cannot be mutated or deleted via the
+    user API. Modifications must go through DB migrations.
     """
     if loaded is None:
-        return  # caller will raise 404 separately
-    swarm = loaded.get("swarm") or {}
+        return
+    swarm = loaded.get("swarm") or loaded
     if swarm.get("is_template") and swarm.get("owner_id") is None:
         raise HTTPException(
             status_code=403,
             detail=(
-                f"Swarm {swarm_id!r} is a global template and cannot be modified or deleted. "
-                "Global templates are read/run-only for all users."
+                f"Swarm {swarm_id!r} is a global template and is read/run-only. "
+                "To modify a global template use a DB migration."
             ),
         )
 
-logger = logging.getLogger(__name__)
-
-router = APIRouter()
 
 # Strong references for background tasks — empêche un GC silencieux.
 _running_tasks: set[asyncio.Task] = set()
@@ -346,6 +340,7 @@ async def _execute_dynamic_flow_background(
     trigger: str,
     inputs: dict[str, Any],
     n_tasks: int = 0,
+    owner_id: str | None = None,
 ) -> None:
     """Fire-and-forget : exécute DynamicSwarmFlow dans un thread, met à jour la DB.
 
@@ -357,6 +352,7 @@ async def _execute_dynamic_flow_background(
 
     `n_tasks` : nombre de tasks du swarm, utilisé pour un timeout adaptatif
     via `_adaptive_flow_timeout`. n_tasks=0 → retombe sur FLOW_TIMEOUT_SECONDS.
+    `owner_id` : propagé dans le state du flow pour l'isolation multi-tenant.
     """
     effective_timeout = _adaptive_flow_timeout(n_tasks)
     try:
@@ -366,6 +362,7 @@ async def _execute_dynamic_flow_background(
             "run_id": run_id,
             "trigger": trigger,
             "inputs": inputs,
+            "owner_id": owner_id,
         }
         await asyncio.wait_for(
             asyncio.to_thread(flow.kickoff, inputs=state_dict),
@@ -425,9 +422,9 @@ async def _execute_dynamic_flow_background(
 
 @router.get("/v1/swarms")
 def list_swarms_endpoint(owner_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
-    """Liste les swarms actifs de l'owner. owner_id requis (UUID) → 400 sinon."""
-    oid = _require_owner_id(owner_id)
-    return swarm_store.list_swarms(owner_id=oid)
+    """Liste tous les swarms actifs, filtrés optionnellement par owner_id."""
+    _require_owner_id(owner_id)
+    return swarm_store.list_swarms(owner_id=owner_id)
 
 
 @router.get("/v1/swarms/{swarm_id}")
@@ -437,10 +434,10 @@ def get_swarm_endpoint(
 ) -> dict[str, Any]:
     """Renvoie un swarm complet (agents + tasks + tool_bindings).
 
-    `owner_id` requis (UUID) — scope la lecture sur ce propriétaire → 404 si mismatch.
+    `owner_id` requis : scope la lecture sur ce propriétaire — 404 si mismatch.
     """
-    oid = _require_owner_id(owner_id)
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    _require_owner_id(owner_id)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
     return _shape_swarm_response(loaded)
@@ -455,34 +452,30 @@ def create_swarm_endpoint(
 
     En cas d'erreur partielle, rollback applicatif (hard delete du swarm).
 
-    `owner_id` requis (UUID) — peut arriver via query param (BFF) OU dans le body.
-    Priorité body > query. Dans les deux cas doit être un UUID valide.
-
-    `is_template=true` est interdit via cet endpoint : les templates globaux
-    (owner_id IS NULL AND is_template=True) sont créés uniquement par migrations
-    SQL admin. Cette restriction empêche tout caller avec bearer valide de créer
-    un template global qui serait visible par tous les users.
+    F4 fix : `owner_id` peut arriver via query param (BFF) OU dans le body.
+    Priorité body > query (body explicite gagne sur le contexte d'appel).
     """
     swarm_payload = payload.model_dump(
         exclude={"agents", "tasks", "tool_bindings"},
         exclude_none=True,
     )
-    # Block global template creation via the user-facing API.
-    # Global templates must be seeded via admin SQL migrations only.
-    if swarm_payload.get("is_template") is True:
+    # F4 fix : si le body n'a pas posé owner_id, on prend celui du query param.
+    if not swarm_payload.get("owner_id") and owner_id:
+        swarm_payload["owner_id"] = owner_id
+
+    # Guard: owner_id is mandatory to create a swarm.
+    _require_owner_id(swarm_payload.get("owner_id"))
+
+    # Security: creating global templates via the user API is forbidden.
+    # Global templates (is_template=True, owner_id=NULL) must go through DB migrations.
+    if swarm_payload.get("is_template"):
         raise HTTPException(
             status_code=403,
             detail=(
-                "Creating global templates via the API is not allowed. "
-                "Global templates must be created by admin SQL migrations."
+                "Creating a global template via the user API is forbidden. "
+                "Use a DB migration to add global templates."
             ),
         )
-
-    # Résolution priorité body > query, puis validation obligatoire.
-    # _require_owner_id also prevents owner_id=NULL (raises 400 if absent/invalid UUID).
-    effective_owner_id = swarm_payload.get("owner_id") or owner_id
-    oid = _require_owner_id(effective_owner_id)
-    swarm_payload["owner_id"] = oid
 
     # F7 fix : valider l'unicité des client_ids agents/tasks avant insertion.
     # Un duplicate ferait crasher l'hydration (FK contraintes) sans message clair.
@@ -551,14 +544,30 @@ def update_swarm_endpoint(
 ) -> dict[str, Any]:
     """Patch les champs fournis (les non-envoyés sont ignorés).
 
-    `owner_id` requis (UUID) — scope la lecture pré-update et l'UPDATE scalaire.
-    Le swarm est validé via `get_swarm(.., owner_id=)` → 404 si mismatch.
-    Global templates (owner_id IS NULL AND is_template=True) → 403.
+    Sémantique stricte (F2 fix) : on distingue "clé absente du payload" vs
+    "clé envoyée explicitement à None/[]". On utilise `model_dump(exclude_unset=True)`
+    qui ne renvoie QUE les champs effectivement présents dans le body JSON.
+    → un PATCH `{"description": "X"}` ne touche PAS aux agents/tasks/bindings.
+
+    Si `agents`, `tasks` ou `tool_bindings` sont **explicitement présents**
+    (même si `[]`), on remplace intégralement ces collections (delete-all
+    puis insert) via `swarm_store.replace_*`. Le mapping `client_id → db_uuid`
+    est propagé pour résoudre les références cross-collections dans le même
+    payload.
+
+    `owner_id` optionnel (propagé par le BFF) : si fourni, la lecture
+    pré-update et l'UPDATE scalaire sont scopés. Le swarm est validé via
+    `get_swarm(.., owner_id=)` avant tout replace_* — un mismatch renvoie 404.
     """
-    oid = _require_owner_id(owner_id)
-    guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    # Guard: owner_id is mandatory for writes.
+    _require_owner_id(owner_id)
+
+    # Pre-check : valide propriétaire si owner_id fourni (404 sinon).
+    guard = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
+
+    # Guard: global templates (owner_id=NULL, is_template=True) are read/run-only.
     _deny_if_global_template(guard, swarm_id)
 
     # `exclude_unset=True` : seules les clés POSÉES dans le body JSON apparaissent.
@@ -581,7 +590,7 @@ def update_swarm_endpoint(
         raise HTTPException(status_code=400, detail="No fields to update")
 
     if payload_set:
-        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=oid)
+        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=owner_id)
         if not ok:
             raise HTTPException(
                 status_code=500,
@@ -625,7 +634,7 @@ def update_swarm_endpoint(
             detail={"message": "Partial update failed", "errors": errors},
         )
 
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found after update")
     return _shape_swarm_response(loaded)
@@ -638,15 +647,22 @@ def delete_swarm_endpoint(
 ) -> None:
     """Soft delete : marque `is_active=false`.
 
-    `owner_id` requis (UUID) — scope la suppression sur ce propriétaire.
-    Global templates (owner_id IS NULL AND is_template=True) → 403.
+    `owner_id` requis : scope la suppression sur ce propriétaire.
     """
-    oid = _require_owner_id(owner_id)
-    guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    # Guard: owner_id is mandatory for writes.
+    _require_owner_id(owner_id)
+
+    # I6 fix : DELETE non-idempotent — aligné sur GET/PATCH pour cohérence
+    # interne du projet. Même sans owner_id, on vérifie l'existence du swarm
+    # avant le soft delete (404 si inexistant). Reste valide REST : DELETE
+    # peut renvoyer 404 ou 204 selon la convention choisie.
+    guard = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
+
+    # Guard: global templates (owner_id=NULL, is_template=True) are read/run-only.
     _deny_if_global_template(guard, swarm_id)
-    ok = swarm_store.delete_swarm(swarm_id, owner_id=oid)
+    ok = swarm_store.delete_swarm(swarm_id, owner_id=owner_id)
     if not ok:
         raise HTTPException(
             status_code=500,
@@ -665,10 +681,16 @@ async def kickoff_swarm_endpoint(
 ) -> dict[str, Any]:
     """Lance un run async. Retourne immédiatement `{run_id, swarm_id, status}`.
 
-    `owner_id` requis (UUID) — valide que le swarm appartient à ce propriétaire
-    avant de kicker (404 sinon). Prévient le kickoff cross-tenant.
+    La réponse respecte `SwarmKickoffResponseSchema` côté front (`{run_id}`).
+    Le polling se fait via `/v1/swarms/{id}/status/{runId}` qui retourne la
+    shape complète `SwarmRun` (avec `id`, pas `run_id`).
+
+    `owner_id` optionnel : si fourni, valide que le swarm appartient à
+    ce propriétaire avant de kicker quoi que ce soit (404 sinon).
     """
     oid = _require_owner_id(owner_id)
+
+    # Validation : le swarm doit exister (scopé propriétaire si owner_id fourni).
     loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
@@ -707,6 +729,7 @@ async def kickoff_swarm_endpoint(
             trigger=request.trigger,
             inputs=request.inputs or {},
             n_tasks=n_tasks,
+            owner_id=oid,
         )
     )
     _running_tasks.add(task)
@@ -727,7 +750,8 @@ def status_swarm_run_endpoint(
 ) -> dict[str, Any]:
     """Statut d'un run scope-checké (run.swarm_id == swarm_id).
 
-    `owner_id` requis (UUID) — scope la lecture via swarms.owner_id.
+    `owner_id` optionnel : scope la lecture sur ce propriétaire (joint via
+    swarms.owner_id côté swarm_store).
     """
     oid = _require_owner_id(owner_id)
     run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
@@ -747,10 +771,11 @@ def list_swarm_runs_endpoint(
 ) -> list[dict[str, Any]]:
     """Runs récents d'un swarm donné, plus récents en premier.
 
-    `owner_id` requis (UUID) — valide que le swarm appartient à l'owner.
+    `owner_id` requis : list_swarm_runs valide d'abord que le
+    swarm appartient à l'owner et retourne [] sinon.
     """
-    oid = _require_owner_id(owner_id)
-    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=oid)
+    _require_owner_id(owner_id)
+    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=owner_id)
 
 
 @router.get("/v1/runs/{run_id}")
@@ -760,7 +785,7 @@ def get_run_cross_swarm_endpoint(
 ) -> dict[str, Any]:
     """Lookup direct par run_id (utile pour debug ou liens directs depuis Langfuse).
 
-    `owner_id` requis (UUID) — filtre le run sur swarms.owner_id.
+    `owner_id` optionnel : si fourni, le run est filtré sur swarms.owner_id.
     """
     oid = _require_owner_id(owner_id)
     run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
@@ -779,14 +804,28 @@ async def architect_generate_endpoint(
 ) -> dict[str, Any]:
     """Génère (preview) une spec de swarm depuis une description NL.
 
-    `owner_id` requis (UUID) — priorité body > query. Sert à scoper le
-    catalogue de tools référençables par l'architecte.
+    Composition récursive : un agent LLM (Opus) conçoit une équipe d'agents.
+
+    NE PERSISTE RIEN — renvoie une spec de shape `SwarmCreate` que le front
+    affiche en preview puis envoie (après validation utilisateur) au
+    `POST /v1/swarms` existant pour création réelle.
+
+    `owner_id` : priorité body > query (même règle que `create_swarm`). Sert
+    à scoper le catalogue de tools référençables par l'architecte.
+
+    Erreurs :
+    - 422 : prompt invalide (Pydantic — auto).
+    - 502 : l'architecte n'a pas produit de spec valide après retries
+      (`ArchitectGenerationError`) ou erreur inattendue.
+    - 504 : génération dépassant `settings.ARCHITECT_TIMEOUT_SECONDS`.
     """
+    # Import local : garde `architect` hors du chemin d'import du router
+    # (le module ne fait aucun side-effect, mais on évite de charger les
+    # deps LLM tant que l'endpoint n'est pas appelé).
     from ..agents.architect import ArchitectGenerationError, generate_swarm_spec
 
     effective_owner_id = body.owner_id or owner_id
-    oid = _require_owner_id(effective_owner_id)
-    available_tools = swarm_store.list_tools(owner_id=oid)
+    available_tools = swarm_store.list_tools(owner_id=effective_owner_id)
 
     try:
         result = await asyncio.wait_for(
@@ -794,7 +833,7 @@ async def architect_generate_endpoint(
                 generate_swarm_spec,
                 body.prompt,
                 available_tools,
-                oid,
+                effective_owner_id,
             ),
             timeout=settings.ARCHITECT_TIMEOUT_SECONDS,
         )
@@ -828,6 +867,61 @@ async def architect_generate_endpoint(
 
 @router.get("/v1/tools")
 def list_tools_endpoint(owner_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
-    """Liste le catalogue de tools actifs. owner_id requis (UUID) → 400 sinon."""
+    """Liste le catalogue de tools actifs (filtre par owner, requis)."""
+    _require_owner_id(owner_id)
+    return swarm_store.list_tools(owner_id=owner_id)
+
+
+# ── Composio OAuth ───────────────────────────────────────────────────────────
+
+
+class ComposioConnectRequest(BaseModel):
+    toolkit: str  # "gmail" | "trello" | "slack" | "notion" | "googlecalendar"
+    auth_config_id: str | None = None  # optionnel — si fourni, utilisé directement
+
+
+_TOOLKIT_AUTH_CONFIGS: dict[str, str] = {
+    "gmail": "ac_2imZgR-lg10v",
+    "trello": "ac_85ujVR9uSgHW",
+    # extensible
+}
+
+
+@router.post("/v1/composio/connect")
+def composio_connect_endpoint(
+    request: ComposioConnectRequest,
+    owner_id: str | None = Query(default=None),
+) -> dict:
+    """Initie une connexion OAuth Composio pour un toolkit donné.
+
+    Retourne {"redirect_url": "..."} que le front peut ouvrir dans un nouvel onglet.
+    owner_id est utilisé comme user_id Composio pour l'isolation multi-tenant.
+    """
     oid = _require_owner_id(owner_id)
-    return swarm_store.list_tools(owner_id=oid)
+
+    if not settings.COMPOSIO_API_KEY:
+        raise HTTPException(status_code=503, detail="Composio not configured")
+
+    auth_config_id = request.auth_config_id or _TOOLKIT_AUTH_CONFIGS.get(request.toolkit)
+    if not auth_config_id:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown toolkit '{request.toolkit}' — provide auth_config_id explicitly",
+        )
+
+    try:
+        from composio import Composio  # type: ignore[import-untyped]
+
+        c = Composio(api_key=settings.COMPOSIO_API_KEY)
+        result = c.connected_accounts.initiate(
+            user_id=oid,
+            auth_config_id=auth_config_id,
+        )
+        redirect_url = getattr(result, "redirect_url", None) or getattr(result, "redirectUrl", None)
+        if not redirect_url:
+            raise HTTPException(status_code=502, detail="Composio did not return a redirect_url")
+        return {"redirect_url": redirect_url, "toolkit": request.toolkit}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Composio error: {exc}") from exc

@@ -8,7 +8,6 @@ Each kickoff receives fresh Agent instances → no shared state between concurre
 from crewai import Agent
 
 from ..llms import get_llm
-from ..tools.vault_search import VaultSearchTool
 
 # Guard: import Agent 2 dependencies gracefully so this module stays importable
 # even when Agent 2's files don't exist yet (parallel development).
@@ -16,7 +15,7 @@ try:
     from ..composio_session import get_composio_tools_for_toolkits
     _composio_available = True
 except ImportError:
-    def get_composio_tools_for_toolkits(toolkits: list) -> list:  # type: ignore[misc] -- stub fallback redéfinit symbole importé
+    def get_composio_tools_for_toolkits(toolkits: list, owner_id: str | None = None) -> list:  # type: ignore[misc]  # noqa: ARG001
         return []
     _composio_available = False
 
@@ -177,7 +176,7 @@ def _get_local_tools() -> dict:
     }
 
 
-def _get_all_tools() -> dict:
+def _get_all_tools(owner_id: str | None = None) -> dict:
     """Fetch Composio tools + local tools inside the factory (never at import time).
 
     Composio calls happen here so boot is never blocked by network I/O.
@@ -189,9 +188,9 @@ def _get_all_tools() -> dict:
     # Common mistake: "google_calendar" is invalid (Composio code 4305).
     # If returns [], check slug and OAuth auth status.
     return {
-        "inbox": get_composio_tools_for_toolkits(["gmail", "slack", "telegram"]),
-        "planner": get_composio_tools_for_toolkits(["googlecalendar"]),
-        "automation": get_composio_tools_for_toolkits(["gmail", "slack", "notion"]),
+        "inbox": get_composio_tools_for_toolkits(["gmail", "slack", "telegram"], owner_id=owner_id),
+        "planner": get_composio_tools_for_toolkits(["googlecalendar"], owner_id=owner_id),
+        "automation": get_composio_tools_for_toolkits(["gmail", "slack", "notion"], owner_id=owner_id),
         "priority_scorer": local["priority_scorer"],
         "telegram_sender": local["telegram_sender"],
         "digest_formatter": local["digest_formatter"],
@@ -200,7 +199,7 @@ def _get_all_tools() -> dict:
 
 # ── Public factory ────────────────────────────────────────────────────────────
 
-def create_agents() -> dict[str, Agent]:
+def create_agents(owner_id: str | None = None) -> dict[str, Agent]:
     """Create fresh Agent instances for a single crew kickoff.
 
     Called from create_daily_chief_crew() so each concurrent kickoff gets
@@ -209,7 +208,7 @@ def create_agents() -> dict[str, Agent]:
     Composio tools are fetched here (not at import time) — boot is never blocked.
     Repeated calls benefit from composio_session._tools_cache (instant after first run).
     """
-    tools = _get_all_tools()
+    tools = _get_all_tools(owner_id=owner_id)
 
     chief = Agent(
         role=CHIEF_ROLE,
@@ -291,7 +290,6 @@ def create_agents() -> dict[str, Agent]:
         role=MEMORY_ROLE,
         goal=MEMORY_GOAL,
         backstory=MEMORY_BACKSTORY,
-        tools=[VaultSearchTool()],
         allow_delegation=False,
         llm=get_llm("balanced"),
         verbose=True,

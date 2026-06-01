@@ -42,6 +42,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import UUID as _UUID
 
 from ..config import settings
 
@@ -116,6 +117,16 @@ def _filter_payload(payload: dict[str, Any], allowed: set[str]) -> dict[str, Any
     return {k: v for k, v in payload.items() if k in allowed and v is not None}
 
 
+def _assert_valid_uuid(value: str | None, field: str = "owner_id") -> None:
+    """Raise ValueError if value is not None and not a valid UUID."""
+    if value is None:
+        return
+    try:
+        _UUID(value)
+    except ValueError:
+        raise ValueError(f"Invalid UUID for {field}: {value!r}")
+
+
 # ── Swarms CRUD ──────────────────────────────────────────────────────────────
 
 
@@ -132,6 +143,7 @@ def get_swarm(
 
     Renvoie None si swarm introuvable, owner mismatch ou Supabase indispo.
     """
+    _assert_valid_uuid(owner_id)
     client = _get_client()
     if client is None:
         return None
@@ -219,6 +231,7 @@ def list_swarms(owner_id: str | None = None) -> list[dict[str, Any]]:
     # TODO V2 perf : n+1 problem — 1 query swarms + 2 queries (agents_count,
     # last_run) PAR swarm. Rework attendu en V2 via RPC Postgres.
     """
+    _assert_valid_uuid(owner_id)
     client = _get_client()
     if client is None:
         return []
@@ -1071,6 +1084,7 @@ def get_swarm_run(
     l'owner correspond — sinon None (404 côté route). Le filter est appliqué
     après lecture (PostgREST n'expose pas de JOIN propre via supabase-py).
     """
+    _assert_valid_uuid(owner_id)
     client = _get_client()
     if client is None:
         return None
