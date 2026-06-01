@@ -708,6 +708,23 @@ select:focus-visible {
   --rec-eviter-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
   --rec-unknown-color: var(--ct-text-faint);
   --rec-unknown-bg: rgba(255, 255, 255, 0.04);
+
+  /* Status badges : or (completed/paused) + neutre (reste), pas de vert/rouge/bleu. */
+  --ct-status-completed: #d4bb90;
+  --ct-status-completed-bg: rgba(212, 187, 144, 0.14);
+  --ct-status-completed-border: rgba(212, 187, 144, 0.40);
+  --ct-status-running: var(--ct-text-body);
+  --ct-status-running-bg: rgba(255, 255, 255, 0.06);
+  --ct-status-running-border: rgba(255, 255, 255, 0.14);
+  --ct-status-failed: var(--ct-text-muted);
+  --ct-status-failed-bg: rgba(255, 255, 255, 0.04);
+  --ct-status-failed-border: rgba(255, 255, 255, 0.10);
+  --ct-status-cancelled: var(--ct-text-faint);
+  --ct-status-cancelled-bg: rgba(255, 255, 255, 0.03);
+  --ct-status-cancelled-border: rgba(255, 255, 255, 0.08);
+  --ct-status-paused: #d4bb90;
+  --ct-status-paused-bg: rgba(212, 187, 144, 0.10);
+  --ct-status-paused-border: rgba(212, 187, 144, 0.30);
 }
 /* Boutons d'action (CTA) en rouge corail Azur #fe3e54 — la couleur d'action de
    la marque (cf. boutons du site). Le blanc DS est remplacé dans l'espace auto. */
