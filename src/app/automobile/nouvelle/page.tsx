@@ -3,21 +3,39 @@ import { redirect } from "next/navigation";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { parseInputSchema } from "@/lib/swarms/inputSchema";
-import { SwarmInputForm, type SwarmInputFormState } from "@/components/swarms/SwarmInputForm";
+import { type SwarmInputFormState } from "@/components/swarms/SwarmInputForm";
+import { AutomobileUrlFirstForm } from "@/components/automobile/AutomobileUrlFirstForm";
 import { Chevron } from "@/components/ui/Chevron";
 import { FONT, SPACING } from "@/lib/ui/tokens";
 import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
+import { parsePrefillParams } from "@/lib/automobile/prefill";
+import { findRecentRunByUrl, type DuplicateRunRef } from "@/lib/automobile/dedup";
 
 export const metadata = { title: "Nouvelle analyse — Automobile" };
 export const dynamic = "force-dynamic";
 
-export default async function NouvelleAnalysePage() {
+interface PageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function NouvelleAnalysePage({ searchParams }: PageProps) {
   let ownerId: string;
   try {
     ownerId = await requireOwnerId();
   } catch (err) {
     if (err instanceof OwnerAuthError) redirect("/login?returnTo=/automobile/nouvelle");
     throw err;
+  }
+
+  // Pré-remplissage éventuel depuis le sourcing (query params allowlistés).
+  const { values: prefillValues, extractedFields: prefillExtracted } =
+    parsePrefillParams(await searchParams);
+
+  // Dédup soft : si on arrive avec une URL d'annonce, signale un run récent
+  // sur la même annonce (best-effort, ne bloque jamais le flux).
+  let prefillDuplicate: DuplicateRunRef | null = null;
+  if (prefillValues.source_url) {
+    prefillDuplicate = await findRecentRunByUrl(ownerId, prefillValues.source_url);
   }
 
   // Charger la config du template pour les champs du formulaire.
@@ -82,7 +100,9 @@ export default async function NouvelleAnalysePage() {
           className="ct-sub"
           style={{ fontSize: FONT.base, color: "var(--ct-text-muted)", marginTop: SPACING.xs }}
         >
-          Renseignez les informations du véhicule pour lancer l&apos;analyse.
+          {Object.keys(prefillValues).length > 0
+            ? "Champs pré-remplis depuis l'annonce. Vérifie-les avant de lancer l'analyse."
+            : "Renseignez les informations du véhicule pour lancer l'analyse."}
         </p>
       </div>
 
@@ -108,9 +128,13 @@ export default async function NouvelleAnalysePage() {
           </Link>
         </div>
       ) : (
-        <div className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-          <SwarmInputForm action={triggerAnalyse} fields={inputFields} />
-        </div>
+        <AutomobileUrlFirstForm
+          action={triggerAnalyse}
+          fields={inputFields}
+          initialPrefill={prefillValues}
+          initialExtractedFields={prefillExtracted}
+          initialDuplicate={prefillDuplicate}
+        />
       )}
     </>
   );

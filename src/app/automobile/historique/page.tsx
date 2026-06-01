@@ -2,47 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { swarmsClient } from "@/lib/crewai/swarms";
-import { extractRecommendation } from "@/lib/swarms/recommendation";
-import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
-import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
-import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
-import { StatusBadge } from "@/components/runs/StatusBadge";
-import { formatDate } from "@/lib/utils/format";
-import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
+import { HistoriqueExplorer } from "@/components/automobile/HistoriqueExplorer";
+import { FONT, SPACING } from "@/lib/ui/tokens";
 import type { SwarmRunSummary, SwarmRun } from "@/lib/forms/swarmSchemas";
-import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
-import { fmtPrice, fmtKm } from "@/lib/utils/format";
+import { getDecisionsForRuns, type VehicleDecisionStatus } from "@/lib/automobile/decisions";
 
 export const metadata = { title: "Historique — Automobile" };
 export const dynamic = "force-dynamic";
 
 const RUN_LIMIT = 50;
-const ROW_LOGO_SIZE = 32;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getDurationMs(run: { started_at: string; finished_at?: string | null }): number | null {
-  if (!run.started_at || !run.finished_at) return null;
-  return new Date(run.finished_at).getTime() - new Date(run.started_at).getTime();
-}
-
-function fmtDuration(ms: number): string {
-  const s = Math.round(ms / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  const rem = s % 60;
-  return rem ? `${m}m ${rem}s` : `${m}m`;
-}
-
-const FILTER_OPTS: Array<{ label: string; value: string }> = [
-  { label: "Tous", value: "" },
-  { label: "APPELER", value: "APPELER" },
-  { label: "ATTENDRE", value: "ATTENDRE" },
-  { label: "ÉVITER", value: "ÉVITER" },
-];
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 interface PageProps {
   searchParams: Promise<{ rec?: string }>;
@@ -68,7 +37,7 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
 
     // Fetch full details en parallèle pour inputs_json + result_text
     const details = await Promise.allSettled(
-      summaries.map((s) => swarmsClient.status(AUTOMOBILE_SWARM_ID, s.id, ownerId))
+      summaries.map((s) => swarmsClient.status(AUTOMOBILE_SWARM_ID, s.id, ownerId)),
     );
     runs = details
       .filter((r): r is PromiseFulfilledResult<SwarmRun> => r.status === "fulfilled")
@@ -78,11 +47,9 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
     loadError = err instanceof Error ? err.message : "Erreur de chargement";
   }
 
-  // Filtrage par recommandation
-  const filtered =
-    recFilter
-      ? runs.filter((r) => extractRecommendation(r.result_text) === recFilter)
-      : runs;
+  // Décisions humaines (sérialisables en objet pour le composant client)
+  const decisionsMap = await getDecisionsForRuns(ownerId, runs.map((r) => r.id));
+  const decisions: Record<string, VehicleDecisionStatus> = Object.fromEntries(decisionsMap);
 
   return (
     <>
@@ -130,181 +97,20 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {/* Filtres */}
-      {!loadError && (
-        <div
-          style={{
-            display: "flex",
-            gap: SPACING.sm,
-            marginBottom: SPACING.lg,
-            flexWrap: "wrap",
-          }}
-        >
-          {FILTER_OPTS.map((opt) => {
-            const isActive = (recFilter ?? "") === opt.value;
-            const href = opt.value
-              ? `/automobile/historique?rec=${encodeURIComponent(opt.value)}`
-              : "/automobile/historique";
-            return (
-              <Link
-                key={opt.value || "all"}
-                href={href}
-                style={{
-                  display: "inline-block",
-                  padding: `${SPACING.xs}px ${SPACING.md}px`,
-                  borderRadius: RADIUS.full,
-                  fontSize: FONT.xs,
-                  fontWeight: FONT_WEIGHT.bold,
-                  letterSpacing: LETTER_SPACING.wide,
-                  textTransform: "uppercase",
-                  textDecoration: "none",
-                  border: isActive
-                    ? "1px solid var(--ct-accent-strong)"
-                    : "1px solid var(--ct-border)",
-                  background: isActive ? "var(--ct-accent-strong)" : "var(--ct-surface-2)",
-                  color: isActive ? "var(--ct-text-on-accent)" : "var(--ct-text-muted)",
-                  transition: "all 120ms",
-                }}
-              >
-                {opt.label}
-              </Link>
-            );
-          })}
-          {recFilter && (
-            <span
-              style={{
-                fontSize: FONT.xs,
-                color: "var(--ct-text-faint)",
-                alignSelf: "center",
-                marginLeft: SPACING.xs,
-              }}
-            >
-              {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Tableau */}
-      {!loadError && (
-        <>
-          {filtered.length === 0 ? (
-            <div
-              className="ct-card"
-              style={{ textAlign: "center", padding: `${SPACING.xxl}px` }}
-            >
-              <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>
-                Aucune analyse{recFilter ? ` avec la recommandation "${recFilter}"` : ""}
-              </div>
-              {recFilter ? (
-                <Link href="/automobile/historique" className="ct-link">
-                  Voir toutes les analyses →
-                </Link>
-              ) : (
-                <Link href="/automobile/nouvelle" className="ct-seg-btn primary">
-                  → Lancer une analyse
-                </Link>
-              )}
+      {/* Explorateur (filtres + recherche + tri + table, client-side) */}
+      {!loadError &&
+        (runs.length === 0 ? (
+          <div className="ct-card" style={{ textAlign: "center", padding: `${SPACING.xxl}px` }}>
+            <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>
+              Aucune analyse pour le moment
             </div>
-          ) : (
-            <div className="ct-card" style={{ padding: 0, overflowX: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.sm }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
-                    <th style={thStyle}>Marque</th>
-                    <th style={thStyle}>Véhicule</th>
-                    <th style={thStyle}>Recommandation</th>
-                    <th style={thStyle}>Statut</th>
-                    <th style={thStyle}>Date</th>
-                    <th style={thStyle}>Durée</th>
-                    <th style={{ ...thStyle, textAlign: "right" as const }}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((run, idx) => {
-                    const inp = run.inputs_json ?? {};
-                    const label = getVehicleLabel(inp);
-                    const brand = inp.make ? String(inp.make) : "";
-                    const rec = extractRecommendation(run.result_text);
-                    const dur = getDurationMs(run);
-                    return (
-                      <tr
-                        key={run.id}
-                        style={{
-                          borderBottom:
-                            idx < filtered.length - 1
-                              ? "1px solid var(--ct-border-soft)"
-                              : "none",
-                        }}
-                      >
-                        {/* Marque */}
-                        <td style={tdStyle}>
-                          <BrandLogo brand={brand} size={ROW_LOGO_SIZE} />
-                        </td>
-
-                        {/* Véhicule */}
-                        <td style={{ ...tdStyle, fontWeight: FONT_WEIGHT.semibold }}>
-                          <div style={{ color: "var(--ct-text-primary)" }}>{label}</div>
-                          {inp.fuel ? (
-                            <div
-                              style={{
-                                fontSize: FONT.xs,
-                                color: "var(--ct-text-faint)",
-                                marginTop: 2,
-                              }}
-                            >
-                              {String(inp.fuel)}
-                              {inp.mileage_km ? ` · ${fmtKm(Number(inp.mileage_km))}` : ""}
-                              {inp.price_eur ? ` · ${fmtPrice(Number(inp.price_eur))}` : ""}
-                            </div>
-                          ) : null}
-                        </td>
-
-                        {/* Recommandation */}
-                        <td style={tdStyle}>
-                          <RecommendationBadge rec={rec} />
-                        </td>
-
-                        {/* Statut */}
-                        <td style={tdStyle}>
-                          <StatusBadge status={run.status} />
-                        </td>
-
-                        {/* Date */}
-                        <td
-                          style={{
-                            ...tdStyle,
-                            color: "var(--ct-text-muted)",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {formatDate(run.started_at)}
-                        </td>
-
-                        {/* Durée */}
-                        <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                          {dur ? fmtDuration(dur) : "—"}
-                        </td>
-
-                        {/* Lien */}
-                        <td style={{ ...tdStyle, textAlign: "right" }}>
-                          <Link
-                            href={`/automobile/${run.id}`}
-                            className="ct-link"
-                            style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
-                          >
-                            Voir →
-                          </Link>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </>
-      )}
+            <Link href="/automobile/nouvelle" className="ct-seg-btn primary">
+              → Lancer une analyse
+            </Link>
+          </div>
+        ) : (
+          <HistoriqueExplorer runs={runs} initialRec={recFilter ?? ""} decisions={decisions} />
+        ))}
     </>
   );
 }

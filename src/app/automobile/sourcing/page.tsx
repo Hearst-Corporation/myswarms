@@ -8,6 +8,7 @@ import { Chevron } from "@/components/ui/Chevron";
 import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
 import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
 import { fmtPrice, fmtKm } from "@/lib/utils/format";
+import { listingToPrefillHref } from "@/lib/automobile/prefill";
 import type { AutoScoutListing } from "@/lib/apify/types";
 
 export const metadata = { title: "Sourcing — Automobile" };
@@ -272,17 +273,33 @@ export default async function SourcingPage({ searchParams }: PageProps) {
                       {listing.location || "—"}
                     </td>
 
-                    {/* Lien */}
+                    {/* Actions : analyser (pousse vers le run) + voir l'annonce */}
                     <td className="ct-td" style={{ ...tdStyle, textAlign: "right" }}>
-                      <a
-                        href={listing.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="ct-link"
-                        style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: SPACING.sm,
+                          justifyContent: "flex-end",
+                          alignItems: "center",
+                        }}
                       >
-                        Voir ↗
-                      </a>
+                        <Link
+                          href={listingToPrefillHref(listing, { make, model, market })}
+                          className="ct-seg-btn primary"
+                          style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
+                        >
+                          Analyser
+                        </Link>
+                        <a
+                          href={listing.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ct-link"
+                          style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
+                        >
+                          Voir ↗
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))}
