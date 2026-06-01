@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem, SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { makeTableStyles } from "@/lib/ui/tableStyles";
 import { Chevron } from "@/components/ui/Chevron";
 
 export const metadata = { title: "Workspace — MySwarms" };
@@ -110,15 +111,8 @@ function SwarmRow({ s, variant }: { s: SwarmListItem; variant: "owned" | "templa
   );
 }
 
-const thStyle: React.CSSProperties = {
-  padding: `${SPACING.md}px ${SPACING.lx}px`,
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.wide,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-  textAlign: "left",
-};
+// padY: SPACING.md(12), padX: SPACING.lx(20), no border (tr carries the border)
+const { th: thStyle } = makeTableStyles({ padY: SPACING.md, padX: SPACING.lx, border: false });
 
 function SwarmTable({ swarms, variant }: { swarms: SwarmListItem[]; variant: "owned" | "template" }) {
   if (swarms.length === 0) {

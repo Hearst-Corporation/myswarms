@@ -14,6 +14,7 @@ import { parseInputSchema } from "@/lib/swarms/inputSchema";
 import type { SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 import type { CSSProperties } from "react";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { makeTableStyles } from "@/lib/ui/tableStyles";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
@@ -379,18 +380,12 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   );
 }
 
-const thStyle: React.CSSProperties = {
-  padding: `${SPACING.xxs + 4}px ${SPACING.md}px`,
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.wide,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-};
-const tdStyle: React.CSSProperties = {
-  padding: `${SPACING.xxs + 4}px ${SPACING.md}px`,
-  color: "var(--ct-text-body)",
-};
+// padY: SPACING.xxs+4=10, padX: SPACING.md=12, no border on th or td
+const { th: thStyle, td: tdStyle } = makeTableStyles({
+  padY: SPACING.xxs + 4,
+  padX: SPACING.md,
+  border: false,
+});
 
 const archivedBadgeStyle: CSSProperties = {
   background: "var(--ct-accent-soft)",

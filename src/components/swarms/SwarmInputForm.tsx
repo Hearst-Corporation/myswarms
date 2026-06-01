@@ -20,6 +20,8 @@ type KickoffWithInputsAction = (
 interface Props {
   action: KickoffWithInputsAction;
   fields: InputField[];
+  initialValues?: Record<string, string>;
+  extractedFields?: Record<string, { source: string; confidence: string } | undefined>;
 }
 
 // ── Styles communs ────────────────────────────────────────────────────────────
@@ -60,7 +62,17 @@ const hintStyle: React.CSSProperties = {
 
 // ── Field component ───────────────────────────────────────────────────────────
 
-function Field({ field, error }: { field: InputField; error?: string }) {
+function Field({
+  field,
+  error,
+  initialValue = "",
+  extractionMeta,
+}: {
+  field: InputField;
+  error?: string;
+  initialValue?: string;
+  extractionMeta?: { source: string; confidence: string };
+}) {
   const id = `swarm-input-${field.key}`;
   const borderColor = error ? "var(--ct-alert-error-border)" : undefined;
 
@@ -70,7 +82,7 @@ function Field({ field, error }: { field: InputField; error?: string }) {
       <select
         id={id}
         name={field.key}
-        defaultValue=""
+        defaultValue={initialValue}
         style={{ ...inputBase, borderColor, appearance: "none", cursor: "pointer" }}
       >
         <option value="" disabled>
@@ -89,6 +101,7 @@ function Field({ field, error }: { field: InputField; error?: string }) {
         id={id}
         name={field.key}
         placeholder={field.placeholder}
+        defaultValue={initialValue}
         rows={3}
         style={{ ...inputBase, resize: "vertical", borderColor }}
       />
@@ -100,6 +113,7 @@ function Field({ field, error }: { field: InputField; error?: string }) {
         name={field.key}
         type={field.type}
         placeholder={field.placeholder}
+        defaultValue={initialValue}
         step={field.type === "number" ? "any" : undefined}
         style={{ ...inputBase, borderColor }}
       />
@@ -121,6 +135,10 @@ function Field({ field, error }: { field: InputField; error?: string }) {
         <span style={{ ...hintStyle, color: "var(--ct-alert-error-text)" }}>
           {error}
         </span>
+      ) : extractionMeta ? (
+        <span style={{ ...hintStyle, color: "var(--ct-accent-strong)" }}>
+          Pré-rempli depuis {extractionMeta.source} · confiance {extractionMeta.confidence}
+        </span>
       ) : field.description ? (
         <span style={hintStyle}>{field.description.replace(/^[^—]*—\s*/, "")}</span>
       ) : null}
@@ -130,7 +148,12 @@ function Field({ field, error }: { field: InputField; error?: string }) {
 
 // ── Main form ─────────────────────────────────────────────────────────────────
 
-export function SwarmInputForm({ action, fields }: Props) {
+export function SwarmInputForm({
+  action,
+  fields,
+  initialValues = {},
+  extractedFields = {},
+}: Props) {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isPending, startTransition] = useTransition();
@@ -192,6 +215,9 @@ export function SwarmInputForm({ action, fields }: Props) {
       >
         {/* Hidden trigger field */}
         <input type="hidden" name="trigger" value="on_demand" />
+        {initialValues.image_url ? (
+          <input type="hidden" name="image_url" value={initialValues.image_url} />
+        ) : null}
 
         {/* Field grid — 2 cols on wide, 1 on narrow */}
         <div
@@ -203,11 +229,22 @@ export function SwarmInputForm({ action, fields }: Props) {
         >
           {/* Si le form contient make + model (template automobile), on les
               remplace par le sélecteur Marque (avec logo) → Modèle dépendant. */}
-          {hasBrandModel && <BrandModelPicker />}
+          {hasBrandModel && (
+            <BrandModelPicker
+              defaultMake={initialValues.make ?? ""}
+              defaultModel={initialValues.model ?? ""}
+            />
+          )}
           {fields
             .filter((f) => !(hasBrandModel && (f.key === "make" || f.key === "model")))
             .map((f) => (
-              <Field key={f.key} field={f} error={fieldErrors[f.key]} />
+              <Field
+                key={f.key}
+                field={f}
+                error={fieldErrors[f.key]}
+                initialValue={initialValues[f.key] ?? ""}
+                extractionMeta={extractedFields[f.key]}
+              />
             ))}
         </div>
 

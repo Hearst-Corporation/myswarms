@@ -10,20 +10,14 @@ import {
   LETTER_SPACING,
   SPACING,
 } from "@/lib/ui/tokens";
+import { makeTableStyles } from "@/lib/ui/tableStyles";
 import type { SwarmListItem, SwarmRunSummary } from "@/lib/forms/swarmSchemas";
 
 export const metadata = { title: "MySwarms · Dashboard" };
 export const dynamic = "force-dynamic";
 
-const thStyle: React.CSSProperties = {
-  padding: `${SPACING.md}px ${SPACING.lx}px`,
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.wide,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-  textAlign: "left",
-};
+// padY: SPACING.md(12), padX: SPACING.lx(20), no border (th only used, tr carries the border)
+const { th: thStyle } = makeTableStyles({ padY: SPACING.md, padX: SPACING.lx, border: false });
 
 function DurationLabel({
   startedAt,

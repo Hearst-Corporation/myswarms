@@ -2,7 +2,8 @@ import Link from "next/link";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { makeTableStyles } from "@/lib/ui/tableStyles";
 
 const BADGE_FONT_SIZE = FONT.xs;
 
@@ -121,19 +122,11 @@ export function SwarmList({ swarms, error }: SwarmListProps) {
   );
 }
 
-const TH_PADDING = `${SPACING.md}px ${SPACING.lx}px`;
-const TD_PADDING = `${SPACING.s}px ${SPACING.lx}px`;
-
-const thStyle: React.CSSProperties = {
-  padding: TH_PADDING,
-  fontSize: BADGE_FONT_SIZE,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.wide,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-};
-
-const tdStyle: React.CSSProperties = {
-  padding: TD_PADDING,
-  color: "var(--ct-text-body)",
-};
+// thPadY: SPACING.md(12), tdPadY: SPACING.s(10), padX: SPACING.lx(20), thFontSize: FONT.xs, no border
+const { th: thStyle, td: tdStyle } = makeTableStyles({
+  thPadY: SPACING.md,
+  tdPadY: SPACING.s,
+  padX: SPACING.lx,
+  thFontSize: BADGE_FONT_SIZE,
+  border: false,
+});
