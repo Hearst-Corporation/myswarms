@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BRANDS, brandLogoUrl, getModelsForBrand } from "@/lib/automobile/brands";
+import { BRANDS, getModelsForBrand } from "@/lib/automobile/brands";
+import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
 
 // ── Styles partagés (alignés sur SwarmInputForm) ─────────────────────────────
@@ -32,34 +33,6 @@ const triggerBase: React.CSSProperties = {
   textAlign: "left",
   boxSizing: "border-box",
 };
-
-const logoStyle: React.CSSProperties = {
-  width: 20,
-  height: 20,
-  objectFit: "contain",
-  flexShrink: 0,
-  background: "var(--ct-surface-3)",
-  borderRadius: RADIUS.sm,
-};
-
-// ── Logo avec fallback (masqué si le CDN renvoie 404) ─────────────────────────
-
-function BrandLogo({ brand }: { brand: string }) {
-  const [broken, setBroken] = useState(false);
-  if (broken) {
-    return <span style={{ ...logoStyle, display: "inline-block" }} aria-hidden />;
-  }
-  // eslint-disable-next-line @next/next/no-img-element
-  return (
-    <img
-      src={brandLogoUrl(brand)}
-      alt=""
-      style={logoStyle}
-      onError={() => setBroken(true)}
-      loading="lazy"
-    />
-  );
-}
 
 // ── Combobox searchable générique ─────────────────────────────────────────────
 
@@ -125,7 +98,7 @@ function Combobox({
       >
         {value ? (
           <>
-            {options.find((o) => o.value === value)?.withLogo && <BrandLogo brand={value} />}
+            {options.find((o) => o.value === value)?.withLogo && <BrandLogo brand={value} size={20} variant="inline" />}
             <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {value}
             </span>
@@ -211,7 +184,7 @@ function Combobox({
                     textAlign: "left",
                   }}
                 >
-                  {opt.withLogo && <BrandLogo brand={opt.value} />}
+                  {opt.withLogo && <BrandLogo brand={opt.value} size={20} variant="inline" />}
                   <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {opt.value}
                   </span>

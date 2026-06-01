@@ -20,7 +20,7 @@ const LOGO_BASE =
 const DIACRITICS = /[̀-ͯ]/g;
 
 /** Slug logo d'une marque : minuscules, sans accents, espaces → tirets. */
-export function brandSlug(brand: string): string {
+function brandSlug(brand: string): string {
   return brand
     .toLowerCase()
     .normalize("NFD")

@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { Chevron } from "@/components/ui/Chevron";
 import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
 import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
+import { fmtPrice, fmtKm } from "@/lib/utils/format";
 import type { AutoScoutListing } from "@/lib/apify/types";
 
 export const metadata = { title: "Sourcing — Automobile" };
@@ -123,7 +124,7 @@ export default async function SourcingPage({ searchParams }: PageProps) {
             sur le marché{" "}
             <strong>{market.toUpperCase()}</strong>
             {priceMinStr || priceMaxStr
-              ? ` (${priceMinStr ? Number(priceMinStr).toLocaleString("fr-FR") + " €" : "—"} – ${priceMaxStr ? Number(priceMaxStr).toLocaleString("fr-FR") + " €" : "—"})`
+              ? ` (${priceMinStr ? fmtPrice(Number(priceMinStr)) : "—"} – ${priceMaxStr ? fmtPrice(Number(priceMaxStr)) : "—"})`
               : ""}
             . Essayez sans filtre de prix ou sur un autre marché.
           </p>
@@ -238,9 +239,7 @@ export default async function SourcingPage({ searchParams }: PageProps) {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {listing.price != null
-                        ? listing.price.toLocaleString("fr-FR") + " €"
-                        : "—"}
+                      {listing.price != null ? fmtPrice(listing.price) : "—"}
                     </td>
 
                     {/* Année */}
@@ -250,9 +249,7 @@ export default async function SourcingPage({ searchParams }: PageProps) {
 
                     {/* KM */}
                     <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)", whiteSpace: "nowrap" }}>
-                      {listing.mileage != null
-                        ? listing.mileage.toLocaleString("fr-FR") + " km"
-                        : "—"}
+                      {listing.mileage != null ? fmtKm(listing.mileage) : "—"}
                     </td>
 
                     {/* Carburant */}

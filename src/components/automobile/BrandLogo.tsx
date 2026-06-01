@@ -5,16 +5,20 @@ import { brandLogoUrl } from "@/lib/automobile/brands";
 import { RADIUS, SPACING, FONT, FONT_WEIGHT } from "@/lib/ui/tokens";
 
 /**
- * Chip arrondi à fond clair contenant le logo PNG d'une marque.
+ * Logo de marque automobile avec deux variantes :
  *
- * Pourquoi un fond clair en dur (#fff) ? Les logos du dataset jsDelivr sont
- * souvent sombres / colorés ; sur le thème cockpit foncé ils seraient illisibles
- * sans un chip clair derrière. C'est la SEULE couleur en dur tolérée ici, et
- * uniquement pour le fond du chip logo (justifié). Tout le reste passe par les
- * variables --ct-*.
+ * - `variant="chip"` (défaut) : chip arrondi à fond clair (#fff) contenant le
+ *   logo PNG. Le fond clair est obligatoire : les logos jsDelivr sont souvent
+ *   sombres/colorés et seraient illisibles sur le thème cockpit foncé. C'est
+ *   la SEULE couleur en dur tolérée ici. Tout le reste passe par les variables
+ *   --ct-*.
  *
- * Fallback robuste : si l'image échoue (onError) ou si la marque est inconnue,
- * on affiche les initiales de la marque (1-2 lettres) dans le même chip.
+ * - `variant="inline"` : simple `<img>` sans chip, pour les contextes où le
+ *   fond clair jurerait (dropdown compact, liste dense). Le fond du contenant
+ *   est géré par le parent.
+ *
+ * Fallback robuste dans les deux variantes : si l'image échoue (onError) ou
+ * si la marque est inconnue, on affiche les initiales (1-2 lettres).
  */
 
 const CHIP_BG = "#ffffff"; // fond clair obligatoire pour la lisibilité des logos colorés
@@ -30,11 +34,62 @@ function initials(brand: string): string {
   return trimmed.slice(0, 2).toUpperCase();
 }
 
-export function BrandLogo({ brand, size = DEFAULT_SIZE }: { brand: string; size?: number }) {
+export function BrandLogo({
+  brand,
+  size = DEFAULT_SIZE,
+  variant = "chip",
+}: {
+  brand: string;
+  size?: number;
+  variant?: "chip" | "inline";
+}) {
   const [failed, setFailed] = useState(false);
   const hasBrand = brand.trim() !== "";
   const showImg = hasBrand && !failed;
 
+  if (variant === "inline") {
+    const inlineStyle: React.CSSProperties = {
+      width: size,
+      height: size,
+      objectFit: "contain",
+      flexShrink: 0,
+      display: "inline-block",
+    };
+    if (showImg) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={brandLogoUrl(brand)}
+          alt=""
+          style={inlineStyle}
+          onError={() => setFailed(true)}
+          loading="lazy"
+        />
+      );
+    }
+    // Fallback initiales en inline
+    return (
+      <span
+        style={{
+          ...inlineStyle,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "var(--ct-surface-3)",
+          borderRadius: RADIUS.sm,
+          fontSize: Math.max(FONT.xs, Math.round(size * 0.32)),
+          fontWeight: FONT_WEIGHT.bold,
+          color: "var(--ct-text-muted)",
+          lineHeight: 1,
+        }}
+        aria-hidden
+      >
+        {hasBrand ? initials(brand) : ""}
+      </span>
+    );
+  }
+
+  // variant === "chip" (défaut)
   const chipStyle: React.CSSProperties = {
     width: size,
     height: size,

@@ -41,7 +41,7 @@ const BUILTIN_LABELS: Record<string, string> = {
   phone:      "Téléphone",
 };
 
-export type FieldType = "text" | "number" | "url" | "textarea" | "select";
+type FieldType = "text" | "number" | "url" | "textarea" | "select";
 
 export interface InputField {
   key: string;

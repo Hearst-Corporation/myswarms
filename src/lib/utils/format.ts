@@ -1,4 +1,20 @@
 /**
+ * Format a price value to French locale string (e.g. "12 500 €").
+ * Returns "—" for null/undefined.
+ */
+export function fmtPrice(v: number | null | undefined): string {
+  return v != null ? `${Math.round(v).toLocaleString("fr-FR")} €` : "—";
+}
+
+/**
+ * Format a mileage value to French locale string (e.g. "120 000 km").
+ * Returns "—" for null/undefined.
+ */
+export function fmtKm(v: number | null | undefined): string {
+  return v != null ? `${Math.round(v).toLocaleString("fr-FR")} km` : "—";
+}
+
+/**
  * Format ISO 8601 date string to localized en-US display.
  * Falls back to the raw ISO if parsing/formatting fails (Vercel runtime, missing ICU).
  *

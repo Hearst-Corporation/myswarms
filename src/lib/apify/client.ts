@@ -15,7 +15,7 @@ const DEFAULT_TIMEOUT_MS = 120_000; // 120 s — actors AutoScout24 ~30-60 s
 
 // ─── Erreur typée ─────────────────────────────────────────────────────────────
 
-export class ApifyError extends Error {
+class ApifyError extends Error {
   constructor(
     message: string,
     public readonly status?: number,

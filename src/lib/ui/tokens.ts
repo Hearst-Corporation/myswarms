@@ -74,11 +74,6 @@ export const Z_INDEX = {
   toast: 200,
 } as const;
 
-export const SHADOW = {
-  depth: "var(--ct-shadow-depth)",
-  nowGlow: "var(--ct-shadow-now-glow)",
-} as const;
-
 export const COLOR = {
   brandHive: "var(--ct-brand-hive)",
   textOnAccent: "var(--ct-text-on-accent)",
@@ -107,13 +102,4 @@ export const SIZE = {
   agentDiffTimeCol: 38,
 } as const;
 
-export const TRANSITION = {
-  fast: "180ms",
-  medium: "400ms",
-} as const;
-
-export const OPACITY = {
-  disabled: 0.5,
-  muted: 0.6,
-} as const;
 

@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
-export { isMarkdown } from "@/lib/swarms/markdown";
 
 // ── Markdown → HTML parser (pas de dépendance externe) ───────────────────────
 //

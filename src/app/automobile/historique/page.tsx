@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/utils/format";
 import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
 import type { SwarmRunSummary, SwarmRun } from "@/lib/forms/swarmSchemas";
 import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
+import { fmtPrice, fmtKm } from "@/lib/utils/format";
 
 export const metadata = { title: "Historique — Automobile" };
 export const dynamic = "force-dynamic";
@@ -253,8 +254,8 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
                               }}
                             >
                               {String(inp.fuel)}
-                              {inp.mileage_km ? ` · ${Number(inp.mileage_km).toLocaleString("fr-FR")} km` : ""}
-                              {inp.price_eur ? ` · ${Number(inp.price_eur).toLocaleString("fr-FR")} €` : ""}
+                              {inp.mileage_km ? ` · ${fmtKm(Number(inp.mileage_km))}` : ""}
+                              {inp.price_eur ? ` · ${fmtPrice(Number(inp.price_eur))}` : ""}
                             </div>
                           ) : null}
                         </td>

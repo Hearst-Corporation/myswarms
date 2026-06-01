@@ -6,6 +6,7 @@ import { MarketSearchForm } from "@/components/automobile/MarketSearchForm";
 import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { Chevron } from "@/components/ui/Chevron";
 import { FONT, FONT_WEIGHT, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
+import { fmtPrice } from "@/lib/utils/format";
 
 const TITLE_LOGO_SIZE = 48;
 
@@ -14,10 +15,6 @@ export const dynamic = "force-dynamic";
 
 interface PageProps {
   searchParams: Promise<{ make?: string; model?: string; fuel?: string }>;
-}
-
-function fmtPrice(v: number | null): string {
-  return v != null ? `${Math.round(v).toLocaleString("fr-FR")} €` : "—";
 }
 
 export default async function CoteMarchePage({ searchParams }: PageProps) {

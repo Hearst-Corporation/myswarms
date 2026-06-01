@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
 
 interface User {
   id: string;
@@ -42,26 +43,6 @@ export function UserTable({ users, superAdminEmail, onRefresh }: UserTableProps)
       setDeleting(null);
     }
   }
-
-  const thStyle: React.CSSProperties = {
-    padding: `${SPACING.sm}px ${SPACING.md}px`,
-    textAlign: "left",
-    fontSize: FONT.xs,
-    fontWeight: FONT_WEIGHT.bold,
-    letterSpacing: LETTER_SPACING.wide,
-    textTransform: "uppercase",
-    color: "var(--ct-text-muted)",
-    borderBottom: "1px solid var(--ct-border)",
-    whiteSpace: "nowrap",
-  };
-
-  const tdStyle: React.CSSProperties = {
-    padding: `${SPACING.sm}px ${SPACING.md}px`,
-    fontSize: FONT.sm,
-    color: "var(--ct-text-body)",
-    borderBottom: "1px solid var(--ct-border)",
-    verticalAlign: "middle",
-  };
 
   return (
     <div>

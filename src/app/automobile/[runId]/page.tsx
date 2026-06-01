@@ -11,6 +11,7 @@ import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { MarkdownReport } from "@/components/swarms/MarkdownReport";
 import { isMarkdown } from "@/lib/swarms/markdown";
 import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { fmtPrice } from "@/lib/utils/format";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
@@ -228,7 +229,7 @@ export default async function AutomobileRunPage({ params }: PageProps) {
             }
           />
           {priceEur != null ? (
-            <Field label="Prix" value={`${priceEur.toLocaleString("fr-FR")} €`} />
+            <Field label="Prix" value={fmtPrice(priceEur)} />
           ) : null}
           {sourceUrl ? (
             <div>
