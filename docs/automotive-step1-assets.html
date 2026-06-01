@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="fr" data-product="hive">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automotive Good Deal Detector — Step 1 Assets</title>
+  <style>
+    :root {
+      --ct-bg:           #1a0a0f;
+      --ct-surface:      rgba(255,255,255,0.04);
+      --ct-surface-md:   rgba(255,255,255,0.07);
+      --ct-surface-hi:   rgba(255,255,255,0.11);
+      --ct-border:       rgba(255,255,255,0.09);
+      --ct-border-hi:    rgba(255,255,255,0.18);
+      --ct-text-1:       #f0eae8;
+      --ct-text-2:       rgba(240,234,232,0.6);
+      --ct-text-3:       rgba(240,234,232,0.35);
+      --ct-accent:       #3FA7E0;
+      --ct-accent-glow:  rgba(63,167,224,0.18);
+      --ct-green:        #27AE60;
+      --ct-green-bg:     rgba(39,174,96,0.12);
+      --ct-amber:        #F39C12;
+      --ct-amber-bg:     rgba(243,156,18,0.12);
+      --ct-red:          #E74C3C;
+      --ct-red-bg:       rgba(231,76,60,0.12);
+      --ct-radius:       12px;
+      --ct-radius-lg:    18px;
+      --ct-shadow:       0 4px 24px rgba(0,0,0,0.45);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--ct-bg);
+      background-image:
+        radial-gradient(ellipse 80% 50% at 20% 10%, rgba(139,30,63,0.18) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(63,167,224,0.08) 0%, transparent 60%);
+      color: var(--ct-text-1);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 32px 24px 64px;
+    }
+
+    /* ── HEADER ── */
+    .page-header {
+      max-width: 1100px;
+      margin: 0 auto 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--ct-border);
+    }
+    .page-header .logo {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #8B1E3F 0%, #3FA7E0 100%);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: 800; color: #fff;
+      flex-shrink: 0;
+    }
+    .page-header h1 { font-size: 18px; font-weight: 600; color: var(--ct-text-1); }
+    .page-header p  { font-size: 13px; color: var(--ct-text-2); margin-top: 2px; }
+    .page-header .badge-live {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 7px;
+      background: var(--ct-green-bg);
+      border: 1px solid rgba(39,174,96,0.3);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px; font-weight: 600; color: var(--ct-green);
+    }
+    .badge-live .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--ct-green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.5; transform:scale(1.4); }
+    }
+
+    /* ── VEHICLE HEADER ── */
+    .vehicle-header {
+      max-width: 1100px;
+      margin: 0 auto 32px;
+      background: var(--ct-surface-md);
+      border: 1px solid var(--ct-border-hi);
+      border-radius: var(--ct-radius-lg);
+      padding: 24px 28px;
+      display: flex; align-items: center; gap: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--ct-shadow);
+    }
+    .vehicle-header .icon {
+      font-size: 36px;
+      background: var(--ct-surface-hi);
+      border-radius: 12px;
+      width: 60px; height: 60px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .vehicle-header h2 { font-size: 22px; font-weight: 700; }
+    .vehicle-header .sub { font-size: 13px; color: var(--ct-text-2); margin-top: 4px; }
+    .vehicle-header .vin-badge {
+      margin-left: auto;
+      background: var(--ct-accent-glow);
+      border: 1px solid rgba(63,167,224,0.3);
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-size: 11px; color: var(--ct-accent);
+      font-family: 'Courier New', monospace;
+      text-align: center;
+    }
+    .vehicle-header .vin-badge .vin-label { font-size: 10px; opacity:.7; margin-bottom:2px; }
+    .vehicle-header .vin-badge .vin-val { font-weight: 700; letter-spacing:.5px; }
+    .vehicle-header .vin-badge .vin-confirmed {
+      margin-top: 4px; font-size: 10px;
+      color: var(--ct-green); font-family: system-ui;
+    }
+
+    /* ── GRID ── */
+    .assets-grid {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+
+    /* ── CARD BASE ── */
+    .card {
+      background: var(--ct-surface);
+      border: 1px solid var(--ct-border);
+      border-radius: var(--ct-radius-lg);
+      padding: 24px;
+      backdrop-filter: blur(10px);
+      box-shadow: var(--ct-shadow);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .card:hover {
+      border-color: var(--ct-border-hi);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.55);
+    }
+    .card-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ct-text-3);
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-label::before {
+      content: '';
+      display: inline-block;
+      width: 3px; height: 12px;
+      background: var(--ct-accent);
+      border-radius: 2px;
+    }
+
+    /* ── CARD SPANS ── */
+    .col-5  { grid-column: span 5; }
+    .col-4  { grid-column: span 4; }
+    .col-3  { grid-column: span 3; }
+    .col-6  { grid-column: span 6; }
+    .col-12 { grid-column: span 12; }
+
+    /* ── 1. MARKET SCORE ── */
+    .market-score-card { grid-column: span 4; }
+    .gauge-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 12px; padding: 8px 0 4px;
+    }
+    .gauge-svg { width: 140px; height: 140px; }
+    .gauge-bg   { fill: none; stroke: var(--ct-surface-hi); stroke-width: 10; }
+    .gauge-fill {
+      fill: none; stroke: var(--ct-accent); stroke-width: 10;
+      stroke-linecap: round;
+      stroke-dasharray: 301.6; /* 2π × 48 */
+      stroke-dashoffset: 60;   /* 301.6 × (1 - 0.82) */
+      transform-origin: center;
+      transform: rotate(-90deg);
+      animation: gauge-in 1.2s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    @keyframes gauge-in {
+      from { stroke-dashoffset: 301.6; }
+      to   { stroke-dashoffset: 60; }
+    }
+    .gauge-center {
+      position: absolute;
+      inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .gauge-wrap-rel { position: relative; width: 140px; height: 140px; }
+    .gauge-number { font-size: 36px; font-weight: 800; color: var(--ct-accent); line-height: 1; }
+    .gauge-max    { font-size: 12px; color: var(--ct-text-3); margin-top: 2px; }
+    .market-delta {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--ct-green-bg);
+      border: 1px solid rgba(39,174,96,0.25);
+      border-radius: 8px;
+      padding: 10px 16px;
+      width: 100%;
+    }
+    .delta-icon { font-size: 18px; }
+    .delta-val  { font-size: 20px; font-weight: 800; color: var(--ct-green); }
+    .delta-desc { font-size: 12px; color: var(--ct-text-2); }
+    .trend-row  { display: flex; gap: 8px; width: 100%; }
+    .trend-item {
+      flex: 1; background: var(--ct-surface-md); border-radius: 8px;
+      padding: 8px 10px; text-align: center;
+    }
+    .trend-item .t-label { font-size: 10px; color: var(--ct-text-3); margin-bottom: 3px; }
+    .trend-item .t-val   { font-size: 13px; font-weight: 600; }
+    .t-up   { color: var(--ct-green); }
+    .t-down { color: var(--ct-red); }
+    .t-flat { color: var(--ct-text-2); }
+
+    /* ── 2. GOOD DEAL BADGE ── */
+    .deal-badge-card { grid-column: span 4; }
+    .deal-main {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 16px; padding: 8px 0;
+    }
+    .deal-badge {
+      padding: 16px 36px;
+      border-radius: 40px;
+      font-size: 20px; font-weight: 800;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      text-align: center;
+      border: 2px solid;
+      animation: badge-pop .5s cubic-bezier(.22,1,.36,1) forwards;
+    }
+    @keyframes badge-pop {
+      from { transform: scale(.85); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .deal-badge.bonne {
+      background: var(--ct-green-bg);
+      border-color: rgba(39,174,96,0.4);
+      color: var(--ct-green);
+    }
+    .deal-criteria {
+      width: 100%;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .criteria-item {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--ct-surface-md);
+      border-radius: 8px; padding: 9px 13px;
+      font-size: 13px;
+    }
+    .criteria-check { font-size: 16px; }
+    .criteria-label { color: var(--ct-text-2); flex: 1; }
+    .criteria-val   { font-weight: 600; color: var(--ct-text-1); }
+    .score-stars {
+      display: flex; gap: 4px; margin-top: 4px;
+    }
+    .star { font-size: 20px; color: var(--ct-amber); }
+    .star.empty { opacity:.2; }
+
+    /* ── 3. EUROPE PRICE TRACKER ── */
+    .price-tracker-card { grid-column: span 12; }
+    .market-table { width: 100%; border-collapse: collapse; }
+    .market-table th {
+      text-align: left; padding: 8px 16px;
+      font-size: 11px; font-weight: 600; letter-spacing: .06em;
+      text-transform: uppercase; color: var(--ct-text-3);
+      border-bottom: 1px solid var(--ct-border);
+    }
+    .market-table td {
+      padding: 14px 16px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--ct-border);
+    }
+    .market-table tr:last-child td { border-bottom: none; }
+    .market-table tr:hover td { background: var(--ct-surface-md); }
+    .flag { font-size: 20px; margin-right: 8px; }
+    .country-name { font-weight: 600; }
+    .price-avg { font-size: 18px; font-weight: 700; color: var(--ct-text-1); }
+    .price-listings { font-size: 12px; color: var(--ct-text-3); }
+    .price-delta-cell { font-weight: 600; }
+    .price-delta-cell.better { color: var(--ct-green); }
+    .price-delta-cell.worse  { color: var(--ct-red); }
+    .price-delta-cell.ref    { color: var(--ct-text-3); font-style: italic; }
+    .bar-wrap {
+      width: 140px; height: 6px;
+      background: var(--ct-surface-hi); border-radius: 3px; overflow: hidden;
+    }
+    .bar-fill { height: 100%; border-radius: 3px; transition: width .8s ease; }
+    .best-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--ct-amber-bg);
+      border: 1px solid rgba(243,156,18,0.3);
+      border-radius: 6px; padding: 2px 8px;
+      font-size: 11px; font-weight: 600; color: var(--ct-amber);
+    }
+
+    /* ── 4. VEHICLE SNAPSHOT ── */
+    .snapshot-card { grid-column: span 6; }
+    .specs-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 10px; margin-bottom: 16px;
+    }
+    .spec-item {
+      background: var(--ct-surface-md); border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .spec-label { font-size: 10px; color: var(--ct-text-3); text-transform: uppercase; letter-spacing:.05em; margin-bottom: 4px; }
+    .spec-val   { font-size: 16px; font-weight: 700; color: var(--ct-text-1); }
+    .spec-sub   { font-size: 11px; color: var(--ct-text-2); margin-top: 2px; }
+    .vin-confirm-bar {
+      display: flex; align-items: center; gap: 10px;
+      background: var(--ct-accent-glow);
+      border: 1px solid rgba(63,167,224,0.25);
+      border-radius: 10px; padding: 12px 16px;
+      font-size: 13px;
+    }
+    .vin-confirm-bar .icon { font-size: 20px; }
+    .vin-confirm-bar .text { flex: 1; }
+    .vin-confirm-bar .text b { color: var(--ct-accent); }
+    .vin-confirm-bar .ts { font-size: 11px; color: var(--ct-text-3); }
+
+    /* ── 5. LIQUIDITY SCORE ── */
+    .liquidity-card { grid-column: span 6; }
+    .liq-main {
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .liq-number-row {
+      display: flex; align-items: baseline; gap: 8px;
+    }
+    .liq-days { font-size: 52px; font-weight: 800; color: var(--ct-accent); line-height: 1; }
+    .liq-unit { font-size: 16px; color: var(--ct-text-2); }
+    .liq-desc { font-size: 13px; color: var(--ct-text-2); }
+    .liq-bar-wrap {
+      background: var(--ct-surface-md); border-radius: 8px; overflow: hidden;
+      height: 10px; width: 100%;
+    }
+    .liq-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--ct-accent) 0%, var(--ct-green) 100%);
+      border-radius: 8px;
+      width: 0;
+      animation: liq-in 1.2s cubic-bezier(.22,1,.36,1) .3s forwards;
+    }
+    @keyframes liq-in { to { width: 82%; } }
+    .liq-scale {
+      display: flex; justify-content: space-between;
+      font-size: 10px; color: var(--ct-text-3);
+      margin-top: -4px;
+    }
+    .liq-breakdown { display: flex; flex-direction: column; gap: 8px; }
+    .liq-break-item {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px;
+    }
+    .liq-break-item .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .liq-break-item .dot.blue  { background: var(--ct-accent); }
+    .liq-break-item .dot.green { background: var(--ct-green); }
+    .liq-break-item .dot.amber { background: var(--ct-amber); }
+    .liq-break-item .lbl { flex: 1; color: var(--ct-text-2); }
+    .liq-break-item .val { font-weight: 600; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .col-5, .col-4, .col-3, .col-6 { grid-column: span 12; }
+      .market-score-card, .deal-badge-card { grid-column: span 12; }
+      .snapshot-card, .liquidity-card { grid-column: span 12; }
+    }
+
+    /* ── FOOTER ── */
+    .page-footer {
+      max-width: 1100px;
+      margin: 48px auto 0;
+      padding-top: 20px;
+      border-top: 1px solid var(--ct-border);
+      display: flex; align-items: center; justify-content: space-between;
+      font-size: 11px; color: var(--ct-text-3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="page-header">
+    <div class="logo">S</div>
+    <div>
+      <h1>Automotive Good Deal Detector</h1>
+      <p>Swarm Platform — Spécialisation Automotive · Step 1 Assets</p>
+    </div>
+    <div class="badge-live">
+      <span class="dot"></span>
+      LIVE DEMO
+    </div>
+  </header>
+
+  <!-- VEHICLE HEADER -->
+  <div class="vehicle-header">
+    <div class="icon">🚗</div>
+    <div>
+      <h2>BMW Série 3 320d</h2>
+      <div class="sub">2021 · Diesel · 68 000 km · France · Leboncoin</div>
+    </div>
+    <div class="vin-badge">
+      <div class="vin-label">VIN CONFIRMÉ</div>
+      <div class="vin-val">WBA8E1C5…123456</div>
+      <div class="vin-confirmed">✓ Vérifié AutoScout24 API</div>
+    </div>
+  </div>
+
+  <!-- ASSETS GRID -->
+  <div class="assets-grid">
+
+    <!-- 1. MARKET SCORE -->
+    <div class="card market-score-card">
+      <div class="card-label">Market Score</div>
+      <div class="gauge-wrap">
+        <div class="gauge-wrap-rel">
+          <svg class="gauge-svg" viewBox="0 0 140 140">
+            <circle class="gauge-bg"   cx="70" cy="70" r="48"/>
+            <circle class="gauge-fill" cx="70" cy="70" r="48"/>
+          </svg>
+          <div class="gauge-center">
+            <span class="gauge-number">82</span>
+            <span class="gauge-max">/100</span>
+          </div>
+        </div>
+
+        <div class="market-delta">
+          <span class="delta-icon">📉</span>
+          <div>
+            <div class="delta-val">-11,4 %</div>
+            <div class="delta-desc">sous le prix marché France</div>
+          </div>
+        </div>
+
+        <div class="trend-row">
+          <div class="trend-item">
+            <div class="t-label">7 jours</div>
+            <div class="t-val t-down">-0,8 %</div>
+          </div>
+          <div class="trend-item">
+            <div class="t-label">30 jours</div>
+            <div class="t-val t-down">-2,3 %</div>
+          </div>
+          <div class="trend-item">
+            <div class="t-label">Volume</div>
+            <div class="t-val t-flat">142 ann.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. GOOD DEAL BADGE -->
+    <div class="card deal-badge-card">
+      <div class="card-label">Recommandation</div>
+      <div class="deal-main">
+        <div class="deal-badge bonne">✓ Bonne affaire</div>
+
+        <div class="score-stars">
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star">★</span>
+          <span class="star empty">★</span>
+        </div>
+
+        <div class="deal-criteria">
+          <div class="criteria-item">
+            <span class="criteria-check">✅</span>
+            <span class="criteria-label">Prix sous le marché</span>
+            <span class="criteria-val">-11,4 %</span>
+          </div>
+          <div class="criteria-item">
+            <span class="criteria-check">✅</span>
+            <span class="criteria-label">Kilométrage cohérent</span>
+            <span class="criteria-val">68 000 km</span>
+          </div>
+          <div class="criteria-item">
+            <span class="criteria-check">✅</span>
+            <span class="criteria-label">Historique VIN clean</span>
+            <span class="criteria-val">0 accident</span>
+          </div>
+          <div class="criteria-item">
+            <span class="criteria-check">✅</span>
+            <span class="criteria-label">Liquidité élevée</span>
+            <span class="criteria-val">~12 jours</span>
+          </div>
+          <div class="criteria-item">
+            <span class="criteria-check">⚠️</span>
+            <span class="criteria-label">Rappel constructeur</span>
+            <span class="criteria-val">1 clôturé</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3a. VEHICLE SNAPSHOT -->
+    <div class="card snapshot-card">
+      <div class="card-label">Vehicle Snapshot</div>
+      <div class="specs-grid">
+        <div class="spec-item">
+          <div class="spec-label">Prix annonce</div>
+          <div class="spec-val">27 900 €</div>
+          <div class="spec-sub">Prix marché : 31 500 €</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Kilométrage</div>
+          <div class="spec-val">68 000</div>
+          <div class="spec-sub">Moyenne segment : 71 200 km</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Puissance</div>
+          <div class="spec-val">190 ch</div>
+          <div class="spec-sub">2.0 TDI · Euro 6d</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Finition</div>
+          <div class="spec-val">Sport Line</div>
+          <div class="spec-sub">Pack M Sport confirmé</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Boîte</div>
+          <div class="spec-val">Auto 8</div>
+          <div class="spec-sub">Steptronic</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Couleur</div>
+          <div class="spec-val">Bleu métallisé</div>
+          <div class="spec-sub">Tanzanite Blue II</div>
+        </div>
+      </div>
+      <div class="vin-confirm-bar">
+        <span class="icon">🔍</span>
+        <div class="text">
+          VIN <b>WBA8E1C50HA123456</b> vérifié — 1 propriétaire, entretien BMW, 0 sinistre déclaré
+        </div>
+        <span class="ts">il y a 2 min</span>
+      </div>
+    </div>
+
+    <!-- 3b. LIQUIDITY SCORE -->
+    <div class="card liquidity-card">
+      <div class="card-label">Liquidity Score</div>
+      <div class="liq-main">
+        <div>
+          <div class="liq-number-row">
+            <span class="liq-days">12</span>
+            <span class="liq-unit">jours</span>
+          </div>
+          <div class="liq-desc">durée de revente estimée · segment BMW Série 3 France</div>
+        </div>
+
+        <div>
+          <div class="liq-bar-wrap">
+            <div class="liq-bar-fill"></div>
+          </div>
+          <div class="liq-scale">
+            <span>Difficile (60j+)</span>
+            <span>Rapide (&lt;7j)</span>
+          </div>
+        </div>
+
+        <div class="liq-breakdown">
+          <div class="liq-break-item">
+            <span class="dot blue"></span>
+            <span class="lbl">Annonces actives (30j)</span>
+            <span class="val">142</span>
+          </div>
+          <div class="liq-break-item">
+            <span class="dot green"></span>
+            <span class="lbl">Annonces retirées (30j)</span>
+            <span class="val">89 vendues</span>
+          </div>
+          <div class="liq-break-item">
+            <span class="dot amber"></span>
+            <span class="lbl">Âge moyen stock</span>
+            <span class="val">18 jours</span>
+          </div>
+          <div class="liq-break-item">
+            <span class="dot green"></span>
+            <span class="lbl">Taux de rotation 30j</span>
+            <span class="val">62 %</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. EUROPE PRICE TRACKER -->
+    <div class="card price-tracker-card">
+      <div class="card-label">Europe Price Tracker · BMW 320d 2021</div>
+      <table class="market-table">
+        <thead>
+          <tr>
+            <th>Marché</th>
+            <th>Prix moyen</th>
+            <th>Annonces</th>
+            <th>vs France</th>
+            <th>Tendance 30j</th>
+            <th>Opportunité</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="flag">🇩🇪</span><span class="country-name">Allemagne</span></td>
+            <td><span class="price-avg">29 800 €</span></td>
+            <td><span class="price-listings">387 annonces</span></td>
+            <td class="price-delta-cell better">-5,4 %</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar-fill" style="width:87%;background:var(--ct-green)"></div>
+              </div>
+            </td>
+            <td><span class="best-badge">⭐ Meilleur prix</span></td>
+          </tr>
+          <tr>
+            <td><span class="flag">🇪🇸</span><span class="country-name">Espagne</span></td>
+            <td><span class="price-avg">30 100 €</span></td>
+            <td><span class="price-listings">89 annonces</span></td>
+            <td class="price-delta-cell better">-4,4 %</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar-fill" style="width:72%;background:var(--ct-accent)"></div>
+              </div>
+            </td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="flag">🇫🇷</span><span class="country-name">France</span></td>
+            <td><span class="price-avg">31 500 €</span></td>
+            <td><span class="price-listings">142 annonces</span></td>
+            <td class="price-delta-cell ref">référence</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar-fill" style="width:60%;background:var(--ct-accent)"></div>
+              </div>
+            </td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><span class="flag">🇮🇹</span><span class="country-name">Italie</span></td>
+            <td><span class="price-avg">32 400 €</span></td>
+            <td><span class="price-listings">54 annonces</span></td>
+            <td class="price-delta-cell worse">+2,9 %</td>
+            <td>
+              <div class="bar-wrap">
+                <div class="bar-fill" style="width:42%;background:var(--ct-amber)"></div>
+              </div>
+            </td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- /assets-grid -->
+
+  <!-- FOOTER -->
+  <footer class="page-footer">
+    <span>Swarm Platform · Automotive Intelligence · Step 1 Assets · Mock data</span>
+    <span>Données simulées — aucun appel API réel</span>
+  </footer>
+
+</body>
+</html>
