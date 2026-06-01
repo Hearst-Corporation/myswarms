@@ -76,13 +76,22 @@ export default async function AutomobilePage() {
             recommandation d&apos;achat, prix marché.
           </p>
         </div>
-        <Link
-          href="/automobile/nouvelle"
-          className="ct-seg-btn primary"
-          style={{ alignSelf: "center", whiteSpace: "nowrap" }}
-        >
-          → Nouvelle analyse
-        </Link>
+        <div style={{ display: "flex", gap: SPACING.sm, alignSelf: "center", flexWrap: "wrap" }}>
+          <Link
+            href="/automobile/marche"
+            className="ct-seg-btn"
+            style={{ whiteSpace: "nowrap" }}
+          >
+            Cote marché
+          </Link>
+          <Link
+            href="/automobile/nouvelle"
+            className="ct-seg-btn primary"
+            style={{ whiteSpace: "nowrap" }}
+          >
+            → Nouvelle analyse
+          </Link>
+        </div>
       </div>
 
       {/* Error */}
