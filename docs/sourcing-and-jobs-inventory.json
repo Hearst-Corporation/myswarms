@@ -1,0 +1,474 @@
+{
+  "scrapers": [
+    {
+      "id": "autoscout24",
+      "actor_id": "blackfalcondata~autoscout24-scraper",
+      "source": "AutoScout24",
+      "markets": ["FR", "DE", "IT", "ES", "NL", "BE", "AT", "CH"],
+      "fields_extracted": [
+        "id", "title", "price", "mileage", "year", "fuel",
+        "gearbox", "dealer", "location", "url", "imageUrl"
+      ],
+      "cache": {
+        "backend": "Upstash Redis REST",
+        "ttl_seconds": 300,
+        "graceful_fallback": true
+      },
+      "default_results": 25,
+      "max_results": 100,
+      "timeout_seconds": 120,
+      "routes": [
+        "POST /api/scrape/autoscout",
+        "GET /automobile/sourcing"
+      ],
+      "lib_files": [
+        "src/lib/apify/client.ts",
+        "src/lib/apify/autoscout.ts",
+        "src/lib/apify/types.ts"
+      ],
+      "api_file": "src/app/api/scrape/autoscout/route.ts",
+      "env_vars": ["APIFY_TOKEN", "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+      "trigger": "manual (user submits SourcingSearchForm)",
+      "db_write": false,
+      "risk": "HIGH — APIFY_TOKEN potentially in versioned .env.local",
+      "status": "PROD"
+    },
+    {
+      "id": "url_extraction",
+      "function": "extractVehicleFromUrl",
+      "lib_file": "src/lib/automobile/urlExtractor.ts",
+      "api_file": "src/app/api/automobile/extract-url/route.ts",
+      "domains_whitelist": [
+        "autoscout24.com",
+        "mobile.de",
+        "leboncoin.fr",
+        "lacentrale.fr",
+        "subito.it",
+        "milanuncios.com",
+        "coches.net"
+      ],
+      "extraction_methods": [
+        "json-ld (Product/Car/Offer schema)",
+        "meta tags (og:, twitter:)",
+        "text heuristics (regex year/price/mileage/fuel)"
+      ],
+      "fields_extracted": [
+        "make", "model", "year", "mileage_km", "fuel",
+        "price_eur", "country", "source_url", "image_url", "notes"
+      ],
+      "confidence_levels": ["high", "medium", "low"],
+      "max_html_bytes": 1000000,
+      "timeout_ms": 8000,
+      "dedup": {
+        "mode": "soft warning — never blocks",
+        "file": "src/lib/automobile/dedup.ts",
+        "scans_recent_n": 25
+      },
+      "env_vars": [
+        "AUTOMOBILE_URL_EXTRACT_TIMEOUT_MS",
+        "AUTOMOBILE_URL_EXTRACT_MAX_HTML_BYTES",
+        "AUTOMOBILE_DEDUP_SCAN_LIMIT",
+        "AUTOMOBILE_DEDUP_STATUS_TIMEOUT_MS"
+      ],
+      "trigger": "manual (user enters URL in AutomobileUrlFirstForm)",
+      "db_write": false,
+      "db_read": "swarm_runs (dedup check)",
+      "status": "PROD"
+    }
+  ],
+  "cron_jobs": [
+    {
+      "id": "chief-of-staff-morning",
+      "scheduler": "APScheduler",
+      "trigger_type": "CronTrigger",
+      "time": "08:00 (configurable via MORNING_HOUR/MORNING_MINUTE)",
+      "timezone": "Asia/Dubai (configurable via USER_TIMEZONE)",
+      "function": "_run_scheduled_kickoff",
+      "args": { "trigger": "morning" },
+      "flow": "ChiefOfStaffFlow",
+      "file": "services/crewai-engine/src/scheduler.py",
+      "config_file": "services/crewai-engine/src/config.py",
+      "persistence": ["chief_run_log", "chief_run_steps"],
+      "timeout_seconds": 900,
+      "misfire_grace_seconds": 300,
+      "on_complete": "TelegramSenderTool digest",
+      "fail_soft": true,
+      "enabled_flag": "SCHEDULER_ENABLED",
+      "risk": "MEDIUM — may double-run on pod restart within misfire grace period",
+      "idempotent": false,
+      "status": "PROD"
+    },
+    {
+      "id": "chief-of-staff-evening",
+      "scheduler": "APScheduler",
+      "trigger_type": "CronTrigger",
+      "time": "18:30 (configurable via EVENING_HOUR/EVENING_MINUTE)",
+      "timezone": "Asia/Dubai (configurable via USER_TIMEZONE)",
+      "function": "_run_scheduled_kickoff",
+      "args": { "trigger": "evening" },
+      "flow": "ChiefOfStaffFlow",
+      "file": "services/crewai-engine/src/scheduler.py",
+      "persistence": ["chief_run_log", "chief_run_steps"],
+      "timeout_seconds": 900,
+      "misfire_grace_seconds": 300,
+      "on_complete": "TelegramSenderTool digest",
+      "fail_soft": true,
+      "enabled_flag": "SCHEDULER_ENABLED",
+      "risk": "MEDIUM — same misfire risk as morning",
+      "idempotent": false,
+      "status": "PROD"
+    },
+    {
+      "id": "market-intel-scout",
+      "scheduler": "APScheduler",
+      "trigger_type": "CronTrigger",
+      "time": "07:50 (HARDCODED — not configurable)",
+      "function": "_run_market_intel_scout",
+      "file": "services/crewai-engine/src/scheduler.py",
+      "swarm_lookup": "SELECT FROM swarms WHERE name = 'Market Intelligence Scout' AND is_active = True",
+      "flow": "DynamicSwarmFlow",
+      "persistence": ["swarm_runs", "swarm_run_steps"],
+      "timeout_adaptive": "max(900, n_tasks * 120), cap 1800",
+      "on_complete": "TelegramSenderTool digest",
+      "fail_soft": "skip silently if swarm not found",
+      "risk": "MEDIUM — hardcoded time + swarm name coupling (fragile if swarm renamed)",
+      "status": "PROD"
+    },
+    {
+      "id": "stale-run-cleanup",
+      "scheduler": "APScheduler",
+      "trigger_type": "IntervalTrigger",
+      "interval_minutes": 10,
+      "function": "_cleanup_stale_runs",
+      "file": "services/crewai-engine/src/scheduler.py",
+      "action": "Mark rows with status='running' and age > 45min as 'failed'",
+      "scans": ["swarm_runs", "chief_run_log"],
+      "timeout_invariant": "45min * 60s = 2700s > MAX_FLOW_TIMEOUT_SECONDS=1800 — safe",
+      "risk": "LOW",
+      "status": "PROD"
+    }
+  ],
+  "external_sources": [
+    {
+      "name": "Apify",
+      "type": "scraping API",
+      "actor": "blackfalcondata~autoscout24-scraper",
+      "env_key": "APIFY_TOKEN",
+      "consumer": "src/lib/apify/autoscout.ts",
+      "output": "AutoScoutListing[]",
+      "automobile_ready": true,
+      "risk": "HIGH — token exposed in .env.local",
+      "status": "PROD"
+    },
+    {
+      "name": "APM Market Intelligence",
+      "type": "Supabase read-only (external project)",
+      "project_ref": "ipgqjrsvcqqmnihasxae",
+      "table": "market_index",
+      "access": "READ-ONLY",
+      "client_file": "src/lib/market/apmClient.ts",
+      "fields": [
+        "make", "model", "fuel", "median_price", "p15_price", "p85_price",
+        "market_velocity", "liquidity_score", "heat_score", "n_effective",
+        "confidence", "as_of"
+      ],
+      "timeout_ms": 5000,
+      "fail_soft": "returns null",
+      "env_vars": ["APM_MARKET_SUPABASE_URL", "APM_MARKET_SUPABASE_KEY", "APM_MARKET_TIMEOUT_MS"],
+      "automobile_ready": true,
+      "status": "PROD"
+    },
+    {
+      "name": "Composio",
+      "type": "OAuth + dynamic tools",
+      "toolkits": ["Gmail", "Slack", "Telegram", "Calendar", "Notion", "Trello"],
+      "env_vars": ["COMPOSIO_API_KEY", "COMPOSIO_USER_ID", "COMPOSIO_CALLBACK_URL"],
+      "route": "POST /api/sources/composio/connect",
+      "consumer": "Chief of Staff agents only",
+      "risk": "HIGH — COMPOSIO_USER_ID hardcoded 'adrien' in prod",
+      "automobile_ready": false,
+      "status": "PROD-PARTIEL"
+    },
+    {
+      "name": "Cortex (Vault RAG)",
+      "type": "RAG API (Obsidian vault)",
+      "env_vars": ["CORTEX_URL", "CORTEX_API_KEY"],
+      "consumer": "services/crewai-engine/src/tools/vault_search.py",
+      "automobile_ready": false,
+      "status": "REFERENCED-PROD"
+    },
+    {
+      "name": "Hypercli (Kimi K2.6)",
+      "type": "LLM provider (primary)",
+      "model": "openai/kimi-k2.6",
+      "env_vars": ["HYPERCLI_API_KEY", "HYPERCLI_BASE_URL", "HYPERCLI_DEFAULT_MODEL"],
+      "consumer": "all agents (policy: Hypercli-only)",
+      "automobile_ready": true,
+      "status": "PROD"
+    }
+  ],
+  "frontend_routes": [
+    {
+      "path": "/automobile",
+      "file": "src/app/automobile/page.tsx",
+      "method": "GET",
+      "auth": true,
+      "input": "ownerId (auth-derived)",
+      "output": ["KPIs", "decisions list", "market signals (APM)", "12 recent runs"],
+      "db_write": false,
+      "external_sources": ["APM getMarketIndex", "swarm_runs"],
+      "status": "PROD"
+    },
+    {
+      "path": "/automobile/nouvelle",
+      "file": "src/app/automobile/nouvelle/page.tsx",
+      "method": "GET + Server Action (triggerAnalyse)",
+      "auth": true,
+      "input": "query params (make, model, year, mileage_km, fuel, price_eur, country, source_url, image_url, notes)",
+      "output": ["SwarmInputForm (prefilled)", "dedup warning"],
+      "server_action": "triggerAnalyse → POST /v1/swarms/{id}/kickoff → redirect /automobile/{runId}",
+      "db_write": true,
+      "external_sources": ["extract-url API (si URL)"],
+      "status": "PROD"
+    },
+    {
+      "path": "/automobile/sourcing",
+      "file": "src/app/automobile/sourcing/page.tsx",
+      "method": "GET",
+      "auth": true,
+      "input": "query params (make, model, market, priceMin, priceMax)",
+      "output": ["AutoScoutListing[] table", "Analyser links"],
+      "db_write": false,
+      "external_sources": ["searchAutoScout() → Apify"],
+      "status": "PROD"
+    },
+    {
+      "path": "/automobile/marche",
+      "file": "src/app/automobile/marche/page.tsx",
+      "method": "GET",
+      "auth": true,
+      "input": "query params (make, model, fuel)",
+      "output": ["MarketIndex (price stats, velocity, liquidity, confidence)"],
+      "db_write": false,
+      "external_sources": ["getMarketIndex() → APM"],
+      "status": "PROD"
+    },
+    {
+      "path": "/automobile/historique",
+      "file": "src/app/automobile/historique/page.tsx",
+      "method": "GET",
+      "auth": true,
+      "output": ["swarm_runs list with filter/sort"],
+      "db_write": false,
+      "status": "PROD"
+    },
+    {
+      "path": "/automobile/[runId]",
+      "file": "src/app/automobile/[runId]/page.tsx",
+      "method": "GET",
+      "auth": true,
+      "input": "runId (URL param)",
+      "output": ["SwarmRun detail", "steps", "recommendation (APPELER/ATTENDRE/ÉVITER/UNKNOWN)"],
+      "db_write": false,
+      "status": "PROD"
+    }
+  ],
+  "backend_routes": [
+    {
+      "path": "/api/scrape/autoscout",
+      "method": "POST",
+      "file": "src/app/api/scrape/autoscout/route.ts",
+      "input": "{make, model, market, priceMin, priceMax, maxResults}",
+      "output": "{listings: AutoScoutListing[], count: number}",
+      "auth": true,
+      "db_write": false,
+      "external": "Apify actor",
+      "status": "PROD"
+    },
+    {
+      "path": "/api/automobile/extract-url",
+      "method": "POST",
+      "file": "src/app/api/automobile/extract-url/route.ts",
+      "input": "{url: string}",
+      "output": "{fields, confidence, warnings, duplicate, extractedFields}",
+      "auth": true,
+      "db_read": "swarm_runs (dedup)",
+      "db_write": false,
+      "status": "PROD"
+    },
+    {
+      "path": "/api/sources/composio/connect",
+      "method": "POST",
+      "file": "src/app/api/sources/composio/connect/route.ts",
+      "input": "{toolkit, auth_config_id?}",
+      "output": "{redirect_url}",
+      "auth": true,
+      "status": "PROD"
+    },
+    {
+      "path": "/v1/swarms/{id}/kickoff",
+      "service": "crewai-engine",
+      "method": "POST",
+      "file": "services/crewai-engine/src/routes/swarms.py",
+      "input": "{trigger, inputs}",
+      "output": "{run_id, status}",
+      "flow": "DynamicSwarmFlow",
+      "db_write": "swarm_runs, swarm_run_steps",
+      "status": "PROD"
+    },
+    {
+      "path": "/v1/tools",
+      "service": "crewai-engine",
+      "method": "GET",
+      "output": "[] (stub — not implemented)",
+      "status": "STUB"
+    }
+  ],
+  "tables": [
+    {
+      "name": "swarms",
+      "schema": "public",
+      "primary_key": "id (uuid)",
+      "owner_scoped": true,
+      "rls": true,
+      "written_by": "crewai-engine (DynamicSwarmFlow init)",
+      "read_by": ["next.js frontend", "crewai-engine scheduler"],
+      "automobile_use": "stores Automobile swarm definition"
+    },
+    {
+      "name": "swarm_runs",
+      "schema": "public",
+      "primary_key": "id (uuid)",
+      "owner_scoped": true,
+      "rls": true,
+      "written_by": "crewai-engine (DynamicSwarmFlow, stale-run cleanup)",
+      "read_by": ["next.js automobile pages", "crewai-engine scheduler"],
+      "automobile_use": "source of truth for all automobile analyses"
+    },
+    {
+      "name": "swarm_run_steps",
+      "schema": "public",
+      "primary_key": "id (uuid)",
+      "owner_scoped": true,
+      "rls": true,
+      "written_by": "crewai-engine",
+      "read_by": ["next.js /automobile/[runId]"],
+      "automobile_use": "step-by-step analysis detail"
+    },
+    {
+      "name": "chief_run_log",
+      "schema": "public",
+      "primary_key": "id (uuid)",
+      "owner_scoped": true,
+      "rls": true,
+      "written_by": "crewai-engine (ChiefOfStaffFlow, stale-run cleanup)",
+      "read_by": ["crewai-engine dashboard"],
+      "automobile_use": false
+    },
+    {
+      "name": "chief_decisions",
+      "schema": "public",
+      "primary_key": "id (uuid)",
+      "owner_scoped": true,
+      "rls": true,
+      "written_by": "crewai-engine (ChiefOfStaffFlow)",
+      "read_by": ["next.js /automobile dashboard (cockpit decisions panel)"],
+      "automobile_use": "decisions displayed in automobile dashboard (APPELER/ATTENDRE/ÉVITER)"
+    },
+    {
+      "name": "tools",
+      "schema": "public",
+      "primary_key": "id (uuid)",
+      "owner_scoped": false,
+      "rls": "public read (global_read=true) / owner write",
+      "written_by": "manual / crewai-engine",
+      "read_by": ["frontend tools manager"],
+      "automobile_use": false
+    }
+  ],
+  "automobile": {
+    "routes": [
+      "/automobile",
+      "/automobile/nouvelle",
+      "/automobile/sourcing",
+      "/automobile/marche",
+      "/automobile/historique",
+      "/automobile/[runId]",
+      "POST /api/scrape/autoscout",
+      "POST /api/automobile/extract-url"
+    ],
+    "features": [
+      "sourcing autoscout24 (apify, 8 countries, redis cache)",
+      "url extraction (json-ld + heuristics, 8 domains)",
+      "soft dedup warning",
+      "prefill from query params or url extraction",
+      "swarm analysis kickoff (on_demand)",
+      "dashboard cockpit (kpis, decisions, market signals)",
+      "market intelligence (apm read-only)",
+      "run history with filter and sort",
+      "run detail with steps and recommendation"
+    ],
+    "real_data": [
+      "AutoScout24 listings via Apify (live)",
+      "swarm_runs (Supabase fxeibmjebvxtoazuyyvz)",
+      "swarm_run_steps (Supabase fxeibmjebvxtoazuyyvz)",
+      "market_index via APM (Supabase ipgqjrsvcqqmnihasxae, read-only)"
+    ],
+    "partial": [
+      "dedup is soft-only (intentional design)",
+      "composio tools not exposed to automobile flow"
+    ],
+    "missing": [
+      "batch ingestion (CSV/JSON/API bulk)",
+      "price alerts / monitoring",
+      "push notifications",
+      "webhook inbound",
+      "scheduled automobile scraping"
+    ]
+  },
+  "risks": [
+    {
+      "id": "apify-token-exposed",
+      "description": "APIFY_TOKEN potentially committed in .env.local",
+      "severity": "HIGH",
+      "action": "Rotate token on apify.com, move to Railway/Vercel secrets"
+    },
+    {
+      "id": "composio-user-id-hardcoded",
+      "description": "COMPOSIO_USER_ID hardcoded 'adrien' in config.py — multi-tenant risk",
+      "severity": "HIGH",
+      "action": "Implement session-based scoping before any multi-user deployment"
+    },
+    {
+      "id": "scheduler-misfire-double-run",
+      "description": "APScheduler misfire grace 300s — pod restart may trigger double-run",
+      "severity": "MEDIUM",
+      "action": "Add idempotency check using run_id uniqueness + created_at guard"
+    },
+    {
+      "id": "market-intel-hardcoded-time",
+      "description": "Market Intel Scout scheduled at 07:50 hardcoded in scheduler.py",
+      "severity": "MEDIUM",
+      "action": "Externalize to config env var or DB config table"
+    },
+    {
+      "id": "market-intel-name-coupling",
+      "description": "Market Intel Scout lookup by swarm name (fragile if renamed)",
+      "severity": "MEDIUM",
+      "action": "Switch to lookup by swarm_id from config"
+    },
+    {
+      "id": "apm-silent-fallback",
+      "description": "APM returns null silently — UI degrades without alerting",
+      "severity": "MEDIUM",
+      "action": "Add telemetry tracking for APM fallback occurrences"
+    },
+    {
+      "id": "redis-optional-silent",
+      "description": "Redis cache is gracefully optional — cache misses degrade performance silently",
+      "severity": "MEDIUM",
+      "action": "Monitor fallback rate, ensure Redis uptime"
+    }
+  ],
+  "recommended_next_step": "Immediate (< 24h): Run `git log --all --grep=APIFY` to check if token was committed, rotate APIFY_TOKEN on apify.com, move to Railway/Vercel secrets. Then fix COMPOSIO_USER_ID session-based scoping before any multi-user deployment."
+}
