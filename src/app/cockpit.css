@@ -672,14 +672,17 @@ select:focus-visible {
   .ct-page-area { padding: 24px 16px 96px; }
 }
 
-/* ── ACCENT AUTOMOBILE (placeholder — à finaliser) ──
+/* ── ACCENT AUTOMOBILE — palette Azur Premium Motors ──
    Appliqué quand <html data-product="automobile"> (posé par DashboardSwitcher
-   selon la route). Couleurs PROVISOIRES — ajuster ces 4 variables pour le
-   branding automobile définitif. */
+   selon la route). Palette extraite d'azur-premium-motors.fr :
+   or champagne #caad87 (signature premium) · rouge corail #fe3e54 (action) ·
+   charcoal #272a34 (base sombre). */
 [data-product="automobile"] {
-  --ct-accent-strong: #2f9e6e;
-  --ct-accent-soft: rgba(47, 158, 110, 0.14);
-  --ct-border-accent: rgba(47, 158, 110, 0.45);
-  --ct-accent-maroon: rgba(47, 158, 110, 0.28);
+  --ct-accent-strong: #caad87;             /* or champagne — accent principal */
+  --ct-accent-soft: rgba(202, 173, 135, 0.14);
+  --ct-border-accent: rgba(202, 173, 135, 0.45);
+  --ct-accent-maroon: rgba(202, 173, 135, 0.20); /* glow premium chaud */
 }
+/* Rouge corail Azur (#fe3e54) dispo comme CTA dédié si besoin — non mappé sur
+   --ct-alert-error-text pour ne pas confondre action et erreur. */
 
