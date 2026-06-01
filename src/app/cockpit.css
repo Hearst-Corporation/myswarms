@@ -726,11 +726,11 @@ select:focus-visible {
   --ct-status-paused-bg: rgba(212, 187, 144, 0.10);
   --ct-status-paused-border: rgba(212, 187, 144, 0.30);
 }
-/* Boutons d'action (CTA) en rouge corail Azur #fe3e54 — la couleur d'action de
-   la marque (cf. boutons du site). Le blanc DS est remplacé dans l'espace auto. */
+/* Boutons d'action (CTA) en accent OR + léger dégradé (pas de rouge) — cohérent
+   avec les badges accent-only de l'espace automobile. */
 [data-product="automobile"] .ct-seg-btn.primary {
-  background: #fe3e54;
-  color: #ffffff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25), 0 4px 12px rgba(254, 62, 84, 0.25);
+  background: linear-gradient(135deg, #e3cb9c, #d4bb90);
+  color: #1c160c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.30), 0 4px 12px rgba(212, 187, 144, 0.22);
 }
 
