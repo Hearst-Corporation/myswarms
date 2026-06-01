@@ -7,11 +7,16 @@ import { createServerClient } from "@supabase/ssr";
 const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/health", "/api/system/status"];
 
 /**
- * Email unique autorisé à accéder à la plateforme.
- * Tout autre compte connecté est rejeté avec un redirect /login?error=unauthorized.
- * Configurable via ALLOWED_EMAIL (env var). Si absent en prod → fail-closed (personne n'entre).
+ * Emails autorisés à accéder à la plateforme (allowlist multi-tenant).
+ * `ALLOWED_EMAIL` accepte une liste séparée par des virgules — tout compte
+ * connecté dont l'email n'y figure pas est rejeté (/login?error=unauthorized).
+ * Liste vide → aucune restriction (tout user connecté passe). Rétro-compatible
+ * avec un email unique.
  */
-const ALLOWED_EMAIL = process.env.ALLOWED_EMAIL ?? null;
+const ALLOWED_EMAILS = (process.env.ALLOWED_EMAIL ?? "")
+  .split(",")
+  .map((e) => e.trim().toLowerCase())
+  .filter(Boolean);
 
 /**
  * updateSession : rafraîchit la session Supabase à chaque requête et redirige
@@ -73,8 +78,13 @@ async function updateSession(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(url);
   }
 
-  // Allowlist email : si un compte est connecté mais n'est pas l'email autorisé → éjecter
-  if (user && ALLOWED_EMAIL && user.email !== ALLOWED_EMAIL && !isPublic) {
+  // Allowlist email : si un compte est connecté mais n'est pas dans la liste → éjecter
+  if (
+    user &&
+    ALLOWED_EMAILS.length > 0 &&
+    !ALLOWED_EMAILS.includes((user.email ?? "").toLowerCase()) &&
+    !isPublic
+  ) {
     await supabase.auth.signOut();
     const url = request.nextUrl.clone();
     url.pathname = "/login";
