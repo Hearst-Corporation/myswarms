@@ -7,6 +7,8 @@ import { BottomBarSwarmActions } from "@/components/swarms/BottomBarSwarmActions
 import { LaunchButton } from "@/components/cockpit/LaunchButton";
 import { BUILDER_TABS, type BuilderTabId, parseBuilderTab } from "@/lib/swarms/builderTabs";
 import { useSwarmTemplate } from "@/lib/swarms/templateContext";
+import { MODULES } from "@/lib/tenant/modules";
+import { useTenantConfig } from "@/components/cockpit/TenantConfigProvider";
 
 const SWARM_DETAIL_REGEX = /^\/swarms\/([0-9a-f-]{36})$/i;
 const SWARM_EDIT_REGEX = /^\/swarms\/([0-9a-f-]{36})\/edit$/i;
@@ -17,6 +19,8 @@ export function AppBottomBar() {
   const searchParams = useSearchParams();
   const tablistRef = useRef<HTMLDivElement>(null);
   const { isTemplate: swarmIsTemplate } = useSwarmTemplate();
+  const { modules } = useTenantConfig();
+  const visibleModules = MODULES.filter((m) => modules.includes(m.id));
 
   const isHome = pathname === "/";
   const isSwarmsArea = pathname.startsWith("/swarms");
@@ -105,11 +109,21 @@ export function AppBottomBar() {
           </>
         ) : (
           <>
-            {/* Mode navigation normale */}
+            {/* Mode navigation normale — modules pilotés par le tenant */}
             <div className="ct-seg-track">
-              <Link href="/" className={`ct-seg-btn ${isHome ? "active" : ""}`}>Accueil</Link>
-              <Link href="/swarms" className={`ct-seg-btn ${isSwarmsArea ? "active" : ""}`}>Swarms</Link>
-              <Link href="/automobile" className={`ct-seg-btn ${isAutomotiveArea ? "active" : ""}`}>Automobile</Link>
+              {visibleModules.map((m) => {
+                const active =
+                  m.href === "/" ? isHome : pathname.startsWith(m.href);
+                return (
+                  <Link
+                    key={m.id}
+                    href={m.href}
+                    className={`ct-seg-btn ${active ? "active" : ""}`}
+                  >
+                    {m.label}
+                  </Link>
+                );
+              })}
             </div>
 
             {/* Actions contextuelles sur un swarm */}

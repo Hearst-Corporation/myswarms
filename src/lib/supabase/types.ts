@@ -411,6 +411,935 @@ export type Database = {
           },
         ]
       }
+      hedge_audit_log: {
+        Row: {
+          actor_id: string | null
+          actor_kind: string
+          chain_seq: number
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          ip_address: unknown
+          prev_hash: string | null
+          request_id: string | null
+          row_hash: string
+          severity: string
+          source_service: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          actor_kind: string
+          chain_seq: number
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          ip_address?: unknown
+          prev_hash?: string | null
+          request_id?: string | null
+          row_hash: string
+          severity: string
+          source_service?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          actor_kind?: string
+          chain_seq?: number
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          ip_address?: unknown
+          prev_hash?: string | null
+          request_id?: string | null
+          row_hash?: string
+          severity?: string
+          source_service?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      hedge_exec_orders_outbox: {
+        Row: {
+          attempts: number
+          client_order_id: string
+          created_at: string
+          decision_id: string
+          id: string
+          last_error: string | null
+          leg_index: number
+          locked_at: string | null
+          locked_by: string | null
+          order_payload: Json
+          prev_hash: string | null
+          request_id: string
+          row_hash: string
+          signature: string
+          status: string
+          tenant_id: string
+          ttl_at: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          client_order_id: string
+          created_at?: string
+          decision_id: string
+          id?: string
+          last_error?: string | null
+          leg_index: number
+          locked_at?: string | null
+          locked_by?: string | null
+          order_payload: Json
+          prev_hash?: string | null
+          request_id: string
+          row_hash: string
+          signature: string
+          status?: string
+          tenant_id: string
+          ttl_at: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          client_order_id?: string
+          created_at?: string
+          decision_id?: string
+          id?: string
+          last_error?: string | null
+          leg_index?: number
+          locked_at?: string | null
+          locked_by?: string | null
+          order_payload?: Json
+          prev_hash?: string | null
+          request_id?: string
+          row_hash?: string
+          signature?: string
+          status?: string
+          tenant_id?: string
+          ttl_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_exec_orders_outbox_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_risk_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hedge_exec_orders_outbox_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_execution_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          decision_id: string | null
+          id: string
+          kind: string
+          outbox_id: string | null
+          payload: Json
+          request_id: string | null
+          severity: string
+          symbol: string | null
+          tenant_id: string | null
+          venue: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          decision_id?: string | null
+          id?: string
+          kind: string
+          outbox_id?: string | null
+          payload?: Json
+          request_id?: string | null
+          severity: string
+          symbol?: string | null
+          tenant_id?: string | null
+          venue?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          decision_id?: string | null
+          id?: string
+          kind?: string
+          outbox_id?: string | null
+          payload?: Json
+          request_id?: string | null
+          severity?: string
+          symbol?: string | null
+          tenant_id?: string | null
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      hedge_execution_reports: {
+        Row: {
+          avg_fill_price: number | null
+          client_order_id: string
+          decision_id: string
+          dry_run: boolean
+          error_code: string | null
+          error_message: string | null
+          fees_usd: number | null
+          filled_size: number | null
+          id: string
+          latency_ms: number | null
+          outbox_id: string
+          prev_hash: string | null
+          request_id: string
+          requested_size: number | null
+          row_hash: string
+          side: string | null
+          status: string
+          submitted_at: string
+          symbol: string
+          tenant_id: string
+          venue: string
+          venue_order_id: string | null
+          venue_response: Json | null
+        }
+        Insert: {
+          avg_fill_price?: number | null
+          client_order_id: string
+          decision_id: string
+          dry_run?: boolean
+          error_code?: string | null
+          error_message?: string | null
+          fees_usd?: number | null
+          filled_size?: number | null
+          id?: string
+          latency_ms?: number | null
+          outbox_id: string
+          prev_hash?: string | null
+          request_id: string
+          requested_size?: number | null
+          row_hash: string
+          side?: string | null
+          status: string
+          submitted_at?: string
+          symbol: string
+          tenant_id: string
+          venue: string
+          venue_order_id?: string | null
+          venue_response?: Json | null
+        }
+        Update: {
+          avg_fill_price?: number | null
+          client_order_id?: string
+          decision_id?: string
+          dry_run?: boolean
+          error_code?: string | null
+          error_message?: string | null
+          fees_usd?: number | null
+          filled_size?: number | null
+          id?: string
+          latency_ms?: number | null
+          outbox_id?: string
+          prev_hash?: string | null
+          request_id?: string
+          requested_size?: number | null
+          row_hash?: string
+          side?: string | null
+          status?: string
+          submitted_at?: string
+          symbol?: string
+          tenant_id?: string
+          venue?: string
+          venue_order_id?: string | null
+          venue_response?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_execution_reports_decision_id_fkey"
+            columns: ["decision_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_risk_decisions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hedge_execution_reports_outbox_id_fkey"
+            columns: ["outbox_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_exec_orders_outbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hedge_execution_reports_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_kill_switches: {
+        Row: {
+          active: boolean
+          cleared_at: string | null
+          cleared_by: string | null
+          id: string
+          reason: string | null
+          scope: string
+          set_at: string
+          set_by: string | null
+          tenant_id: string | null
+          venue: string | null
+        }
+        Insert: {
+          active?: boolean
+          cleared_at?: string | null
+          cleared_by?: string | null
+          id?: string
+          reason?: string | null
+          scope: string
+          set_at?: string
+          set_by?: string | null
+          tenant_id?: string | null
+          venue?: string | null
+        }
+        Update: {
+          active?: boolean
+          cleared_at?: string | null
+          cleared_by?: string | null
+          id?: string
+          reason?: string | null
+          scope?: string
+          set_at?: string
+          set_by?: string | null
+          tenant_id?: string | null
+          venue?: string | null
+        }
+        Relationships: []
+      }
+      hedge_market_events: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          severity: string
+          source_event_ts: string | null
+          symbol: string | null
+          venue: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          severity: string
+          source_event_ts?: string | null
+          symbol?: string | null
+          venue: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          severity?: string
+          source_event_ts?: string | null
+          symbol?: string | null
+          venue?: string
+        }
+        Relationships: []
+      }
+      hedge_market_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          prev_hash: string | null
+          row_hash: string
+          signature: string
+          source: string
+          source_event_ts: string
+          symbol: string
+          taken_at: string
+          timeframe: string
+          venue: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          prev_hash?: string | null
+          row_hash: string
+          signature: string
+          source: string
+          source_event_ts: string
+          symbol: string
+          taken_at?: string
+          timeframe: string
+          venue: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          prev_hash?: string | null
+          row_hash?: string
+          signature?: string
+          source?: string
+          source_event_ts?: string
+          symbol?: string
+          taken_at?: string
+          timeframe?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      hedge_orderbook_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          prev_hash: string | null
+          row_hash: string
+          signature: string
+          source_event_ts: string
+          symbol: string
+          taken_at: string
+          venue: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          prev_hash?: string | null
+          row_hash: string
+          signature: string
+          source_event_ts: string
+          symbol: string
+          taken_at?: string
+          venue: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          prev_hash?: string | null
+          row_hash?: string
+          signature?: string
+          source_event_ts?: string
+          symbol?: string
+          taken_at?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      hedge_portfolio_snapshots: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          prev_hash: string | null
+          row_hash: string
+          signature: string
+          source: string
+          taken_at: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload: Json
+          prev_hash?: string | null
+          row_hash: string
+          signature: string
+          source: string
+          taken_at?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          prev_hash?: string | null
+          row_hash?: string
+          signature?: string
+          source?: string
+          taken_at?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
+      hedge_position_reconciliations: {
+        Row: {
+          created_at: string
+          cycle_at: string
+          db_positions: Json
+          diff_count: number
+          diffs: Json
+          id: string
+          prev_hash: string | null
+          remediation: Json
+          row_hash: string
+          status: string
+          tenant_id: string
+          venue: string
+          venue_positions: Json
+          worst_diff_usd: number
+        }
+        Insert: {
+          created_at?: string
+          cycle_at?: string
+          db_positions: Json
+          diff_count?: number
+          diffs?: Json
+          id?: string
+          prev_hash?: string | null
+          remediation?: Json
+          row_hash: string
+          status: string
+          tenant_id: string
+          venue: string
+          venue_positions: Json
+          worst_diff_usd?: number
+        }
+        Update: {
+          created_at?: string
+          cycle_at?: string
+          db_positions?: Json
+          diff_count?: number
+          diffs?: Json
+          id?: string
+          prev_hash?: string | null
+          remediation?: Json
+          row_hash?: string
+          status?: string
+          tenant_id?: string
+          venue?: string
+          venue_positions?: Json
+          worst_diff_usd?: number
+        }
+        Relationships: []
+      }
+      hedge_risk_decisions: {
+        Row: {
+          computed_at: string
+          decision: string
+          decision_ttl_seconds: number
+          engine_version: string
+          expires_at: string
+          id: string
+          portfolio_snapshot_id: string
+          prev_hash: string | null
+          reason_codes: string[]
+          request_id: string
+          risk_profile_id: string
+          row_hash: string
+          rules_eval: Json
+          signature: string
+          signing_key_id: string
+          sized_orders: Json
+          spec_id: string
+          tenant_id: string
+        }
+        Insert: {
+          computed_at?: string
+          decision: string
+          decision_ttl_seconds?: number
+          engine_version: string
+          expires_at: string
+          id?: string
+          portfolio_snapshot_id: string
+          prev_hash?: string | null
+          reason_codes?: string[]
+          request_id: string
+          risk_profile_id: string
+          row_hash: string
+          rules_eval: Json
+          signature: string
+          signing_key_id?: string
+          sized_orders: Json
+          spec_id: string
+          tenant_id: string
+        }
+        Update: {
+          computed_at?: string
+          decision?: string
+          decision_ttl_seconds?: number
+          engine_version?: string
+          expires_at?: string
+          id?: string
+          portfolio_snapshot_id?: string
+          prev_hash?: string | null
+          reason_codes?: string[]
+          request_id?: string
+          risk_profile_id?: string
+          row_hash?: string
+          rules_eval?: Json
+          signature?: string
+          signing_key_id?: string
+          sized_orders?: Json
+          spec_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_risk_decisions_portfolio_snapshot_id_fkey"
+            columns: ["portfolio_snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_portfolio_snapshots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hedge_risk_decisions_risk_profile_id_fkey"
+            columns: ["risk_profile_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_tenant_risk_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hedge_risk_decisions_spec_id_fkey"
+            columns: ["spec_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_strategy_specs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hedge_risk_decisions_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: true
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_run_events: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          payload: Json
+          produced_by: string
+          request_id: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          payload?: Json
+          produced_by: string
+          request_id: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          payload?: Json
+          produced_by?: string
+          request_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_run_events_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_run_jobs: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          locked_at: string | null
+          locked_by: string | null
+          plane: string
+          request_id: string
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          plane: string
+          request_id: string
+          status: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          locked_at?: string | null
+          locked_by?: string | null
+          plane?: string
+          request_id?: string
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_run_jobs_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: true
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_strategy_requests: {
+        Row: {
+          context: Json
+          created_at: string
+          id: string
+          intent_type: string
+          normalized: Json
+          prev_hash: string | null
+          raw_intent: string
+          request_id: string
+          row_hash: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          context?: Json
+          created_at?: string
+          id?: string
+          intent_type: string
+          normalized?: Json
+          prev_hash?: string | null
+          raw_intent: string
+          request_id: string
+          row_hash: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          context?: Json
+          created_at?: string
+          id?: string
+          intent_type?: string
+          normalized?: Json
+          prev_hash?: string | null
+          raw_intent?: string
+          request_id?: string
+          row_hash?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hedge_strategy_specs: {
+        Row: {
+          confidence: number
+          created_at: string
+          id: string
+          langfuse_trace_id: string | null
+          model: string
+          prev_hash: string | null
+          request_id: string
+          row_hash: string
+          signature: string
+          signing_key_id: string
+          spec: Json
+          spec_hash: string
+          status: string
+          swarm_signals_ref: string[]
+          tenant_id: string
+          validation_error: string | null
+        }
+        Insert: {
+          confidence: number
+          created_at?: string
+          id?: string
+          langfuse_trace_id?: string | null
+          model: string
+          prev_hash?: string | null
+          request_id: string
+          row_hash: string
+          signature: string
+          signing_key_id?: string
+          spec: Json
+          spec_hash: string
+          status?: string
+          swarm_signals_ref: string[]
+          tenant_id: string
+          validation_error?: string | null
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          id?: string
+          langfuse_trace_id?: string | null
+          model?: string
+          prev_hash?: string | null
+          request_id?: string
+          row_hash?: string
+          signature?: string
+          signing_key_id?: string
+          spec?: Json
+          spec_hash?: string
+          status?: string
+          swarm_signals_ref?: string[]
+          tenant_id?: string
+          validation_error?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_strategy_specs_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: true
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_swarm_signals: {
+        Row: {
+          agent: string
+          confidence: number | null
+          created_at: string
+          id: string
+          langfuse_trace_id: string | null
+          latency_ms: number | null
+          model: string | null
+          payload: Json
+          payload_hash: string
+          prev_hash: string | null
+          request_id: string
+          row_hash: string
+          signature: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          agent: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          langfuse_trace_id?: string | null
+          latency_ms?: number | null
+          model?: string | null
+          payload: Json
+          payload_hash: string
+          prev_hash?: string | null
+          request_id: string
+          row_hash: string
+          signature: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          agent?: string
+          confidence?: number | null
+          created_at?: string
+          id?: string
+          langfuse_trace_id?: string | null
+          latency_ms?: number | null
+          model?: string | null
+          payload?: Json
+          payload_hash?: string
+          prev_hash?: string | null
+          request_id?: string
+          row_hash?: string
+          signature?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hedge_swarm_signals_tenant_id_request_id_fkey"
+            columns: ["tenant_id", "request_id"]
+            isOneToOne: false
+            referencedRelation: "hedge_strategy_requests"
+            referencedColumns: ["tenant_id", "request_id"]
+          },
+        ]
+      }
+      hedge_tenant_risk_profiles: {
+        Row: {
+          active: boolean
+          allowed_assets: string[]
+          allowed_venues: string[]
+          atr_vol_target_pct: number
+          created_at: string
+          created_by: string | null
+          cvar_99_max_pct: number
+          daily_loss_limit_usd: number
+          id: string
+          kelly_cap: number
+          max_drawdown_pct: number
+          max_leverage: number
+          per_asset_notional_cap_usd: number
+          prev_hash: string | null
+          row_hash: string
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          active?: boolean
+          allowed_assets?: string[]
+          allowed_venues?: string[]
+          atr_vol_target_pct?: number
+          created_at?: string
+          created_by?: string | null
+          cvar_99_max_pct: number
+          daily_loss_limit_usd?: number
+          id?: string
+          kelly_cap?: number
+          max_drawdown_pct?: number
+          max_leverage?: number
+          per_asset_notional_cap_usd?: number
+          prev_hash?: string | null
+          row_hash: string
+          tenant_id: string
+          version: number
+        }
+        Update: {
+          active?: boolean
+          allowed_assets?: string[]
+          allowed_venues?: string[]
+          atr_vol_target_pct?: number
+          created_at?: string
+          created_by?: string | null
+          cvar_99_max_pct?: number
+          daily_loss_limit_usd?: number
+          id?: string
+          kelly_cap?: number
+          max_drawdown_pct?: number
+          max_leverage?: number
+          per_asset_notional_cap_usd?: number
+          prev_hash?: string | null
+          row_hash?: string
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           created_at: string | null
@@ -799,6 +1728,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_config: {
+        Row: {
+          created_at: string
+          modules: string[]
+          owner_id: string
+          product: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          modules?: string[]
+          owner_id: string
+          product?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          modules?: string[]
+          owner_id?: string
+          product?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tools: {
         Row: {
           auth_type: string | null
@@ -859,12 +1812,55 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_endpoints: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          events: string[]
+          id: string
+          secret: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          events?: string[]
+          id?: string
+          secret: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          events?: string[]
+          id?: string
+          secret?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      exec_readonly_sql: { Args: { q: string }; Returns: Json }
+      hedge_canonical_json: { Args: { payload: Json }; Returns: string }
+      hedge_chain_hash: {
+        Args: { payload: Json; prev_hash: string }
+        Returns: string
+      }
+      hedge_current_tenant_id: { Args: never; Returns: string }
+      hedge_is_blocked: {
+        Args: { p_tenant: string; p_venue: string }
+        Returns: boolean
+      }
     }
     Enums: {
       agent_role:
