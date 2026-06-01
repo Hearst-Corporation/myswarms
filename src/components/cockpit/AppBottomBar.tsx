@@ -26,6 +26,7 @@ export function AppBottomBar() {
   const isToolsArea = pathname.startsWith("/tools");
   const isWorkspaceArea = pathname.startsWith("/workspace");
   const isAutomotiveArea = pathname.startsWith("/automobile") || pathname.startsWith("/automotive");
+  const isSettingsArea = pathname.startsWith("/settings");
   const detailMatch = pathname.match(SWARM_DETAIL_REGEX);
   const isSwarmDetail = Boolean(detailMatch);
   const isSwarmEdit = SWARM_EDIT_REGEX.test(pathname);
@@ -46,7 +47,9 @@ export function AppBottomBar() {
             ? "Workspace"
             : isAutomotiveArea
               ? "Automobile"
-              : "Cockpit";
+              : isSettingsArea
+                ? "Paramètres"
+                : "Cockpit";
 
   const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
 
@@ -142,6 +145,12 @@ export function AppBottomBar() {
             className={`ct-seg-btn ${isAutomotiveArea ? "active" : ""}`}
           >
             Automobile
+          </Link>
+          <Link
+            href="/settings"
+            className={`ct-seg-btn ${isSettingsArea ? "active" : ""}`}
+          >
+            Paramètres
           </Link>
         </div>
 
