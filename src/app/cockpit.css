@@ -656,3 +656,19 @@ select:focus-visible {
 
 .ct-hub-bar { display: none !important; }
 
+/* ── SHELL RESPONSIVE ──
+   Desktop = rail gauche (88px) + centre (min 520px) + rail droit (420px) ≈ 1028px mini.
+   Sans ces règles le contenu déborde et se fait couper sous ~1028px de viewport.
+   Placé en FIN de fichier : doit venir après les définitions de base (.ct-rail-right,
+   .ct-center-panel, .ct-rail-left) pour les surcharger à spécificité égale.
+   ≤900px : chat Kimi masqué (secondaire) + min-width du centre libéré.
+   ≤640px : rail gauche affiné + padding contenu réduit + marge basse pour la bottom bar. */
+@media (max-width: 900px) {
+  .ct-rail-right { display: none; }
+  .ct-center-panel { min-width: 0; }
+}
+@media (max-width: 640px) {
+  .ct-rail-left { width: 56px; padding: 20px 0; }
+  .ct-page-area { padding: 24px 16px 96px; }
+}
+
