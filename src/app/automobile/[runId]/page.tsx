@@ -21,6 +21,8 @@ import { extractRecommendation } from "@/lib/swarms/recommendation";
 import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
 import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
 import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
+import { getDecision } from "@/lib/automobile/decisions";
+import { VehicleDecisionControl } from "@/components/automobile/VehicleDecisionControl";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +105,7 @@ export default async function AutomobileRunPage({ params }: PageProps) {
   const isRunning = isRunningStatus(run.status);
   const vehicleLabel = getVehicleLabel(run.inputs_json);
   const recommendation = extractRecommendation(run.result_text);
+  const decision = await getDecision(ownerId, runId);
 
   const inp = run.inputs_json ?? {};
   const priceEur =
@@ -180,6 +183,12 @@ export default async function AutomobileRunPage({ params }: PageProps) {
           <RecommendationBadge rec={recommendation} size="md" />
         </div>
       )}
+
+      {/* Décision humaine */}
+      <div className="ct-card" style={{ marginBottom: SPACING.lg }}>
+        <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>Décision</div>
+        <VehicleDecisionControl runId={runId} initial={decision} />
+      </div>
 
       {/* KPIs */}
       <KPIDashboard
