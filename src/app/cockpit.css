@@ -301,7 +301,8 @@ html, body {
   transform: translateX(-50%);
   z-index: 30;
   width: max-content;
-  max-width: calc(100% - 48px);
+  max-width: calc(100% - 32px);
+  overflow: hidden;
   padding: var(--ct-space-md) 28px;
   border-radius: var(--ct-radius-pill);
   background: var(--ct-surface-2);
@@ -319,7 +320,11 @@ html, body {
   display: flex;
   align-items: center;
   gap: var(--ct-space-lx);
+  overflow-x: auto;
+  max-width: 100%;
+  scrollbar-width: none;
 }
+.ct-bottom-bar-inner::-webkit-scrollbar { display: none; }
 .ct-bottom-label {
   font-size: var(--ct-font-size-sm);
   font-weight: 500;
@@ -464,6 +469,32 @@ html, body {
   .ct-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  /* Mobile : masquer les rails gauche/droite pour que le centre panel
+     prenne toute la largeur et que la bottom bar soit entièrement visible. */
+  .ct-rail-left,
+  .ct-rail-right {
+    display: none !important;
+  }
+  .ct-center-panel {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  /* Bottom bar mobile : couvre toute la largeur, scrollable horizontalement */
+  .ct-bottom-bar {
+    left: 16px !important;
+    right: 16px !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    overflow: visible !important;
+  }
+  .ct-bottom-bar-inner {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .ct-bottom-bar-inner::-webkit-scrollbar { display: none; }
 }
 .ct-kpi-card {
   background: var(--ct-surface-1);
