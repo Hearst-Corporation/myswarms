@@ -17,6 +17,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+// Garde anti-spam : le warning dev-bypass ne s'affiche qu'une fois par process
+// (sinon il se répète à chaque appel getOwnerId, désormais aussi via le layout).
+let devBypassWarned = false;
+
 /**
  * Erreur levée par requireOwnerId() quand aucune session n'est active.
  * Les route handlers attrapent cette classe et retournent 401.
@@ -45,9 +49,11 @@ export async function getOwnerId(): Promise<string | null> {
     process.env.DEV_BYPASS_AUTH === "true" &&
     process.env.NODE_ENV !== "production"
   ) {
-    // Warn loudly in dev so the bypass is never forgotten.
-    // Fail-closed in production: NODE_ENV check above prevents this branch from running.
-    if (typeof console !== "undefined") {
+    // Warn loudly in dev so the bypass is never forgotten — mais une seule fois
+    // par process (anti-spam). Fail-closed en prod : le check NODE_ENV ci-dessus
+    // empêche cette branche de tourner.
+    if (!devBypassWarned && typeof console !== "undefined") {
+      devBypassWarned = true;
       console.warn(
         "[auth] DEV_BYPASS_AUTH=true — authentication is DISABLED. " +
         "All requests treated as owner_id=" +
