@@ -168,6 +168,13 @@ export default async function SwarmDetailPage({ params }: PageProps) {
           <p className="ct-sub">
             {swarm.description || "No description."}
           </p>
+          <Link
+            href={`/swarms/${id}/schema`}
+            className="ct-link"
+            style={{ fontSize: FONT.sm }}
+          >
+            Voir le schéma des agents <Chevron direction="right" />
+          </Link>
         </div>
         <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center" }}>
           {isTemplate ? (
