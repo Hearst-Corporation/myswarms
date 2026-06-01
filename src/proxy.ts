@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 /**
  * Routes protégées — toute route non listée dans PUBLIC_PATHS requiert une session.
  */
-const PUBLIC_PATHS = ["/login", "/api/health", "/api/system/status"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/api/health", "/api/system/status"];
 
 /**
  * Email unique autorisé à accéder à la plateforme.

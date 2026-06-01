@@ -8,21 +8,16 @@ import type { SwarmRunSummary, SwarmRun } from "@/lib/forms/swarmSchemas";
 import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import type { Recommendation } from "@/lib/swarms/recommendation";
+import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
 
 export const metadata = { title: "Automobile — MySwarms" };
 export const dynamic = "force-dynamic";
 
 const APM_SWARM_ID = "cccccccc-0001-0001-0001-000000000001";
+const RUN_LIMIT = 50;
+const RECENT_COUNT = 5;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getVehicleLabel(inputs: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (inputs.year) parts.push(String(inputs.year));
-  if (inputs.make) parts.push(String(inputs.make));
-  if (inputs.model) parts.push(String(inputs.model));
-  return parts.join(" ") || "Véhicule";
-}
 
 const REC_COLOR: Record<Recommendation, string> = {
   APPELER: "var(--ct-state-ok)",
@@ -74,12 +69,12 @@ export default async function AutomobilePage() {
   let loadError: string | null = null;
 
   try {
-    summaries = await swarmsClient.listRuns(APM_SWARM_ID, 50, ownerId);
+    summaries = await swarmsClient.listRuns(APM_SWARM_ID, RUN_LIMIT, ownerId);
 
-    // Fetch full details seulement pour les 5 plus récents (inputs_json + result_text)
+    // Fetch full details seulement pour les plus récents (inputs_json + result_text)
     const top5 = [...summaries]
       .sort((a, b) => new Date(b.started_at).getTime() - new Date(a.started_at).getTime())
-      .slice(0, 5);
+      .slice(0, RECENT_COUNT);
 
     const details = await Promise.allSettled(
       top5.map((s) => swarmsClient.status(APM_SWARM_ID, s.id, ownerId))

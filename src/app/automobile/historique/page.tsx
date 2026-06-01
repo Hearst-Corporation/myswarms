@@ -4,6 +4,7 @@ import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { swarmsClient } from "@/lib/crewai/swarms";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import type { Recommendation } from "@/lib/swarms/recommendation";
+import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
@@ -17,14 +18,6 @@ const APM_SWARM_ID = "cccccccc-0001-0001-0001-000000000001";
 const RUN_LIMIT = 50;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-
-function getVehicleLabel(inputs: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (inputs.year) parts.push(String(inputs.year));
-  if (inputs.make) parts.push(String(inputs.make));
-  if (inputs.model) parts.push(String(inputs.model));
-  return parts.join(" ") || "Véhicule";
-}
 
 function getDurationMs(run: { started_at: string; finished_at?: string | null }): number | null {
   if (!run.started_at || !run.finished_at) return null;
@@ -79,8 +72,6 @@ const FILTER_OPTS: Array<{ label: string; value: string }> = [
   { label: "ATTENDRE", value: "ATTENDRE" },
   { label: "ÉVITER", value: "ÉVITER" },
 ];
-
-
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 

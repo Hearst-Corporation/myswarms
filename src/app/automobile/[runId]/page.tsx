@@ -10,7 +10,7 @@ import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { MarkdownReport } from "@/components/swarms/MarkdownReport";
 import { isMarkdown } from "@/lib/swarms/markdown";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
@@ -18,6 +18,7 @@ import { LiveIndicator } from "@/components/runs/LiveIndicator";
 import { isRunningStatus } from "@/lib/crewai/runStatus";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import type { Recommendation } from "@/lib/swarms/recommendation";
+import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
 
 export const dynamic = "force-dynamic";
 
@@ -28,14 +29,6 @@ interface PageProps {
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function getVehicleLabel(inputs: Record<string, unknown>): string {
-  const parts: string[] = [];
-  if (inputs.year) parts.push(String(inputs.year));
-  if (inputs.make) parts.push(String(inputs.make));
-  if (inputs.model) parts.push(String(inputs.model));
-  return parts.join(" ") || "Véhicule";
-}
 
 const REC_COLORS: Record<Recommendation, { bg: string; border: string; text: string; label: string }> = {
   APPELER:  { bg: "var(--ct-accent-soft)",       border: "var(--ct-border-accent)",  text: "var(--ct-accent-strong)",  label: "Appeler" },
@@ -59,7 +52,7 @@ function RecommendationBadge({ rec }: { rec: Recommendation }) {
         fontSize: FONT.md,
         fontWeight: FONT_WEIGHT.bold,
         color: c.text,
-        letterSpacing: "0.06em",
+        letterSpacing: LETTER_SPACING.wide,
         textTransform: "uppercase",
       }}
     >
