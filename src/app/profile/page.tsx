@@ -35,7 +35,7 @@ export default async function ProfilePage() {
         <p className="ct-sub">Informations de compte et accès rapide.</p>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl, maxWidth: 560 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl }}>
         <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
           <SectionLabel text="Compte" mb={SPACING.md} />
           <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
