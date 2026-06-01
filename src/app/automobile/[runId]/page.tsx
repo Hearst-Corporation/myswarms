@@ -10,56 +10,24 @@ import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { MarkdownReport } from "@/components/swarms/MarkdownReport";
 import { isMarkdown } from "@/lib/swarms/markdown";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
 import { LiveIndicator } from "@/components/runs/LiveIndicator";
 import { isRunningStatus } from "@/lib/crewai/runStatus";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
-import type { Recommendation } from "@/lib/swarms/recommendation";
+import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
 import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
+import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 
 export const dynamic = "force-dynamic";
-
-const APM_SWARM_ID = "cccccccc-0001-0001-0001-000000000001";
 
 interface PageProps {
   params: Promise<{ runId: string }>;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-const REC_COLORS: Record<Recommendation, { bg: string; border: string; text: string; label: string }> = {
-  APPELER:  { bg: "var(--ct-accent-soft)",       border: "var(--ct-border-accent)",  text: "var(--ct-accent-strong)",  label: "Appeler" },
-  ATTENDRE: { bg: "var(--ct-surface-2)",          border: "var(--ct-border)",         text: "var(--ct-text-muted)",     label: "Attendre" },
-  ÉVITER:   { bg: "var(--ct-alert-error-bg)",     border: "var(--ct-alert-error-border)", text: "var(--ct-alert-error-text)", label: "Éviter" },
-  UNKNOWN:  { bg: "var(--ct-surface-2)",          border: "var(--ct-border)",         text: "var(--ct-text-faint)",     label: "—" },
-};
-
-function RecommendationBadge({ rec }: { rec: Recommendation }) {
-  const c = REC_COLORS[rec];
-  return (
-    <div
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: SPACING.sm,
-        background: c.bg,
-        border: `1px solid ${c.border}`,
-        borderRadius: RADIUS.lg,
-        padding: `${SPACING.sm}px ${SPACING.lg}px`,
-        fontSize: FONT.md,
-        fontWeight: FONT_WEIGHT.bold,
-        color: c.text,
-        letterSpacing: LETTER_SPACING.wide,
-        textTransform: "uppercase",
-      }}
-    >
-      {c.label}
-    </div>
-  );
-}
 
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -95,7 +63,7 @@ export async function generateMetadata({ params }: PageProps) {
   if (!isValidUuid(runId)) return { title: "Analyse introuvable" };
   try {
     const ownerId = await getOwnerId();
-    const run = await swarmsClient.status(APM_SWARM_ID, runId, ownerId);
+    const run = await swarmsClient.status(AUTOMOBILE_SWARM_ID, runId, ownerId);
     const label = getVehicleLabel(run.inputs_json);
     return { title: `${label} · Analyse — MySwarms` };
   } catch {
@@ -113,7 +81,7 @@ export default async function AutomobileRunPage({ params }: PageProps) {
 
   let run;
   try {
-    run = await swarmsClient.status(APM_SWARM_ID, runId, ownerId);
+    run = await swarmsClient.status(AUTOMOBILE_SWARM_ID, runId, ownerId);
   } catch (err) {
     if (err instanceof SwarmEngineError && err.status === 404) notFound();
     return (
@@ -134,6 +102,12 @@ export default async function AutomobileRunPage({ params }: PageProps) {
   const isRunning = isRunningStatus(run.status);
   const vehicleLabel = getVehicleLabel(run.inputs_json);
   const recommendation = extractRecommendation(run.result_text);
+
+  const inp = run.inputs_json ?? {};
+  const priceEur =
+    typeof inp.price_eur === "number" ? inp.price_eur : Number(inp.price_eur) || null;
+  const sourceUrl =
+    typeof inp.source_url === "string" && inp.source_url.trim() ? inp.source_url : null;
 
   return (
     <>
@@ -202,7 +176,7 @@ export default async function AutomobileRunPage({ params }: PageProps) {
       {!isRunning && run.result_text && recommendation !== "UNKNOWN" && (
         <div className="ct-card" style={{ marginBottom: SPACING.lg }}>
           <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>Recommandation</div>
-          <RecommendationBadge rec={recommendation} />
+          <RecommendationBadge rec={recommendation} size="md" />
         </div>
       )}
 
@@ -253,6 +227,23 @@ export default async function AutomobileRunPage({ params }: PageProps) {
                 : "—"
             }
           />
+          {priceEur != null ? (
+            <Field label="Prix" value={`${priceEur.toLocaleString("fr-FR")} €`} />
+          ) : null}
+          {sourceUrl ? (
+            <div>
+              <div className="ct-eyebrow" style={{ marginBottom: SPACING.xs }}>Source</div>
+              <a
+                href={sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ct-link"
+                style={{ fontSize: FONT.base, wordBreak: "break-all" }}
+              >
+                Voir l&apos;annonce ↗
+              </a>
+            </div>
+          ) : null}
           {run.langfuse_trace_id ? (
             <Field label="Langfuse trace" value={run.langfuse_trace_id} mono />
           ) : null}

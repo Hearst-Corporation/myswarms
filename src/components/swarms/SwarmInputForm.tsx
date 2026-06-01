@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { AlertDialog } from "@/components/ui/AlertDialog";
+import { BrandModelPicker } from "@/components/swarms/BrandModelPicker";
 import type { InputField } from "@/lib/swarms/inputSchema";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -136,6 +137,9 @@ export function SwarmInputForm({ action, fields }: Props) {
   const [actionError, setActionError] = useState<string | undefined>();
   const formRef = useRef<HTMLFormElement>(null);
 
+  const hasBrandModel =
+    fields.some((f) => f.key === "make") && fields.some((f) => f.key === "model");
+
   // Client-side validation before confirmation dialog
   function validate(): boolean {
     const form = formRef.current;
@@ -197,9 +201,14 @@ export function SwarmInputForm({ action, fields }: Props) {
             gap: SPACING.lg,
           }}
         >
-          {fields.map((f) => (
-            <Field key={f.key} field={f} error={fieldErrors[f.key]} />
-          ))}
+          {/* Si le form contient make + model (template automobile), on les
+              remplace par le sélecteur Marque (avec logo) → Modèle dépendant. */}
+          {hasBrandModel && <BrandModelPicker />}
+          {fields
+            .filter((f) => !(hasBrandModel && (f.key === "make" || f.key === "model")))
+            .map((f) => (
+              <Field key={f.key} field={f} error={fieldErrors[f.key]} />
+            ))}
         </div>
 
         {/* Run button row */}

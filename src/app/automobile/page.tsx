@@ -5,53 +5,17 @@ import { swarmsClient } from "@/lib/crewai/swarms";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmRunSummary, SwarmRun } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
-import type { Recommendation } from "@/lib/swarms/recommendation";
+import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
 import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
+import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 
 export const metadata = { title: "Automobile — MySwarms" };
 export const dynamic = "force-dynamic";
 
-const APM_SWARM_ID = "cccccccc-0001-0001-0001-000000000001";
 const RUN_LIMIT = 50;
 const RECENT_COUNT = 5;
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const REC_COLOR: Record<Recommendation, string> = {
-  APPELER: "var(--ct-state-ok)",
-  ATTENDRE: "var(--ct-accent-strong)",
-  "ÉVITER": "var(--ct-alert-error-text)",
-  UNKNOWN: "var(--ct-text-faint)",
-};
-
-const REC_BG: Record<Recommendation, string> = {
-  APPELER: "rgba(39,174,96,0.12)",
-  ATTENDRE: "rgba(192,57,43,0.10)",
-  "ÉVITER": "rgba(231,76,60,0.12)",
-  UNKNOWN: "var(--ct-surface-3)",
-};
-
-function RecBadge({ rec }: { rec: Recommendation }) {
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: `${SPACING.xs}px ${SPACING.sm}px`,
-        borderRadius: RADIUS.full,
-        fontSize: FONT.xs,
-        fontWeight: FONT_WEIGHT.bold,
-        letterSpacing: LETTER_SPACING.wide,
-        textTransform: "uppercase",
-        color: REC_COLOR[rec],
-        background: REC_BG[rec],
-      }}
-    >
-      {rec === "UNKNOWN" ? "—" : rec}
-    </span>
-  );
-}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -69,7 +33,7 @@ export default async function AutomobilePage() {
   let loadError: string | null = null;
 
   try {
-    summaries = await swarmsClient.listRuns(APM_SWARM_ID, RUN_LIMIT, ownerId);
+    summaries = await swarmsClient.listRuns(AUTOMOBILE_SWARM_ID, RUN_LIMIT, ownerId);
 
     // Fetch full details seulement pour les plus récents (inputs_json + result_text)
     const top5 = [...summaries]
@@ -77,7 +41,7 @@ export default async function AutomobilePage() {
       .slice(0, RECENT_COUNT);
 
     const details = await Promise.allSettled(
-      top5.map((s) => swarmsClient.status(APM_SWARM_ID, s.id, ownerId))
+      top5.map((s) => swarmsClient.status(AUTOMOBILE_SWARM_ID, s.id, ownerId))
     );
     recentRuns = details
       .filter((r): r is PromiseFulfilledResult<SwarmRun> => r.status === "fulfilled")
@@ -248,7 +212,7 @@ export default async function AutomobilePage() {
                     <StatusBadge status={run.status} />
 
                     {/* Recommandation */}
-                    <RecBadge rec={rec} />
+                    <RecommendationBadge rec={rec} />
 
                     {/* Lien */}
                     <Link

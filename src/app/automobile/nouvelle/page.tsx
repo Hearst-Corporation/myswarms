@@ -6,8 +6,7 @@ import { parseInputSchema } from "@/lib/swarms/inputSchema";
 import { SwarmInputForm, type SwarmInputFormState } from "@/components/swarms/SwarmInputForm";
 import { Chevron } from "@/components/ui/Chevron";
 import { FONT, SPACING } from "@/lib/ui/tokens";
-
-const APM_SWARM_ID = "cccccccc-0001-0001-0001-000000000001";
+import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 
 export const metadata = { title: "Nouvelle analyse — Automobile" };
 export const dynamic = "force-dynamic";
@@ -21,13 +20,17 @@ export default async function NouvelleAnalysePage() {
     throw err;
   }
 
-  // Charger la config du template pour les champs du formulaire
+  // Charger la config du template pour les champs du formulaire.
+  // Si le swarm est inaccessible (engine down, swarm absent), on le signale
+  // explicitement plutôt que d'afficher un formulaire vide silencieux.
   let inputFields: ReturnType<typeof parseInputSchema> = [];
+  let loadFailed = false;
   try {
-    const swarm = await swarmsClient.get(APM_SWARM_ID, ownerId);
+    const swarm = await swarmsClient.get(AUTOMOBILE_SWARM_ID, ownerId);
     if (swarm) inputFields = parseInputSchema(swarm.config_json as Record<string, unknown>);
+    else loadFailed = true;
   } catch {
-    // silencieux — formulaire avec champs vides si swarm inaccessible
+    loadFailed = true;
   }
 
   // Server Action
@@ -47,7 +50,7 @@ export default async function NouvelleAnalysePage() {
     let runId: string;
     try {
       const result = await swarmsClient.kickoff(
-        APM_SWARM_ID,
+        AUTOMOBILE_SWARM_ID,
         { trigger: "on_demand", inputs },
         ownerId2,
       );
@@ -83,9 +86,33 @@ export default async function NouvelleAnalysePage() {
         </p>
       </div>
 
-      <div className="ct-card" style={{ padding: `${SPACING.lx}px`, maxWidth: 640 }}>
-        <SwarmInputForm action={triggerAnalyse} fields={inputFields} />
-      </div>
+      {loadFailed || inputFields.length === 0 ? (
+        <div
+          className="ct-card"
+          role="alert"
+          style={{
+            padding: `${SPACING.lx}px`,
+            maxWidth: 640,
+            borderColor: "var(--ct-alert-error-border)",
+            background: "var(--ct-alert-error-bg)",
+          }}
+        >
+          <div className="ct-card-title" style={{ marginBottom: SPACING.sm }}>
+            Formulaire indisponible
+          </div>
+          <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.md }}>
+            Le template d&apos;analyse est momentanément inaccessible (moteur
+            indisponible ou template introuvable). Réessaie dans un instant.
+          </p>
+          <Link href="/automobile/nouvelle" className="ct-seg-btn">
+            Réessayer
+          </Link>
+        </div>
+      ) : (
+        <div className="ct-card" style={{ padding: `${SPACING.lx}px`, maxWidth: 640 }}>
+          <SwarmInputForm action={triggerAnalyse} fields={inputFields} />
+        </div>
+      )}
     </>
   );
 }
