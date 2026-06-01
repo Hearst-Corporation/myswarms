@@ -94,9 +94,12 @@ function TabProfil({ email, ownerId }: { email: string | null; ownerId: string }
 
       <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
         <SectionLabel text="Session" />
-        <div style={{ marginTop: SPACING.md }}>
+        <div style={{ marginTop: SPACING.md, display: "flex", gap: SPACING.md, flexWrap: "wrap", alignItems: "center" }}>
           <Link href="/auth/signout" className="ct-seg-btn" style={{ color: "var(--ct-alert-error-text)" }}>
             Se déconnecter
+          </Link>
+          <Link href="/admin/users" className="ct-seg-btn">
+            👥 Gestion des utilisateurs
           </Link>
         </div>
       </section>
