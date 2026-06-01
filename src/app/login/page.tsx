@@ -21,10 +21,11 @@ export const metadata = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ returnTo?: string }>;
+  searchParams?: Promise<{ returnTo?: string; error?: string }>;
 }) {
   const params = await searchParams;
   const returnTo = params?.returnTo ?? "/";
+  const error = params?.error ?? null;
   return (
     <div
       style={{
@@ -101,6 +102,25 @@ export default async function LoginPage({
         >
           Restricted access — authentication required.
         </p>
+
+        {error === "unauthorized" && (
+          <div
+            role="alert"
+            style={{
+              width: "100%",
+              marginTop: SPACING.lg,
+              padding: `${SPACING.sm}px ${SPACING.md}px`,
+              borderRadius: RADIUS.md,
+              background: "var(--ct-alert-error-bg, rgba(239,68,68,.12))",
+              border: "1px solid var(--ct-alert-error-border, rgba(239,68,68,.3))",
+              fontSize: FONT.sm,
+              color: "var(--ct-alert-error-text)",
+              textAlign: "center",
+            }}
+          >
+            Accès non autorisé. Ce compte n&apos;est pas admis sur cette plateforme.
+          </div>
+        )}
 
         <LoginForm returnTo={returnTo} />
       </div>

@@ -7,6 +7,13 @@ import { createServerClient } from "@supabase/ssr";
 const PUBLIC_PATHS = ["/login", "/api/health", "/api/system/status"];
 
 /**
+ * Email unique autorisé à accéder à la plateforme.
+ * Tout autre compte connecté est rejeté avec un redirect /login?error=unauthorized.
+ * Configurable via ALLOWED_EMAIL (env var). Si absent en prod → fail-closed (personne n'entre).
+ */
+const ALLOWED_EMAIL = process.env.ALLOWED_EMAIL ?? null;
+
+/**
  * updateSession : rafraîchit la session Supabase à chaque requête et redirige
  * vers /login si aucune session n'est présente sur une route protégée.
  *
@@ -64,6 +71,16 @@ async function updateSession(request: NextRequest): Promise<NextResponse> {
     url.pathname = "/login";
     url.searchParams.set("returnTo", pathname);
     return NextResponse.redirect(url);
+  }
+
+  // Allowlist email : si un compte est connecté mais n'est pas l'email autorisé → éjecter
+  if (user && ALLOWED_EMAIL && user.email !== ALLOWED_EMAIL && !isPublic) {
+    await supabase.auth.signOut();
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    url.searchParams.set("error", "unauthorized");
+    const response = NextResponse.redirect(url);
+    return response;
   }
 
   // IMPORTANT : retourner supabaseResponse (et non un nouveau NextResponse.next())
