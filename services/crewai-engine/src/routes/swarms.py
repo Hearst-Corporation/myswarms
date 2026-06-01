@@ -913,10 +913,13 @@ def composio_connect_endpoint(
         from composio import Composio  # type: ignore[import-untyped]
 
         c = Composio(api_key=settings.COMPOSIO_API_KEY)
-        result = c.connected_accounts.initiate(
-            user_id=oid,
-            auth_config_id=auth_config_id,
-        )
+        initiate_kwargs: dict = {
+            "user_id": oid,
+            "auth_config_id": auth_config_id,
+        }
+        if settings.COMPOSIO_CALLBACK_URL:
+            initiate_kwargs["callback_url"] = settings.COMPOSIO_CALLBACK_URL
+        result = c.connected_accounts.initiate(**initiate_kwargs)
         redirect_url = getattr(result, "redirect_url", None) or getattr(result, "redirectUrl", None)
         if not redirect_url:
             raise HTTPException(status_code=502, detail="Composio did not return a redirect_url")

@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     # Composio — multi-channel tools (Gmail, Slack, Telegram, Calendar, Notion)
     COMPOSIO_API_KEY: str = ""
     COMPOSIO_USER_ID: str = "adrien"  # entity_id for multi-tenant support — TODO multi-tenant
+    COMPOSIO_CALLBACK_URL: str = ""  # e.g. https://myswarms.vercel.app/settings/integrations/callback
 
     # Telegram
     TELEGRAM_BOT_TOKEN: str = ""
