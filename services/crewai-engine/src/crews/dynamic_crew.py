@@ -172,22 +172,38 @@ _STEP_OUTPUT_PREVIEW_CHARS = 2000
 # Clés méta éventuelles à exclure du bloc d'inputs injecté dans le prompt racine.
 _INPUT_META_KEYS = {"swarm_id", "run_id", "trigger", "owner_id"}
 
+# Bornage défensif du bloc d'inputs injecté dans la task racine : évite qu'une
+# valeur pathologique (notes, source_url très long) gonfle le prompt de façon
+# incontrôlée (anti-bloat, cohérent avec le revert anti-hang 3b0b13e).
+# Les champs courts habituels (make/model/year/price_eur/fuel/country) ne sont
+# jamais tronqués en pratique.
+_INPUT_VALUE_MAX_CHARS: int = 200  # troncature à cette longueur + ellipsis
+_INPUT_MAX_LINES: int = 12  # au plus N paires clé/valeur rendues
+
 
 def _render_inputs_block(inputs: dict[str, Any] | None) -> str:
     """Bloc lisible des inputs réels du run, injecté UNIQUEMENT dans la task
     racine (Data Collector) pour grounder l'analyse sur le véhicule fourni
     (anti-hallucination). Les agents aval reçoivent le véhicule via le context
     CrewAI. Valeurs non vides, clés méta exclues, accolades neutralisées pour ne
-    pas casser l'interpolation CrewAI. Retourne '' si rien."""
+    pas casser l'interpolation CrewAI. Retourne '' si rien.
+
+    Bornage défensif : chaque valeur est tronquée à _INPUT_VALUE_MAX_CHARS et
+    au plus _INPUT_MAX_LINES paires sont rendues (anti-bloat du prompt racine).
+    """
     if not inputs:
         return ""
     lines: list[str] = []
     for key, value in inputs.items():
+        if len(lines) >= _INPUT_MAX_LINES:
+            break
         if key in _INPUT_META_KEYS or value is None:
             continue
         text = str(value).strip().replace("{", "").replace("}", "")
         if not text:
             continue
+        if len(text) > _INPUT_VALUE_MAX_CHARS:
+            text = text[:_INPUT_VALUE_MAX_CHARS] + "…"
         lines.append(f"- {key}: {text}")
     if not lines:
         return ""
@@ -499,6 +515,11 @@ def instantiate_tasks(
         expected_output = (row.get("expected_output") or "Task output").strip()
 
         depends_on = row.get("depends_on_task_id")
+        # Injection du bloc uniquement dans les tasks racines (sans depends_on).
+        # Edge multi-racines : un DAG avec plusieurs entrées recevrait le bloc
+        # en double (une fois par task racine) — le template Automobile n'a
+        # qu'une seule racine (Data Collector), donc ce cas ne se produit pas
+        # en production. À documenter si un swarm multi-racines est introduit.
         if inputs_block and not depends_on:
             description = f"{description}{inputs_block}"
         context_tasks: list[Task] = []
