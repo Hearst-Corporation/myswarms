@@ -24,6 +24,12 @@ const TOOLS_BLOCK = `Tu disposes d'outils admin (function calling) :
 - run_command(command, timeout_ms?) — npm/npx/git/tsc/eslint/vitest/node/pnpm/yarn uniquement
 - sql_query(query) — SELECT/WITH/EXPLAIN via RLS de l'utilisateur
 
+Outils Automobile (actions directes sur la plateforme) :
+- launch_automobile_analysis(make, model, year?, mileage_km?, fuel?, price_eur?, country?, source_url?, notes?) — lance une analyse swarm
+- get_automobile_run(run_id) — statut + résultat d'une analyse
+- list_automobile_analyses(limit?) — liste les dernières analyses
+- search_automobile_sourcing(make, model?, market?, price_min?, price_max?) — cherche des annonces AutoScout24
+
 Règles d'usage :
 - Avant d'écrire dans un fichier, lis-le si tu n'es pas sûr de son contenu actuel.
 - Ne fais JAMAIS d'écriture spéculative "au cas où". Une action = une raison claire.
@@ -45,6 +51,7 @@ const PROJECT_MAP = `Carte projet (mémoire de travail, peut être périmée —
 - src/lib/supabase/       Clients server / client / types DB
 - src/lib/observability/  Wrapper Langfuse
 - src/lib/cockpit-agent/  (toi-même) — tools, prompt, runtime
+- src/lib/automobile/         Config + utils automobile (swarm ID, prefill, dédup, decisions)
 - supabase/migrations/    Migrations DDL versionnées
 - services/crewai-engine/ Microservice Python (FastAPI + CrewAI)
 - docs/                   Docs API + crewai

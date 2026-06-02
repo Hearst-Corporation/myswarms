@@ -9,10 +9,14 @@ import {
   validateCommand,
   validateReadOnlySql,
 } from "./scope";
+import { swarmsClient } from "@/lib/crewai/swarms";
+import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
+import { searchAutoScout } from "@/lib/apify/autoscout";
 
 export type ToolContext = {
   supabase: SupabaseClient;
   signal: AbortSignal;
+  ownerId?: string | null;
 };
 
 export type ToolResult = {
@@ -118,6 +122,73 @@ export const TOOL_SCHEMAS = [
           query: { type: "string", description: "Une seule requête, sans point-virgule final superflu" },
         },
         required: ["query"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "launch_automobile_analysis",
+      description: "Lance une analyse Automobile (swarm Vehicle Research) pour un véhicule. Retourne le run_id immédiatement — l'analyse tourne en arrière-plan.",
+      parameters: {
+        type: "object",
+        properties: {
+          make: { type: "string", description: "Marque (ex: BMW)" },
+          model: { type: "string", description: "Modèle (ex: 330d)" },
+          year: { type: "number", description: "Année d'immatriculation (optionnel)" },
+          mileage_km: { type: "number", description: "Kilométrage (optionnel)" },
+          fuel: { type: "string", description: "Carburant: diesel, essence, hybride, électrique (optionnel)" },
+          price_eur: { type: "number", description: "Prix en euros (optionnel)" },
+          country: { type: "string", description: "Code pays ISO-2 (ex: FR) (optionnel)" },
+          source_url: { type: "string", description: "URL de l'annonce (optionnel)" },
+          notes: { type: "string", description: "Notes libres (optionnel)" },
+        },
+        required: ["make", "model"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_automobile_run",
+      description: "Récupère le statut et le résultat d'une analyse Automobile par son run_id.",
+      parameters: {
+        type: "object",
+        properties: {
+          run_id: { type: "string", description: "UUID du run" },
+        },
+        required: ["run_id"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "list_automobile_analyses",
+      description: "Liste les dernières analyses Automobile de l'utilisateur.",
+      parameters: {
+        type: "object",
+        properties: {
+          limit: { type: "number", description: "Nombre max de résultats (défaut: 10, max: 50)" },
+        },
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "search_automobile_sourcing",
+      description: "Cherche des annonces AutoScout24 en temps réel. Retourne jusqu'à 10 annonces avec prix, km, carburant, URL.",
+      parameters: {
+        type: "object",
+        properties: {
+          make: { type: "string", description: "Marque (ex: BMW)" },
+          model: { type: "string", description: "Modèle (ex: 330d) (optionnel)" },
+          market: { type: "string", description: "Marché: fr, de, it, es, be, nl, at, ch (défaut: fr)" },
+          price_min: { type: "number", description: "Prix min € (optionnel)" },
+          price_max: { type: "number", description: "Prix max € (optionnel)" },
+        },
+        required: ["make"],
       },
     },
   },
@@ -329,6 +400,113 @@ async function sqlQueryTool(args: { query: string }, ctx: ToolContext): Promise<
   return { ok: true, data: { rows: data } };
 }
 
+async function launchAutomobileAnalysisTool(
+  args: { make: string; model: string; year?: number; mileage_km?: number; fuel?: string; price_eur?: number; country?: string; source_url?: string; notes?: string },
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  if (!ctx.ownerId) return { ok: false, error: "ownerId requis pour lancer une analyse" };
+  try {
+    const inputs: Record<string, unknown> = { make: args.make, model: args.model };
+    if (args.year != null) inputs.year = args.year;
+    if (args.mileage_km != null) inputs.mileage_km = args.mileage_km;
+    if (args.fuel) inputs.fuel = args.fuel;
+    if (args.price_eur != null) inputs.price_eur = args.price_eur;
+    if (args.country) inputs.country = args.country;
+    if (args.source_url) inputs.source_url = args.source_url;
+    if (args.notes) inputs.notes = args.notes;
+    const result = await swarmsClient.kickoff(
+      AUTOMOBILE_SWARM_ID,
+      { trigger: "on_demand", inputs },
+      ctx.ownerId,
+    );
+    return { ok: true, data: { run_id: result.run_id, message: `Analyse lancée — run_id: ${result.run_id}. Utilise get_automobile_run pour suivre la progression.` } };
+  } catch (err) {
+    return { ok: false, error: `launch_automobile_analysis: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+async function getAutomobileRunTool(
+  args: { run_id: string },
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  if (!ctx.ownerId) return { ok: false, error: "ownerId requis" };
+  try {
+    const run = await swarmsClient.status(AUTOMOBILE_SWARM_ID, args.run_id, ctx.ownerId);
+    return {
+      ok: true,
+      data: {
+        id: run.id,
+        status: run.status,
+        started_at: run.started_at,
+        finished_at: run.finished_at,
+        total_tokens: run.total_tokens_in + run.total_tokens_out,
+        result_summary: run.result_text ? run.result_text.slice(0, 1200) : null,
+        inputs: run.inputs_json,
+        steps: run.steps.map((s) => ({ agent: s.agent_name, status: s.status, tokens: s.tokens_in + s.tokens_out })),
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: `get_automobile_run: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+async function listAutomobileAnalysesTool(
+  args: { limit?: number },
+  ctx: ToolContext,
+): Promise<ToolResult> {
+  if (!ctx.ownerId) return { ok: false, error: "ownerId requis" };
+  try {
+    const limit = Math.min(args.limit ?? 10, 50);
+    const runs = await swarmsClient.listRuns(AUTOMOBILE_SWARM_ID, limit, ctx.ownerId);
+    return {
+      ok: true,
+      data: {
+        count: runs.length,
+        runs: runs.map((r) => ({
+          id: r.id,
+          status: r.status,
+          started_at: r.started_at,
+          tokens: r.total_tokens_in + r.total_tokens_out,
+        })),
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: `list_automobile_analyses: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+async function searchAutomobileSourcingTool(
+  args: { make: string; model?: string; market?: string; price_min?: number; price_max?: number },
+): Promise<ToolResult> {
+  try {
+    const listings = await searchAutoScout({
+      make: args.make,
+      model: args.model,
+      market: args.market ?? "fr",
+      priceMin: args.price_min,
+      priceMax: args.price_max,
+      maxResults: 10,
+    });
+    return {
+      ok: true,
+      data: {
+        count: listings.length,
+        listings: listings.map((l) => ({
+          title: l.title,
+          price: l.price,
+          mileage: l.mileage,
+          year: l.year,
+          fuel: l.fuel,
+          url: l.url,
+          location: l.location,
+        })),
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: `search_automobile_sourcing: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 export async function dispatchTool(
   name: string,
   rawArgs: string,
@@ -353,6 +531,14 @@ export async function dispatchTool(
       return runCommandTool(args as { command: string; timeout_ms?: number }, ctx);
     case "sql_query":
       return sqlQueryTool(args as { query: string }, ctx);
+    case "launch_automobile_analysis":
+      return launchAutomobileAnalysisTool(args as Parameters<typeof launchAutomobileAnalysisTool>[0], ctx);
+    case "get_automobile_run":
+      return getAutomobileRunTool(args as { run_id: string }, ctx);
+    case "list_automobile_analyses":
+      return listAutomobileAnalysesTool(args as { limit?: number }, ctx);
+    case "search_automobile_sourcing":
+      return searchAutomobileSourcingTool(args as Parameters<typeof searchAutomobileSourcingTool>[0]);
     default:
       return { ok: false, error: `tool inconnu: ${name}` };
   }
@@ -377,6 +563,18 @@ export function summarizeToolCall(name: string, rawArgs: string): string {
     case "sql_query": {
       const q = String(args.query ?? "");
       return `sql(${q.length > 60 ? q.slice(0, 57) + "..." : q})`;
+    }
+    case "launch_automobile_analysis": {
+      const a = args as { make?: string; model?: string };
+      return `launch_automobile_analysis(${a.make ?? ""} ${a.model ?? ""})`;
+    }
+    case "get_automobile_run":
+      return `get_automobile_run(${String(args.run_id ?? "")})`;
+    case "list_automobile_analyses":
+      return `list_automobile_analyses(limit=${String(args.limit ?? 10)})`;
+    case "search_automobile_sourcing": {
+      const a = args as { make?: string; market?: string };
+      return `search_automobile_sourcing(${a.make ?? ""}, ${a.market ?? "fr"})`;
     }
     default:
       return `${name}(…)`;
