@@ -51,5 +51,3 @@ export function CtButton({
     </button>
   );
 }
-
-export default CtButton;

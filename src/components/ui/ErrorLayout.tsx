@@ -19,5 +19,3 @@ export function ErrorLayout({ title, message, children }: ErrorLayoutProps) {
     </section>
   );
 }
-
-export default ErrorLayout;
