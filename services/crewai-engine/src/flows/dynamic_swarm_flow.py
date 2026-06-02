@@ -180,7 +180,7 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
             # G3 fix : on passe run_id pour que `create_dynamic_crew` installe
             # le step_callback / task_callback qui persiste les steps dans
             # `swarm_run_steps`.
-            crew = create_dynamic_crew(swarm_id, run_id=run_id, owner_id=self.state.owner_id)
+            crew = create_dynamic_crew(swarm_id, run_id=run_id, owner_id=self.state.owner_id, inputs=self.state.inputs or {})
             result = crew.kickoff(inputs=self.state.inputs or {})
 
             # P0-2 : drain le writer AVANT de toucher swarm_runs.
