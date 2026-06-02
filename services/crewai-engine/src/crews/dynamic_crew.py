@@ -169,32 +169,6 @@ def flush_run_steps(run_id: str | None) -> None:
 # `swarm_run_steps`. On garde un preview lisible côté UI.
 _STEP_OUTPUT_PREVIEW_CHARS = 2000
 
-# Clés méta éventuelles à exclure du bloc d'inputs injecté dans les prompts.
-_INPUT_META_KEYS = {"swarm_id", "run_id", "trigger", "owner_id"}
-
-
-def _render_inputs_block(inputs: dict[str, Any] | None) -> str:
-    """Bloc lisible des inputs réels du run, injecté dans la description des
-    tasks pour que les agents analysent le véhicule FOURNI (anti-hallucination).
-    Ne rend que les valeurs non vides, exclut les clés méta. Retourne '' si rien."""
-    if not inputs:
-        return ""
-    lines: list[str] = []
-    for key, value in inputs.items():
-        if key in _INPUT_META_KEYS or value is None:
-            continue
-        text = str(value).strip().replace("{", "").replace("}", "")
-        if not text:
-            continue
-        lines.append(f"- {key}: {text}")
-    if not lines:
-        return ""
-    return (
-        "\n\n## DONNÉES FOURNIES POUR CETTE ANALYSE (source de vérité — utilise "
-        "EXCLUSIVEMENT ces valeurs, n'invente AUCUN autre véhicule)\n"
-        + "\n".join(lines)
-    )
-
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -439,7 +413,6 @@ def _topological_sort_tasks(
 def instantiate_tasks(
     agents_map: dict[str, Agent],
     swarm_config: dict[str, Any],
-    inputs_block: str = "",
 ) -> list[tuple[dict[str, Any], Task]]:
     """Construit la liste ordonnée de paires (meta DB, Task CrewAI).
 
@@ -494,8 +467,6 @@ def instantiate_tasks(
             continue
 
         description = (row.get("description") or row.get("name") or "").strip()
-        if inputs_block:
-            description = f"{description}{inputs_block}"
         expected_output = (row.get("expected_output") or "Task output").strip()
 
         depends_on = row.get("depends_on_task_id")
@@ -684,12 +655,7 @@ def _module_task_callback(run_id: str, task_output: Any) -> None:
         )
 
 
-def create_dynamic_crew(
-    swarm_id: str,
-    run_id: str | None = None,
-    owner_id: str | None = None,
-    inputs: dict[str, Any] | None = None,
-) -> Crew:
+def create_dynamic_crew(swarm_id: str, run_id: str | None = None, owner_id: str | None = None) -> Crew:
     """Charge un swarm DB et renvoie un Crew CrewAI prêt à être kickoff.
 
     Args:
@@ -699,9 +665,6 @@ def create_dynamic_crew(
                    step dans `swarm_run_steps` — G3 fix.
         owner_id:  UUID du tenant (optionnel). Si fourni, Composio utilise
                    ce user_id pour l'authentification par tenant.
-        inputs:    Dict des inputs réels du run (ex : make/model/year/…).
-                   Un bloc lisible est injecté dans la description de CHAQUE
-                   task (anti-hallucination) via `_render_inputs_block`.
 
     Raises:
         ValueError: si le swarm n'existe pas ou n'a aucun agent/task valide.
@@ -714,8 +677,7 @@ def create_dynamic_crew(
     if not agents_map:
         raise ValueError(f"Swarm {swarm_id} has no instantiable agents")
 
-    inputs_block = _render_inputs_block(inputs)
-    task_pairs = instantiate_tasks(agents_map, swarm_config, inputs_block=inputs_block)
+    task_pairs = instantiate_tasks(agents_map, swarm_config)
     if not task_pairs:
         raise ValueError(f"Swarm {swarm_id} has no instantiable tasks")
     tasks = [task for _meta, task in task_pairs]
