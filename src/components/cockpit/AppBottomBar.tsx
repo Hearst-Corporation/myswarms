@@ -29,6 +29,7 @@ const MASTER_MODULES = [
   { id: "crews", label: "Crews", href: "/crews/chief-of-staff" },
   { id: "tools", label: "Tools", href: "/tools" },
   { id: "automobile", label: "Automobile", href: "/automobile" },
+  { id: "activity", label: "Activité", href: "/activity" },
   { id: "admin", label: "Admin", href: "/admin/users" },
 ];
 
@@ -44,6 +45,7 @@ export function AppBottomBar() {
   const isHome = pathname === "/";
   const isSwarmsArea = pathname.startsWith("/swarms");
   const isAutomotiveArea = pathname.startsWith("/automobile");
+  const isActivityArea = pathname.startsWith("/activity");
   const detailMatch = pathname.match(SWARM_DETAIL_REGEX);
   const isSwarmDetail = Boolean(detailMatch);
   const isSwarmEdit = SWARM_EDIT_REGEX.test(pathname);
@@ -56,6 +58,7 @@ export function AppBottomBar() {
     : isHome ? "Cockpit"
     : isSwarmsArea ? "Swarms"
     : isAutomotiveArea ? "Automobile"
+    : isActivityArea ? "Activité"
     : "Cockpit";
 
   const activeTab: BuilderTabId = parseBuilderTab(searchParams.get("tab"));
