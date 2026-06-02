@@ -58,7 +58,7 @@ const handleStyle = {
   border: "none",
 } as const;
 
-export function MapNodeView({ data, selected }: NodeProps<MapNode>) {
+function MapNodeView({ data, selected }: NodeProps<MapNode>) {
   const accent = data.status ? statusColor(data.status) : kindColor(data.kind);
   const edgeColor = selected ? accent : "var(--ct-border)";
   return (

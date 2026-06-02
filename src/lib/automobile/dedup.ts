@@ -33,7 +33,7 @@ export interface DuplicateRunRef {
  * pathname sans slash final, query/hash ignorés (souvent du tracking). Renvoie
  * `null` si l'URL est invalide ou non http(s).
  */
-export function normalizeSourceUrl(rawUrl: string): string | null {
+function normalizeSourceUrl(rawUrl: string): string | null {
   try {
     const url = new URL(rawUrl.trim());
     if (!["http:", "https:"].includes(url.protocol)) return null;

@@ -12,8 +12,8 @@ export type ExtractedVehicleField =
   | "image_url"
   | "notes";
 
-export type ExtractionSource = "json-ld" | "meta" | "text" | "url" | "fallback" | "sourcing";
-export type ExtractionConfidence = "high" | "medium" | "low";
+type ExtractionSource = "json-ld" | "meta" | "text" | "url" | "fallback" | "sourcing";
+type ExtractionConfidence = "high" | "medium" | "low";
 
 export interface FieldExtractionMeta {
   source: ExtractionSource;

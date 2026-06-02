@@ -22,7 +22,7 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-export type AlertDialogVariant = "destructive" | "warning" | "default";
+type AlertDialogVariant = "destructive" | "warning" | "default";
 
 export interface AlertDialogProps {
   open: boolean;

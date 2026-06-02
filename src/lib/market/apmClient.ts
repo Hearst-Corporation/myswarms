@@ -34,23 +34,38 @@ function norm(s: string): string {
   return s.trim().toLowerCase();
 }
 
+const FUEL_LABEL: Record<string, string> = {
+  "1": "essence", "2": "diesel", "3": "hybrid", "4": "electric",
+  "5": "lpg", "m": "mild-hybrid", "o": "autre",
+};
+
+function normFuel(raw: string | null): string | null {
+  if (!raw) return null;
+  const v = raw.trim().toLowerCase();
+  return FUEL_LABEL[v] ?? v;
+}
+
 function num(v: unknown): number | null {
   return v == null ? null : Number(v);
 }
 
 /**
- * Candidats de modèle pour matcher la normalisation d'APM.
+ * Candidats de modèle (tokens simples sans espace) pour les eq. PostgREST.
  * APM normalise en code de série : "330d xDrive" → "330", "Golf GTI" → "golf".
- * On génère donc : modèle complet, premier token, et code à 3 chiffres si présent.
+ * Seuls les tokens sans espace sont valides dans un eq. PostgREST — les modèles
+ * multi-mots (ex. "330d xdrive") cassent l'URL et ne matchent jamais.
  */
-function modelCandidates(model: string): string[] {
+function modelCandidates(model: string): { eqTokens: string[]; ilikeToken: string } {
   const n = norm(model);
-  const set = new Set<string>([n]);
-  const first = n.split(/\s+/)[0];
-  if (first) set.add(first);
-  const code = n.match(/\d{3}/)?.[0];
-  if (code) set.add(code);
-  return [...set];
+  const tokens = n.split(/\s+/);
+  const first = tokens[0] ?? n;
+  const set = new Set<string>([first]);
+  // Code numérique à 3 chiffres : "330d" → "330"
+  const code = n.match(/\b(\d{3})\b/)?.[1] ?? first.match(/^(\d{3})/)?.[1];
+  if (code && code !== first) set.add(code);
+  // Premier token complet s'il est différent du code
+  if (first !== code) set.add(first);
+  return { eqTokens: [...set], ilikeToken: first };
 }
 
 /**
@@ -65,10 +80,9 @@ export async function getMarketIndex(
 ): Promise<MarketIndex | null> {
   if (!APM_URL || !APM_KEY || !make?.trim() || !model?.trim()) return null;
 
-  const cands = modelCandidates(model);
-  const first = cands[1] ?? cands[0];
-  // OR : modèle exact (un des candidats) OU contient le premier token.
-  const orClause = `(${cands.map((c) => `model.eq.${c}`).join(",")},model.ilike.*${first}*)`;
+  const { eqTokens, ilikeToken } = modelCandidates(model);
+  // OR : eq sur chaque token sans espace + ilike sur le premier token.
+  const orClause = `(${eqTokens.map((c) => `model.eq.${c}`).join(",")},model.ilike.*${ilikeToken}*)`;
 
   // Carburant = préférence souple : on tente d'abord avec, puis sans (le cluster
   // peuplé d'un modèle peut être dans un autre carburant). Le carburant réellement
@@ -109,7 +123,7 @@ async function queryOne(
     return {
       make: String(r.make ?? ""),
       model: String(r.model ?? ""),
-      fuel: r.fuel ? String(r.fuel) : null,
+      fuel: normFuel(r.fuel ? String(r.fuel) : null),
       medianPrice: num(r.median_price),
       p15Price: num(r.p15_price),
       p85Price: num(r.p85_price),

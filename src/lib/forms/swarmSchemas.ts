@@ -25,7 +25,7 @@ export type AgentRole = z.infer<typeof AgentRoleSchema>;
 // C8 fix : "hypercli" est accepté côté engine — l'ajouter ici pour ne plus
 // rejeter les configs valides. On garde "kimi" pour la backward compat des
 // swarms existants en DB (alias historique de "hypercli").
-export const ModelProviderSchema = z.enum([
+const ModelProviderSchema = z.enum([
   "anthropic",
   "openai",
   "kimi",
@@ -33,7 +33,7 @@ export const ModelProviderSchema = z.enum([
 ]);
 export type ModelProvider = z.infer<typeof ModelProviderSchema>;
 
-export const ToolCategorySchema = z.enum([
+const ToolCategorySchema = z.enum([
   "api_call",
   "file_io",
   "code_execution",
@@ -50,7 +50,7 @@ export const SwarmTriggerSchema = z.enum([
   "webhook",
 ]);
 
-export const RunStatusSchema = z.enum([
+const RunStatusSchema = z.enum([
   "pending",
   "running",
   "paused_hitl",
@@ -114,11 +114,11 @@ export type TaskInput = z.output<typeof TaskInputSchema>;
 // Après une cascade SET NULL (suppression d'un agent référencé par une task),
 // la DB peut renvoyer `agent_id=null` et le builder doit pouvoir afficher
 // "Aucun agent — re-pair requis" sans crash de parse.
-export const TaskRecordSchema = TaskInputSchema.extend({
+const TaskRecordSchema = TaskInputSchema.extend({
   agent_id: uuidString().nullable(),
 });
 
-export const ToolBindingInputSchema = z.object({
+const ToolBindingInputSchema = z.object({
   id: uuidString().optional(),
   // F5 fix : agent_id required (option a — cohérence stricte avec tasks).
   // Un binding orphelin (sans agent) n'a aucun sens fonctionnel : impossible
@@ -135,7 +135,7 @@ export type ToolBindingInput = z.output<typeof ToolBindingInputSchema>;
 
 // H1 fix : schema de LECTURE pour tool_bindings — agent_id nullable (cascade
 // SET NULL en DB lors de la suppression d'un agent).
-export const ToolBindingRecordSchema = ToolBindingInputSchema.extend({
+const ToolBindingRecordSchema = ToolBindingInputSchema.extend({
   agent_id: uuidString().nullable(),
 });
 
@@ -237,7 +237,7 @@ export const SwarmRecordSchema = z.object({
 });
 export type SwarmRecord = z.infer<typeof SwarmRecordSchema>;
 
-export const SwarmListItemSchema = z.object({
+const SwarmListItemSchema = z.object({
   id: uuidString(),
   name: z.string(),
   description: z.string().nullable().optional(),
@@ -266,7 +266,7 @@ export const SwarmKickoffResponseSchema = z.object({
 });
 export type SwarmKickoffResponse = z.infer<typeof SwarmKickoffResponseSchema>;
 
-export const SwarmRunStepSchema = z.object({
+const SwarmRunStepSchema = z.object({
   id: uuidString(),
   run_id: uuidString(),
   agent_id: uuidString().nullable().optional(),
@@ -307,7 +307,7 @@ export const SwarmRunSchema = z.object({
 });
 export type SwarmRun = z.infer<typeof SwarmRunSchema>;
 
-export const SwarmRunSummarySchema = z.object({
+const SwarmRunSummarySchema = z.object({
   id: uuidString(),
   swarm_id: uuidString(),
   trigger: z.string(),
@@ -354,6 +354,4 @@ export const ArchitectResponseSchema = z.object({
 });
 export type ArchitectResponse = z.output<typeof ArchitectResponseSchema>;
 
-// Alias utilisé par SwarmBuilder / ArchitectModal pour typer la spec générée.
-export const SwarmSpecResponseSchema = SwarmInputSchema;
-export type SwarmSpecResponse = z.output<typeof SwarmSpecResponseSchema>;
+export type SwarmSpecResponse = z.output<typeof SwarmInputSchema>;

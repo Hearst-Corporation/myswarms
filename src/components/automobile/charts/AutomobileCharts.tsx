@@ -2,13 +2,13 @@ import "./charts.css";
 import { fmtPrice } from "@/lib/utils/format";
 
 // Données sérialisables (calculées côté serveur depuis les runs réels).
-export interface ChartSlice {
+interface ChartSlice {
   key: string;
   label: string;
   count: number;
   color: string;
 }
-export interface PriceMarketRow {
+interface PriceMarketRow {
   label: string;
   price: number;
   p15: number;

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 // ─── Zod schemas (runtime validation) ────────────────────────────────────────
 
-export const CrewTriggerSchema = z.enum([
+const CrewTriggerSchema = z.enum([
   "morning",
   "evening",
   "intraday",
@@ -15,7 +15,7 @@ export const CrewTriggerSchema = z.enum([
  * Les valeurs `"pending"` et `"paused_hitl"` sont réservées pour V2 (queue + HitL).
  * Le backend V1 produit uniquement : "running", "completed", "failed", "cancelled".
  */
-export const RunStatusSchema = z.enum([
+const RunStatusSchema = z.enum([
   "pending",
   "running",
   "paused_hitl",
@@ -24,7 +24,7 @@ export const RunStatusSchema = z.enum([
   "cancelled",
 ]);
 
-export const CrewKickoffRequestSchema = z.object({
+const CrewKickoffRequestSchema = z.object({
   trigger: CrewTriggerSchema,
   inputs: z.record(z.string(), z.unknown()).optional(),
 });
@@ -50,7 +50,7 @@ export const CrewStatusResponseSchema = z.object({
  * RunSummary — subset of CrewStatusResponse, no state field.
  * Returned by GET /v1/crews/{crew}/runs?limit=N.
  */
-export const RunSummarySchema = z.object({
+const RunSummarySchema = z.object({
   kickoff_id: z.string(),
   trigger: z.string(),
   status: z.string(),
@@ -77,7 +77,7 @@ export const RunStepSchema = z.object({
 
 // ─── Decision (action HitL enregistrée sur un run) ───────────────────────────
 
-export const DecisionActionSchema = z.enum(["sent", "snoozed", "rejected"]);
+const DecisionActionSchema = z.enum(["sent", "snoozed", "rejected"]);
 
 export const DecisionSchema = z.object({
   id: z.string(),

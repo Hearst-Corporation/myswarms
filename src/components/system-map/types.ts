@@ -23,7 +23,7 @@ export type MapStatus =
   | "data"
   | "report";
 
-export interface PanelLink {
+interface PanelLink {
   label: string;
   href: string;
 }

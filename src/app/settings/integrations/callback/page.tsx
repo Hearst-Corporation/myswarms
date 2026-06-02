@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
-import { FONT, SPACING, RADIUS } from "@/lib/ui/tokens";
+import { SPACING, RADIUS } from "@/lib/ui/tokens";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
