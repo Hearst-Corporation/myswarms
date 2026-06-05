@@ -86,6 +86,12 @@ class Settings(BaseSettings):
     CORTEX_URL: str = ""
     CORTEX_API_KEY: str = ""
 
+    # Browserbase — scrape annonces immobilières (endpoint /v1/listings, HORS swarm).
+    # Session headless distante (CDP) pilotée via Playwright connect_over_cdp.
+    # Aucune valeur hardcodée — injectée via env (.env.local en dev, Railway en prod).
+    BROWSERBASE_API_KEY: str = ""
+    BROWSERBASE_PROJECT_ID: str = ""
+
     # Composio — multi-channel tools (Gmail, Slack, Telegram, Calendar, Notion)
     COMPOSIO_API_KEY: str = ""
     COMPOSIO_USER_ID: str = "adrien"  # entity_id for multi-tenant support — TODO multi-tenant

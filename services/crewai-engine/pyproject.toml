@@ -23,6 +23,9 @@ dependencies = [
     "pytz>=2024",
     "litellm>=1.85.0",
     "sentry-sdk[fastapi]>=2.0",
+    # Browserbase + Playwright — scrape annonces immo (endpoint /v1/listings, hors swarm)
+    "browserbase>=1.0",
+    "playwright>=1.49",
 ]
 
 [tool.uv]
