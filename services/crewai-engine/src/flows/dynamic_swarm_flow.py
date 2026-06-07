@@ -98,6 +98,11 @@ def _persist_tokens_on_failure(state: Any, run_id: str, exc: Exception) -> None:
         )
 
 
+# C01 — sentinel retourné par run_crew lors d'une pause HITL.
+# Nommé pour éviter les littéraux magiques dispersés.
+_SENTINEL_PAUSED = "__PAUSED_HITL__"
+
+
 class DynamicSwarmState(BaseModel):
     """State partagé entre les étapes du Flow.
 
@@ -214,7 +219,7 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
             )
             flush_run_steps(run_id)
             self.state.paused = True
-            return "__PAUSED_HITL__"
+            return _SENTINEL_PAUSED
         except Exception as exc:
             self.state.error = str(exc)
             logger.error(

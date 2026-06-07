@@ -61,12 +61,30 @@ class TestCasPauseToRunning:
     def test_won_when_row_updated(self):
         client = _make_client([_res([{"id": "run-1"}])])
         with patch.object(swarm_store, "_get_client", return_value=client):
-            assert swarm_store.cas_pause_to_running("run-1") is True
+            assert swarm_store.cas_pause_to_running("run-1", expected_resume_count=0) is True
 
     def test_lost_when_no_row(self):
         client = _make_client([_res([])])
         with patch.object(swarm_store, "_get_client", return_value=client):
-            assert swarm_store.cas_pause_to_running("run-1") is False
+            assert swarm_store.cas_pause_to_running("run-1", expected_resume_count=0) is False
+
+    def test_increments_resume_count_atomically(self):
+        """R02 — le CAS doit poser resume_count = expected + 1."""
+        client = _make_client([_res([{"id": "run-1"}])])
+        with patch.object(swarm_store, "_get_client", return_value=client):
+            result = swarm_store.cas_pause_to_running("run-1", expected_resume_count=2)
+        assert result is True
+        update_payload = client.update.call_args[0][0]
+        assert update_payload["resume_count"] == 3
+
+    def test_scopes_on_expected_resume_count(self):
+        """R02 — le filtre WHERE resume_count=expected doit être posé."""
+        client = _make_client([_res([{"id": "run-1"}])])
+        with patch.object(swarm_store, "_get_client", return_value=client):
+            swarm_store.cas_pause_to_running("run-1", expected_resume_count=5)
+        # Vérifie que eq("resume_count", 5) a été appelé
+        eq_calls = [call[0] for call in client.eq.call_args_list]
+        assert ("resume_count", 5) in eq_calls
 
 
 class TestResolveDecision:
@@ -82,15 +100,16 @@ class TestResolveDecision:
 
 
 class TestApplyResumeInputs:
-    def test_merges_hitl_answers_and_bumps_resume_count(self):
-        existing = _res({"inputs_json": {"_hitl_answers": {"0": "x"}}, "resume_count": 1})
+    def test_merges_hitl_answers(self):
+        """R02 — apply_resume_inputs merge _hitl_answers sans toucher resume_count."""
+        existing = _res({"inputs_json": {"_hitl_answers": {"0": "x"}}})
         client = _make_client([existing, _res([{"id": "run-1"}])])
         with patch.object(swarm_store, "_get_client", return_value=client):
             merged = swarm_store.apply_resume_inputs("run-1", 2, "premium")
         assert merged["_hitl_answers"] == {"0": "x", "2": "premium"}
-        # update appelé avec resume_count incrémenté
+        # update NE DOIT PAS inclure resume_count (déplacé dans le CAS)
         update_call = client.update.call_args[0][0]
-        assert update_call["resume_count"] == 2
+        assert "resume_count" not in update_call
 
     def test_fallback_when_no_client(self):
         with patch.object(swarm_store, "_get_client", return_value=None):

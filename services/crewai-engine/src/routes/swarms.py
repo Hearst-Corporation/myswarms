@@ -743,6 +743,7 @@ async def kickoff_swarm_endpoint(
         trigger=request.trigger,
         status="running",
         inputs_json=request.inputs or {},
+        owner_id=oid,
     )
 
     # n_tasks is known here (swarm already loaded) — pass for adaptive timeout.
@@ -837,8 +838,10 @@ async def resume_swarm_run_endpoint(
         )
         raise HTTPException(status_code=409, detail="HITL resume limit reached — run failed")
 
-    # CAS atomique paused_hitl → running. Le perdant (double POST) fait un no-op.
-    if not swarm_store.cas_pause_to_running(rid):
+    # R02 — CAS atomique paused_hitl → running + incrément resume_count.
+    # Le perdant (double POST concurrent ou resume_count déjà avancé) fait un no-op.
+    expected_rc = int(run.get("resume_count") or 0)
+    if not swarm_store.cas_pause_to_running(rid, expected_resume_count=expected_rc):
         return {"run_id": rid, "swarm_id": swarm_id, "status": "running"}
 
     # Gagnant du CAS : enregistre la réponse + injecte _hitl_answers + relance.

@@ -131,7 +131,7 @@ class TestResumeHappyPath:
         with (
             patch.object(swarm_store, "get_swarm_run", return_value=_run()),
             patch.object(swarm_store, "get_decision_by_id", return_value=_decision()),
-            patch.object(swarm_store, "cas_pause_to_running", return_value=True),
+            patch.object(swarm_store, "cas_pause_to_running", return_value=True) as cas_mock,
             patch.object(swarm_store, "resolve_decision", return_value=True) as resolve,
             patch.object(
                 swarm_store, "apply_resume_inputs",
@@ -148,3 +148,5 @@ class TestResumeHappyPath:
         exec_mock.assert_called_once()
         # checkpoint_index propagé pour reprendre à la bonne task
         assert exec_mock.call_args.kwargs.get("checkpoint_index") == 1
+        # R02 — expected_resume_count transmis au CAS (run initial resume_count=0)
+        assert cas_mock.call_args.kwargs.get("expected_resume_count") == 0

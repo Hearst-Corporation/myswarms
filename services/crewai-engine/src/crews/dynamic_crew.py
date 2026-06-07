@@ -821,8 +821,8 @@ def _render_prior_outputs(
 def _sum_task_tokens(acc: dict[str, int], crew: Any, result: Any) -> None:
     """Cumule (best-effort) les usage metrics d'un mini-Crew dans `acc`.
 
-    Même prudence que `_extract_and_store_token_usage` côté flow : getattr
-    partout, jamais d'assert ni de prix inventé.
+    Défensif : getattr partout, jamais d'assert ni de prix inventé. Met à jour
+    `acc["tokens_in"]` / `acc["tokens_out"]` en place.
     """
     try:
         usage = getattr(crew, "usage_metrics", None)
@@ -888,10 +888,13 @@ def run_swarm_tasks(
 
     # Step writer + ctx enregistrés une fois pour tout le run ; current_task_idx
     # démarre à start_index pour attribuer correctement les steps au resume.
+    # R03 : au resume (start_index > 0), on seed step_number depuis la DB pour
+    # éviter que les steps repris repartent à 0 (collision de numéros en DB).
     if run_id:
         tasks_meta = [meta for meta, _t in task_pairs]
         writer = _StepWriter(run_id)
         agent_obj_to_id = {id(agent): db_id for db_id, agent in agents_map.items()}
+        seed_step = swarm_store.max_step_number(run_id) if start_index > 0 else 0
         with _run_writers_lock:
             _run_writers[run_id] = writer
             _run_ctx[run_id] = {
@@ -899,7 +902,7 @@ def run_swarm_tasks(
                 "agents_map": agents_map,
                 "tasks_meta": tasks_meta,
                 "step_state": {
-                    "step_number": 0,
+                    "step_number": seed_step,
                     "current_task_idx": start_index,
                     "last_t": time.monotonic(),
                 },
