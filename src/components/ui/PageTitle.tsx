@@ -16,5 +16,3 @@ export function PageTitle({ variant, children, style }: PageTitleProps) {
     </h1>
   );
 }
-
-export default PageTitle;
