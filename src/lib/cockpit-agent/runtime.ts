@@ -1,7 +1,7 @@
 import { makeThinkStripper } from "@hearst/cockpit-shell/handler";
 import type OpenAI from "openai";
 import type { ChatCompletionMessageParam, ChatCompletionTool } from "openai/resources/chat/completions";
-import { dispatchTool, summarizeToolCall, TOOL_SCHEMAS, type ToolContext } from "./tools";
+import { dispatchTool, summarizeToolCall, getToolSchemas, type ToolContext } from "./tools";
 
 const MAX_TURNS = 6;
 
@@ -23,8 +23,10 @@ export type AgentRunInput = {
  */
 export async function runAgent(input: AgentRunInput): Promise<string> {
   const { client, model, messages, ctx, enableTools, emit } = input;
+  // Tools exposés selon la capacité dev (super-admin) — un user standard ne
+  // reçoit que les tools métier (automobile), jamais FS/shell/SQL.
   const tools: ChatCompletionTool[] | undefined = enableTools
-    ? (TOOL_SCHEMAS as ChatCompletionTool[])
+    ? (getToolSchemas(ctx.canDev ?? false) as ChatCompletionTool[])
     : undefined;
 
   let finalText = "";

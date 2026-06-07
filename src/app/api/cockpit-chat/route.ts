@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
+import { getSuperAdmin } from "@/lib/auth/superAdmin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { kimi, KIMI_MODEL } from "@/lib/llm/kimi";
 import { buildSystemPrompt } from "@/lib/cockpit-agent/prompt";
@@ -34,11 +35,30 @@ export async function POST(req: NextRequest): Promise<Response> {
     return NextResponse.json({ error: "message requis" }, { status: 400 });
   }
 
+  // Capacité dev (FS/shell/SQL) réservée au super-admin — propagée aux tools.
+  const canDev = (await getSuperAdmin().catch(() => null)) !== null;
+
   const admin = createAdminClient();
 
   // Resolve or create chat
   let chatId = body.chatId;
-  if (!chatId) {
+  if (chatId) {
+    // Anti-IDOR : un chatId fourni par le client DOIT appartenir à ownerId.
+    // Sans ce contrôle, un user pouvait injecter des messages et exécuter
+    // l'agent dans le contexte d'un autre tenant (cf. audit sécu 2026-06-07).
+    const { data: owned, error: ownErr } = await admin
+      .from("cockpit_chats")
+      .select("id")
+      .eq("id", chatId)
+      .eq("user_id", ownerId)
+      .maybeSingle();
+    if (ownErr) {
+      return NextResponse.json({ error: "Erreur de lecture de la conversation" }, { status: 500 });
+    }
+    if (!owned) {
+      return NextResponse.json({ error: "Conversation introuvable" }, { status: 404 });
+    }
+  } else {
     const title = userMessage.slice(0, 60);
     const { data: chat, error: chatErr } = await admin
       .from("cockpit_chats")
@@ -51,12 +71,15 @@ export async function POST(req: NextRequest): Promise<Response> {
     chatId = chat.id as string;
   }
 
-  // Persist user message
-  await admin.from("cockpit_messages").insert({
+  // Persist user message — l'échec bloque la requête (pas d'appel LLM sur état incohérent).
+  const { error: userMsgErr } = await admin.from("cockpit_messages").insert({
     chat_id: chatId,
     role: "user",
     content: userMessage,
   });
+  if (userMsgErr) {
+    return NextResponse.json({ error: "Impossible d'enregistrer le message" }, { status: 500 });
+  }
 
   // Build history from prior messages (passed by client) + the new user message
   const history: ChatCompletionMessageParam[] = Array.isArray(body.messages) ? body.messages : [];
@@ -78,6 +101,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     supabase: admin,
     signal: ctrl.signal,
     ownerId,
+    canDev,
   };
 
   const model = body.model ?? KIMI_MODEL;

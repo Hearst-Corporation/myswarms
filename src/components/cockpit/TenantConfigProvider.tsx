@@ -11,12 +11,15 @@ import { ALL_MODULE_IDS, type ModuleId } from "@/lib/tenant/modules";
 interface TenantConfigValue {
   modules: ModuleId[];
   product: string;
+  /** Tenant actif (niveau 1). null = aucune appartenance résolue. */
+  tenant: string | null;
   isSuperAdmin: boolean;
 }
 
 const TenantConfigContext = createContext<TenantConfigValue>({
   modules: ALL_MODULE_IDS,
   product: "hive",
+  tenant: null,
   isSuperAdmin: false,
 });
 

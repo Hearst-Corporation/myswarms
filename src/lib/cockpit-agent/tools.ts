@@ -17,6 +17,12 @@ export type ToolContext = {
   supabase: SupabaseClient;
   signal: AbortSignal;
   ownerId?: string | null;
+  /**
+   * Capacité « dev » : accès filesystem projet, exécution shell et SQL brut
+   * (service_role). Réservé au super-admin. Un user standard ne voit pas ces
+   * tools et dispatchTool les refuse. Défaut = false (fail-closed).
+   */
+  canDev?: boolean;
 };
 
 export type ToolResult = {
@@ -115,7 +121,7 @@ export const TOOL_SCHEMAS = [
     function: {
       name: "sql_query",
       description:
-        "Exécute une requête SQL Supabase en lecture seule via la session utilisateur (RLS appliquée). SELECT/WITH/EXPLAIN uniquement.",
+        "[super-admin] Exécute une requête SQL Supabase en lecture seule (service_role) via la RPC exec_readonly_sql. SELECT/WITH/EXPLAIN uniquement.",
       parameters: {
         type: "object",
         properties: {
@@ -193,6 +199,29 @@ export const TOOL_SCHEMAS = [
     },
   },
 ];
+
+/**
+ * Tools « dev » réservés au super-admin : accès au filesystem du projet,
+ * exécution de commandes shell, et SQL brut sous service_role (bypass RLS).
+ * Exposés à un user standard = RCE serveur + lecture cross-tenant (cf. audit
+ * sécurité 2026-06-07). Gatés à deux niveaux : non présentés au LLM
+ * (getToolSchemas) ET refusés à l'exécution (dispatchTool).
+ */
+const DEV_TOOL_NAMES = new Set([
+  "read_file",
+  "list_dir",
+  "grep",
+  "write_file",
+  "run_command",
+  "sql_query",
+]);
+
+/** Schémas exposés au LLM selon la capacité dev (super-admin) du contexte. */
+export function getToolSchemas(canDev: boolean) {
+  return canDev
+    ? TOOL_SCHEMAS
+    : TOOL_SCHEMAS.filter((t) => !DEV_TOOL_NAMES.has(t.function.name));
+}
 
 const GREP_EXTS = new Set([
   ".ts",
@@ -517,6 +546,10 @@ export async function dispatchTool(
     args = rawArgs ? JSON.parse(rawArgs) : {};
   } catch (err) {
     return { ok: false, error: `args JSON invalides: ${(err as Error).message}` };
+  }
+  // Fail-closed : les tools dev (FS/shell/SQL) exigent la capacité super-admin.
+  if (DEV_TOOL_NAMES.has(name) && !ctx.canDev) {
+    return { ok: false, error: `${name}: réservé au super-admin` };
   }
   switch (name) {
     case "read_file":
