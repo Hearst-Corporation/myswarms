@@ -228,8 +228,8 @@ def list_swarms(owner_id: str | None = None) -> list[dict[str, Any]]:
     par tous les users authentifiés, comme en RLS Supabase.
     Si `owner_id is None` (service-role interne) : tous les swarms actifs.
 
-    # TODO V2 perf : n+1 problem — 1 query swarms + 2 queries (agents_count,
-    # last_run) PAR swarm. Rework attendu en V2 via RPC Postgres.
+    Perf : enrichissement agents_count + last_run en 2 requêtes agrégées
+    (au lieu de 1 + 2N), cf audit 2026-06-07. Idéal V2 = RPC DISTINCT ON.
     """
     _assert_valid_uuid(owner_id)
     client = _get_client()
@@ -251,45 +251,51 @@ def list_swarms(owner_id: str | None = None) -> list[dict[str, Any]]:
         result = query.execute()
         swarms = result.data if result else []
 
-        # Enrichit chaque swarm avec agents_count + last_run_*
+        # Enrichit agents_count + last_run_* en 2 requêtes agrégées (au lieu de
+        # 1 + 2N), fix N+1 — ce chemin est appelé toutes les 3s par activity/live.
+        sids = [s["id"] for s in swarms if s.get("id")]
+        agents_by_swarm: dict[str, int] = {}
+        last_run_by_swarm: dict[str, dict] = {}
+
+        if sids:
+            # (a) agents_count : 1 requête, comptage en mémoire (peu d'agents/swarm).
+            try:
+                agents_res = (
+                    client.table("swarm_agents")
+                    .select("swarm_id")
+                    .in_("swarm_id", sids)
+                    .execute()
+                )
+                for row in agents_res.data or []:
+                    k = row.get("swarm_id")
+                    if k:
+                        agents_by_swarm[k] = agents_by_swarm.get(k, 0) + 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("agents_count batch failed: %s", exc)
+
+            # (b) last_run : 1 requête triée desc — le 1er vu par swarm = le plus
+            # récent (sert l'index composite swarm_runs_swarm_started_idx, 0029).
+            try:
+                runs_res = (
+                    client.table("swarm_runs")
+                    .select("swarm_id,started_at,status")
+                    .in_("swarm_id", sids)
+                    .order("started_at", desc=True)
+                    .execute()
+                )
+                for row in runs_res.data or []:
+                    k = row.get("swarm_id")
+                    if k and k not in last_run_by_swarm:
+                        last_run_by_swarm[k] = row
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("last_run batch failed: %s", exc)
+
         for s in swarms:
             sid = s.get("id")
-            if not sid:
-                continue
-            # agents_count
-            try:
-                count_res = (
-                    client.table("swarm_agents")
-                    .select("id", count="exact")
-                    .eq("swarm_id", sid)
-                    .execute()
-                )
-                s["agents_count"] = count_res.count or 0
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("agents_count failed for swarm %s: %s", sid, exc)
-                s["agents_count"] = 0
-
-            # last_run_*
-            try:
-                last_run_res = (
-                    client.table("swarm_runs")
-                    .select("started_at,status")
-                    .eq("swarm_id", sid)
-                    .order("started_at", desc=True)
-                    .limit(1)
-                    .execute()
-                )
-                last_runs = last_run_res.data or []
-                if last_runs:
-                    s["last_run_at"] = last_runs[0].get("started_at")
-                    s["last_run_status"] = last_runs[0].get("status")
-                else:
-                    s["last_run_at"] = None
-                    s["last_run_status"] = None
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("last_run lookup failed for swarm %s: %s", sid, exc)
-                s["last_run_at"] = None
-                s["last_run_status"] = None
+            s["agents_count"] = agents_by_swarm.get(sid, 0)
+            lr = last_run_by_swarm.get(sid)
+            s["last_run_at"] = lr.get("started_at") if lr else None
+            s["last_run_status"] = lr.get("status") if lr else None
 
         return swarms
     except Exception as exc:  # noqa: BLE001
