@@ -18,8 +18,10 @@ from crewai import Flow
 from crewai.flow.flow import listen, start
 from pydantic import BaseModel, Field
 
-from ..crews.dynamic_crew import create_dynamic_crew, flush_run_steps
+from ..config import settings
+from ..crews.dynamic_crew import flush_run_steps, run_swarm_tasks
 from ..persistence import swarm_store
+from ..tools.ask_human import HumanDecisionRequired
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +118,11 @@ class DynamicSwarmState(BaseModel):
     inputs: dict[str, Any] = Field(default_factory=dict)
     owner_id: str | None = None
 
+    # HITL — index de la prochaine task à exécuter (resume sans rejouer) + flag
+    # de pause (positionné par run_crew si un ask_human a mis le run en attente).
+    checkpoint_index: int = 0
+    paused: bool = False
+
     # Résultat
     result: str | None = None
     error: str | None = None
@@ -156,56 +163,66 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
 
     @listen(initialize)
     def run_crew(self, swarm_id: str) -> str:
-        """Construit le crew dynamique et lance kickoff() synchrone.
+        """Exécute les tasks du swarm UNE PAR UNE (HITL task-boundary).
 
-        Pourquoi sync (`kickoff`) et pas `akickoff_async` ?
-        - Le router emballe déjà l'exécution dans `asyncio.to_thread()` pour
-          ne pas bloquer la boucle (cf routes/swarms.py).
-        - Un Crew sequential lance ses tasks en interne sans bénéfice à l'async.
-        - Aligne le comportement avec `ChiefOfStaffFlow` pour cohérence
-          (gestion timeout / cancellation côté router).
+        Pourquoi task-par-task et pas un `crew.kickoff()` monolithique ?
+        - Un `crew.kickoff()` exécute toutes les tasks en interne, sans rendre la
+          main : impossible de mettre le run en pause au milieu. La boucle
+          task-par-task (`run_swarm_tasks`) crée une frontière exploitable entre
+          deux tasks — un point de décision HITL.
 
-        P0-2 flush garanti : flush_run_steps(run_id) est appelé dans les deux
-        chemins (succès ET except) AVANT update_swarm_run, de sorte que TOUS
-        les steps queués dans le _StepWriter soient persistés avant que le run
-        passe completed/failed.
+        Pause HITL : si un agent appelle `ask_human`, l'outil persiste la
+        décision, passe le run `paused_hitl`, et lève `HumanDecisionRequired`
+        (BaseException — non interceptée par la machinerie CrewAI). Elle remonte
+        ici : on flush les steps, on positionne `state.paused` et on RETOURNE
+        proprement (pas d'échec). `finalize` verra `state.paused` et ne marquera
+        PAS le run completed.
 
-        P1-2 token tracking : après kickoff(), les usage metrics du crew sont
-        extraites de façon défensive (getattr, pas d'assert) et stockées dans
-        self.state pour que finalize() les persiste sur swarm_runs.
+        Reprise : `state.checkpoint_index` (lu depuis `swarm_runs` côté router au
+        resume) fait redémarrer la boucle à la bonne task ; les tasks antérieures
+        ne sont pas rejouées (leurs outputs vivent dans `inputs._task_outputs`).
+
+        P0-2 flush garanti : flush_run_steps(run_id) est appelé dans TOUS les
+        chemins (succès, pause, except) AVANT update_swarm_run.
         """
         run_id = self.state.run_id or None
-        crew = None
         try:
-            # G3 fix : on passe run_id pour que `create_dynamic_crew` installe
-            # le step_callback / task_callback qui persiste les steps dans
-            # `swarm_run_steps`.
-            crew = create_dynamic_crew(swarm_id, run_id=run_id, owner_id=self.state.owner_id, inputs=self.state.inputs or {})
-            result = crew.kickoff(inputs=self.state.inputs or {})
-
+            outcome = run_swarm_tasks(
+                swarm_id,
+                run_id=run_id,
+                owner_id=self.state.owner_id,
+                inputs=self.state.inputs or {},
+                start_index=self.state.checkpoint_index,
+                ttl_minutes=settings.HITL_DECISION_TTL_MINUTES,
+            )
             # P0-2 : drain le writer AVANT de toucher swarm_runs.
             flush_run_steps(run_id)
 
-            # P1-2 — token tracking (défensif, shape non garantie selon version CrewAI).
-            _extract_and_store_token_usage(self.state, crew, result)
+            # P1-2 — token tracking cumulé par task (défensif, peut être None).
+            self.state.tokens_in = outcome.get("tokens_in")
+            self.state.tokens_out = outcome.get("tokens_out")
 
-            # CrewAI renvoie un CrewOutput. .raw existe, sinon fallback str(result).
-            raw_result = getattr(result, "raw", None) or str(result)
+            raw_result = outcome.get("result") or ""
             self.state.result = raw_result
             return raw_result
+        except HumanDecisionRequired as dec:
+            # Pause HITL : le run est déjà `paused_hitl` (posé par l'outil).
+            # On ne marque RIEN failed/completed — on s'arrête proprement.
+            logger.info(
+                "DynamicSwarmFlow paused for HITL (swarm=%s, run=%s, decision=%s)",
+                self.state.swarm_id, self.state.run_id, dec.decision_id,
+            )
+            flush_run_steps(run_id)
+            self.state.paused = True
+            return "__PAUSED_HITL__"
         except Exception as exc:
             self.state.error = str(exc)
             logger.error(
-                "DynamicSwarmFlow crew kickoff failed (swarm=%s, run=%s): %s",
+                "DynamicSwarmFlow run_swarm_tasks failed (swarm=%s, run=%s): %s",
                 self.state.swarm_id, self.state.run_id, exc, exc_info=True,
             )
             # P0-2 : drain le writer avant de marquer failed — fail-soft.
             flush_run_steps(run_id)
-
-            # P1-2 — best-effort token extraction même en cas d'erreur partielle.
-            if crew is not None:
-                _extract_and_store_token_usage(self.state, crew, None)
-
             # Marque le run failed en DB tout de suite — finalize ne sera pas appelé.
             if run_id:
                 _persist_tokens_on_failure(self.state, run_id, exc)
@@ -213,7 +230,18 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
 
     @listen(run_crew)
     def finalize(self, crew_output: str) -> str:
-        """Persistance finale + horodatage + token counts (P1-2)."""
+        """Persistance finale + horodatage + token counts (P1-2).
+
+        No-op si le run est en pause HITL (`state.paused`) : le statut
+        `paused_hitl` a déjà été posé par l'outil `ask_human`, et le run reprendra
+        via l'endpoint resume — on ne doit surtout pas le marquer completed.
+        """
+        if getattr(self.state, "paused", False):
+            logger.info(
+                "DynamicSwarmFlow finalize skipped — run paused_hitl (swarm=%s, run=%s)",
+                self.state.swarm_id, self.state.run_id,
+            )
+            return crew_output
         self.state.completed_at = datetime.now(timezone.utc).isoformat()
         if self.state.run_id:
             update_kwargs: dict = {

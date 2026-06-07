@@ -74,10 +74,12 @@ async def lifespan(app: FastAPI):  # noqa: RUF029
     try:
         n_swarm = swarm_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
         n_chief = run_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
+        n_hitl = swarm_store.expire_stale_paused_runs(settings.HITL_DECISION_TTL_MINUTES)
         logger.info(
-            "Boot stale-run cleanup: %d swarm_runs + %d chief_run_log rows marked failed",
+            "Boot stale-run cleanup: %d swarm_runs + %d chief_run_log + %d paused_hitl rows marked failed",
             n_swarm,
             n_chief,
+            n_hitl,
         )
     except Exception as _exc:  # noqa: BLE001
         logger.warning("Boot stale-run cleanup failed (non-fatal): %s", _exc)

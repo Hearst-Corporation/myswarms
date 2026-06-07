@@ -201,6 +201,22 @@ class Settings(BaseSettings):
         description="Max seconds before architect spec generation times out",
     )
 
+    # ── Human-in-the-loop (HITL) ─────────────────────────────────────────
+    # Borne de convergence : nb max de reprises HITL d'un run avant de le
+    # marquer failed (anti-boucle running↔paused_hitl). gt=0.
+    HITL_RESUME_MAX: int = Field(
+        default=10,
+        gt=0,
+        description="Max HITL resumes per run before it is marked failed (anti-non-convergence).",
+    )
+    # TTL (minutes) d'une décision en attente. Un run paused_hitl plus vieux que
+    # ce délai est marqué failed par expire_stale_paused_runs. gt=0.
+    HITL_DECISION_TTL_MINUTES: int = Field(
+        default=1440,  # 24 h
+        gt=0,
+        description="Minutes a paused_hitl run waits for a human answer before being expired.",
+    )
+
 
 settings = Settings()
 
