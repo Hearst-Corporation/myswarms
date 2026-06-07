@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "@hearst/cockpit-shell/tokens.css";
-import "./cockpit.css";
+// Look du produit isolé dans src/design/ (source dédiée, possédée par le workspace).
+// Chargé APRÈS le package → override le package, jamais re-déclaration. Voir src/design/README.md.
+import "../design/look.css";
 import { HiveShell } from "@/components/HiveShell";
 import { HubSessionBridge } from "@/components/HubSessionBridge";
 import { TenantConfigProvider } from "@/components/cockpit/TenantConfigProvider";

@@ -34,6 +34,7 @@ from ..composio_session import get_composio_tools_for_toolkits
 from ..config import settings
 from ..llms import get_llm
 from ..persistence import swarm_store
+from ..tools.ask_human import AskHumanTool
 
 logger = logging.getLogger(__name__)
 
@@ -777,4 +778,188 @@ def create_dynamic_crew(swarm_id: str, run_id: str | None = None, owner_id: str 
         crew_kwargs["task_callback"] = functools.partial(_module_task_callback, run_id)
 
     return Crew(**crew_kwargs)
+
+
+# ── Exécution task-par-task (Human-in-the-loop) ───────────────────────────────
+# Le HITL impose une exécution task-par-task : un point de décision = une
+# frontière de task. On ne peut PAS interrompre un `crew.kickoff()` monolithique
+# (CrewAI exécute toutes les tasks en interne). On exécute donc chaque task dans
+# son propre mini-Crew ; entre deux tasks, `ask_human` peut mettre le run en
+# pause (cf. src/tools/ask_human.py + flows/dynamic_swarm_flow.run_crew).
+
+# Bloc de contexte injecté dans une task aval : remplace le `Task.context` natif
+# de CrewAI, inopérant entre kickoffs séparés. Borné pour ne pas exploser le prompt.
+_PRIOR_OUTPUTS_MAX_CHARS: int = 6000
+
+
+def _render_prior_outputs(
+    task_pairs: list[tuple[dict[str, Any], Task]],
+    task_outputs: dict[str, str],
+    upto_index: int,
+) -> str:
+    """Bloc lisible des outputs des tasks `< upto_index` (contexte aval)."""
+    lines: list[str] = []
+    for j in range(upto_index):
+        out = task_outputs.get(str(j))
+        if not out:
+            continue
+        _meta, task = task_pairs[j]
+        label = getattr(task, "name", None) or f"étape {j + 1}"
+        snippet = str(out).replace("{", "").replace("}", "")
+        lines.append(f"### {label}\n{snippet}")
+    if not lines:
+        return ""
+    block = "\n\n".join(lines)
+    if len(block) > _PRIOR_OUTPUTS_MAX_CHARS:
+        block = block[:_PRIOR_OUTPUTS_MAX_CHARS] + "…"
+    return (
+        "\n\n## CONTEXTE DES ÉTAPES PRÉCÉDENTES (résultats déjà produits — "
+        "appuie-toi dessus, ne les refais pas)\n" + block
+    )
+
+
+def _sum_task_tokens(acc: dict[str, int], crew: Any, result: Any) -> None:
+    """Cumule (best-effort) les usage metrics d'un mini-Crew dans `acc`.
+
+    Défensif : getattr partout, jamais d'assert ni de prix inventé. Met à jour
+    `acc["tokens_in"]` / `acc["tokens_out"]` en place.
+    """
+    try:
+        usage = getattr(crew, "usage_metrics", None)
+        if usage is None and result is not None:
+            usage = getattr(result, "token_usage", None)
+        if usage is None:
+            return
+        prompt = getattr(usage, "prompt_tokens", None)
+        completion = getattr(usage, "completion_tokens", None)
+        if prompt is None and completion is None:
+            total = getattr(usage, "total_tokens", None)
+            if total is not None:
+                acc["tokens_in"] += int(total)
+            return
+        if prompt is not None:
+            acc["tokens_in"] += int(prompt)
+        if completion is not None:
+            acc["tokens_out"] += int(completion)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_sum_task_tokens failed: %s", exc)
+
+
+def run_swarm_tasks(
+    swarm_id: str,
+    run_id: str | None,
+    owner_id: str | None = None,
+    inputs: dict[str, Any] | None = None,
+    start_index: int = 0,
+    ttl_minutes: int | None = None,
+) -> dict[str, Any]:
+    """Exécute les tasks d'un swarm UNE PAR UNE (HITL task-boundary).
+
+    Chaque task tourne dans son propre mini-Crew (1 agent, 1 task). Si un agent
+    appelle `ask_human`, l'outil lève `HumanDecisionRequired` (BaseException) qui
+    ABORTE le mini-Crew courant et REMONTE jusqu'au Flow — le run est déjà passé
+    `paused_hitl` par l'outil. Cette fonction n'attrape PAS cette exception.
+
+    Reprise sans re-exécution : `start_index` = `swarm_runs.checkpoint_index` ;
+    les outputs des tasks antérieures viennent de `inputs._task_outputs` (injectés
+    en contexte, JAMAIS rejoués). Les réponses humaines déjà tranchées sont dans
+    `inputs._hitl_answers` (l'outil les relit et renvoie la value → la task de
+    décision se termine au lieu de re-pauser).
+
+    Retourne `{"result": str, "tokens_in": int|None, "tokens_out": int|None}`.
+    """
+    inputs = inputs or {}
+    swarm_config = swarm_store.get_swarm(swarm_id)
+    if swarm_config is None:
+        raise ValueError(f"Swarm {swarm_id} not found")
+
+    agents_map = instantiate_agents(swarm_config, owner_id=owner_id)
+    if not agents_map:
+        raise ValueError(f"Swarm {swarm_id} has no instantiable agents")
+
+    inputs_block = _render_inputs_block(inputs)
+    task_pairs = instantiate_tasks(agents_map, swarm_config, inputs_block=inputs_block)
+    if not task_pairs:
+        raise ValueError(f"Swarm {swarm_id} has no instantiable tasks")
+
+    task_outputs: dict[str, str] = dict(inputs.get("_task_outputs") or {})
+    hitl_answers: dict[str, Any] = dict(inputs.get("_hitl_answers") or {})
+    token_acc: dict[str, int] = {"tokens_in": 0, "tokens_out": 0}
+
+    # Step writer + ctx enregistrés une fois pour tout le run ; current_task_idx
+    # démarre à start_index pour attribuer correctement les steps au resume.
+    # R03 : au resume (start_index > 0), on seed step_number depuis la DB pour
+    # éviter que les steps repris repartent à 0 (collision de numéros en DB).
+    if run_id:
+        tasks_meta = [meta for meta, _t in task_pairs]
+        writer = _StepWriter(run_id)
+        agent_obj_to_id = {id(agent): db_id for db_id, agent in agents_map.items()}
+        seed_step = swarm_store.max_step_number(run_id) if start_index > 0 else 0
+        with _run_writers_lock:
+            _run_writers[run_id] = writer
+            _run_ctx[run_id] = {
+                "agent_obj_to_id": agent_obj_to_id,
+                "agents_map": agents_map,
+                "tasks_meta": tasks_meta,
+                "step_state": {
+                    "step_number": seed_step,
+                    "current_task_idx": start_index,
+                    "last_t": time.monotonic(),
+                },
+                "writer": writer,
+            }
+
+    last_output = ""
+    for i in range(start_index, len(task_pairs)):
+        _meta, base_task = task_pairs[i]
+        agent = base_task.agent
+        prior_block = _render_prior_outputs(task_pairs, task_outputs, i)
+        description = (base_task.description or "") + prior_block
+        # Outil de décision run-scopé, ordinal = index de la task (positionnel,
+        # déterministe — la mémoïsation au resume matche de façon fiable).
+        ask_tool = AskHumanTool(
+            run_id=run_id or "",
+            ordinal=i,
+            hitl_answers=hitl_answers,
+            ttl_minutes=ttl_minutes,
+        )
+        task_tools = list(getattr(agent, "tools", []) or []) + [ask_tool]
+        task_i = Task(
+            description=description,
+            expected_output=base_task.expected_output,
+            agent=agent,
+            tools=task_tools,
+        )
+
+        if run_id:
+            with _run_writers_lock:
+                ctx = _run_ctx.get(run_id)
+                if ctx is not None:
+                    ctx["step_state"]["current_task_idx"] = i
+
+        crew_kwargs: dict[str, Any] = {
+            "agents": [agent],
+            "tasks": [task_i],
+            "process": Process.sequential,
+            "verbose": True,
+        }
+        if run_id:
+            crew_kwargs["step_callback"] = functools.partial(_module_step_callback, run_id)
+            crew_kwargs["task_callback"] = functools.partial(_module_task_callback, run_id)
+
+        mini_crew = Crew(**crew_kwargs)
+        # Peut lever HumanDecisionRequired (BaseException) → remonte au Flow.
+        result = mini_crew.kickoff(inputs=inputs)
+        _sum_task_tokens(token_acc, mini_crew, result)
+
+        last_output = getattr(result, "raw", None) or str(result)
+        task_outputs[str(i)] = last_output
+        if run_id:
+            swarm_store.save_task_checkpoint(run_id, i, last_output)
+
+    return {
+        "result": last_output,
+        "tokens_in": token_acc["tokens_in"] or None,
+        "tokens_out": token_acc["tokens_out"] or None,
+    }
 

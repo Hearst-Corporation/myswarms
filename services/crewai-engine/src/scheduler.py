@@ -256,11 +256,14 @@ async def _cleanup_stale_runs() -> None:
 
         n_swarm = swarm_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
         n_chief = run_store.cleanup_stale_runs(settings.STALE_RUN_MAX_AGE_MINUTES)
-        if n_swarm or n_chief:
+        # HITL : expire les runs paused_hitl sans réponse humaine (TTL dédié).
+        n_hitl = swarm_store.expire_stale_paused_runs(settings.HITL_DECISION_TTL_MINUTES)
+        if n_swarm or n_chief or n_hitl:
             logger.info(
-                "Stale-run cleanup: marked %d swarm_runs + %d chief_run_log rows as failed",
+                "Stale-run cleanup: marked %d swarm_runs + %d chief_run_log + %d paused_hitl rows as failed",
                 n_swarm,
                 n_chief,
+                n_hitl,
             )
     except Exception as exc:  # noqa: BLE001
         logger.warning("Stale-run cleanup job failed unexpectedly: %s", exc)

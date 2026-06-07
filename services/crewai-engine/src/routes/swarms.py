@@ -157,6 +157,13 @@ class KickoffRequest(BaseModel):
     inputs: dict[str, Any] = Field(default_factory=dict)
 
 
+class ResumeRequest(BaseModel):
+    """Reprise d'un run HITL : réponse de l'humain à une décision en attente."""
+
+    decision_id: str = Field(..., min_length=1, max_length=200)
+    value: str = Field(..., min_length=1, max_length=2000)
+
+
 class ArchitectGenerateRequest(BaseModel):
     """Demande de génération de spec de swarm (Architect Agent).
 
@@ -239,7 +246,7 @@ def _shape_run_response(run_row: dict[str, Any]) -> dict[str, Any]:
     steps = swarm_store.list_run_steps(run_id) if run_id else []
     raw_status = run_row.get("status")
     status = str(raw_status) if raw_status in _VALID_RUN_STATUSES else "pending"
-    return {
+    shaped: dict[str, Any] = {
         "id": run_id,
         "swarm_id": str(run_row.get("swarm_id", "")),
         "trigger": str(run_row.get("trigger", "on_demand")),
@@ -256,6 +263,19 @@ def _shape_run_response(run_row: dict[str, Any]) -> dict[str, Any]:
         "created_at": run_row.get("created_at"),
         "steps": steps,
     }
+    # HITL : quand le run est en pause, on expose la décision active sous `decision`
+    # (contrat partagé par l'endpoint plat /v1/runs/{id} ET nested /status/{id}).
+    if status == "paused_hitl" and run_id:
+        active = swarm_store.get_active_decision(run_id)
+        if active:
+            payload = active.get("payload") or {}
+            shaped["decision"] = {
+                "id": active.get("decision_id"),
+                "question": payload.get("question", ""),
+                "hint": payload.get("hint"),
+                "options": payload.get("options") or [],
+            }
+    return shaped
 
 
 def _hydrate_swarm_children(
@@ -341,11 +361,15 @@ async def _execute_dynamic_flow_background(
     inputs: dict[str, Any],
     n_tasks: int = 0,
     owner_id: str | None = None,
+    checkpoint_index: int = 0,
 ) -> None:
     """Fire-and-forget : exécute DynamicSwarmFlow dans un thread, met à jour la DB.
 
     Identique à `_execute_flow_background` (routes/crews.py) :
     - Success → status="completed" (posé par finalize())
+    - Pause HITL → status reste "paused_hitl" (posé par l'outil ask_human ;
+      run_crew catch HumanDecisionRequired et finalize() est un no-op) → on ne
+      marque NI completed NI failed.
     - Timeout → status="failed", error_text
     - CancelledError (SIGTERM) → status="cancelled"
     - Exception → status="failed", error_text
@@ -353,6 +377,7 @@ async def _execute_dynamic_flow_background(
     `n_tasks` : nombre de tasks du swarm, utilisé pour un timeout adaptatif
     via `_adaptive_flow_timeout`. n_tasks=0 → retombe sur FLOW_TIMEOUT_SECONDS.
     `owner_id` : propagé dans le state du flow pour l'isolation multi-tenant.
+    `checkpoint_index` : index de la 1ʳᵉ task à exécuter (resume HITL) — 0 au kickoff.
     """
     effective_timeout = _adaptive_flow_timeout(n_tasks)
     try:
@@ -363,6 +388,7 @@ async def _execute_dynamic_flow_background(
             "trigger": trigger,
             "inputs": inputs,
             "owner_id": owner_id,
+            "checkpoint_index": checkpoint_index,
         }
         await asyncio.wait_for(
             asyncio.to_thread(flow.kickoff, inputs=state_dict),
@@ -717,6 +743,7 @@ async def kickoff_swarm_endpoint(
         trigger=request.trigger,
         status="running",
         inputs_json=request.inputs or {},
+        owner_id=oid,
     )
 
     # n_tasks is known here (swarm already loaded) — pass for adaptive timeout.
@@ -761,6 +788,87 @@ def status_swarm_run_endpoint(
         # Scoping strict : on n'expose pas les runs d'un autre swarm.
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found for swarm {swarm_id}")
     return _shape_run_response(run)
+
+
+@router.post("/v1/swarms/{swarm_id}/runs/{run_id}/resume", status_code=202)
+async def resume_swarm_run_endpoint(
+    swarm_id: str,
+    run_id: UUID,
+    request: ResumeRequest,
+    owner_id: str | None = Query(default=None),
+) -> dict[str, Any]:
+    """Reprend un run en pause HITL après la réponse de l'humain.
+
+    Contrat : body {decision_id, value} → 202. Idempotent (un double POST ne
+    relance pas deux fois). Garde-fous :
+    - Ownership : `get_swarm_run(run_id, owner_id)` → 404 si le run n'appartient
+      pas à l'owner (refus d'IDOR multi-tenant).
+    - Scope : `run.swarm_id == swarm_id`.
+    - Borne convergence : au-delà de `HITL_RESUME_MAX` reprises, le run est marqué
+      failed (anti-boucle running↔paused_hitl).
+    - Idempotence : CAS atomique `paused_hitl → running` ; si perdu (déjà repris /
+      double POST concurrent), no-op 202.
+    """
+    oid = _require_owner_id(owner_id)
+    rid = str(run_id)
+
+    run = swarm_store.get_swarm_run(rid, owner_id=oid)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    if str(run.get("swarm_id")) != swarm_id:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found for swarm {swarm_id}")
+
+    decision = swarm_store.get_decision_by_id(rid, request.decision_id)
+    if decision is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Decision {request.decision_id!r} not found for run {run_id}",
+        )
+
+    # Idempotence : run déjà repris / plus en pause → no-op 202 (le run continue).
+    if run.get("status") != "paused_hitl":
+        return {"run_id": rid, "swarm_id": swarm_id, "status": str(run.get("status"))}
+
+    # Borne de convergence — au-delà de la limite, on échoue proprement.
+    if int(run.get("resume_count") or 0) >= settings.HITL_RESUME_MAX:
+        swarm_store.update_swarm_run(
+            rid,
+            status="failed",
+            error_text="HITL non-convergence — too many resumes",
+        )
+        raise HTTPException(status_code=409, detail="HITL resume limit reached — run failed")
+
+    # R02 — CAS atomique paused_hitl → running + incrément resume_count.
+    # Le perdant (double POST concurrent ou resume_count déjà avancé) fait un no-op.
+    expected_rc = int(run.get("resume_count") or 0)
+    if not swarm_store.cas_pause_to_running(rid, expected_resume_count=expected_rc):
+        return {"run_id": rid, "swarm_id": swarm_id, "status": "running"}
+
+    # Gagnant du CAS : enregistre la réponse + injecte _hitl_answers + relance.
+    ordinal = int(decision.get("ordinal") or 0)
+    swarm_store.resolve_decision(rid, request.decision_id, request.value)
+    merged_inputs = swarm_store.apply_resume_inputs(rid, ordinal, request.value)
+
+    # Timeout adaptatif sur le total de tasks (le re-run rejoue la task de
+    # décision + les suivantes — pas les antérieures).
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    n_tasks = len(loaded.get("tasks") or []) if loaded else 0
+
+    task = asyncio.create_task(
+        _execute_dynamic_flow_background(
+            swarm_id=swarm_id,
+            run_id=rid,
+            trigger=str(run.get("trigger", "on_demand")),
+            inputs=merged_inputs,
+            n_tasks=n_tasks,
+            owner_id=oid,
+            checkpoint_index=int(run.get("checkpoint_index") or 0),
+        )
+    )
+    _running_tasks.add(task)
+    task.add_done_callback(_running_tasks.discard)
+
+    return {"run_id": rid, "swarm_id": swarm_id, "status": "running"}
 
 
 @router.get("/v1/swarms/{swarm_id}/runs")
