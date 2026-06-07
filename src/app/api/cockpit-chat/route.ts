@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { getSuperAdmin } from "@/lib/auth/superAdmin";
+import { checkRateLimitDistributed } from "@/lib/utils/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { kimi, KIMI_MODEL } from "@/lib/llm/kimi";
 import { buildSystemPrompt } from "@/lib/cockpit-agent/prompt";
@@ -12,6 +13,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
+// Rate-limit coût LLM (boucle agent jusqu'à 6 tours Kimi + tools). Env-driven.
+const RL_MAX = Number(process.env.COCKPIT_CHAT_RATELIMIT_MAX ?? "20");
+const RL_WINDOW_S = Number(process.env.COCKPIT_CHAT_RATELIMIT_WINDOW_S ?? "60");
+
 export async function POST(req: NextRequest): Promise<Response> {
   let ownerId: string;
   try {
@@ -21,6 +26,17 @@ export async function POST(req: NextRequest): Promise<Response> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     throw err;
+  }
+
+  const rl = await checkRateLimitDistributed(`cockpit-chat:${ownerId}`, {
+    max: RL_MAX,
+    windowSeconds: RL_WINDOW_S,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Trop de requêtes — réessaie dans un instant." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } },
+    );
   }
 
   let body: { chatId?: string; message?: string; messages?: ChatCompletionMessageParam[]; model?: string } = {};

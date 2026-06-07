@@ -99,9 +99,14 @@ function _sweepExpired(cutoff: number): void {
  *
  * @param key identifiant logique du bucket (ex: owner_id scoping un endpoint).
  */
-export function checkRateLimit(key: string): RateLimitResult {
+export function checkRateLimit(
+  key: string,
+  opts?: { windowMs?: number; max?: number },
+): RateLimitResult {
+  const windowMs = opts?.windowMs ?? WINDOW_MS;
+  const max = opts?.max ?? MAX_IN_WINDOW;
   const now = Date.now();
-  const cutoff = now - WINDOW_MS;
+  const cutoff = now - windowMs;
 
   // Sweep paresseux amorti : borne la taille de la Map sans timer.
   if (
@@ -113,10 +118,10 @@ export function checkRateLimit(key: string): RateLimitResult {
 
   const recent = (hits.get(key) ?? []).filter((ts) => ts > cutoff);
 
-  if (recent.length >= MAX_IN_WINDOW) {
+  if (recent.length >= max) {
     // Le plus ancien hit dans la fenêtre détermine quand un slot se libère.
     const oldest = recent[0];
-    const retryAfterMs = Math.max(0, oldest + WINDOW_MS - now);
+    const retryAfterMs = Math.max(0, oldest + windowMs - now);
     hits.set(key, recent);
     return {
       allowed: false,
@@ -127,4 +132,65 @@ export function checkRateLimit(key: string): RateLimitResult {
   recent.push(now);
   hits.set(key, recent);
   return { allowed: true, retryAfterSeconds: 0 };
+}
+
+/**
+ * Rate-limit DISTRIBUÉ via Upstash Redis REST (compteur partagé entre toutes
+ * les instances serverless/replicas — corrige la limite per-process du
+ * `checkRateLimit` in-memory, cf audit perf 2026-06-07). Atomique : INCR + TTL.
+ *
+ * Garde-fous :
+ * - Upstash non configuré → fallback in-memory best-effort (jamais de crash).
+ * - Upstash en panne → fail-open (on ne bloque PAS un user légitime sur une
+ *   panne de cache ; le rate-limit est un garde-fou coût, pas une sécurité).
+ *
+ * Réutilise le pattern raw-fetch déjà en place dans src/lib/apify/autoscout.ts
+ * (aucune dépendance npm ajoutée).
+ */
+export async function checkRateLimitDistributed(
+  key: string,
+  opts: { max: number; windowSeconds: number },
+): Promise<RateLimitResult> {
+  const url = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    return checkRateLimit(key, {
+      windowMs: opts.windowSeconds * 1000,
+      max: opts.max,
+    });
+  }
+
+  const redisKey = `rl:${key}`;
+  const headers = { Authorization: `Bearer ${token}` };
+  try {
+    const incrRes = await fetch(`${url}/incr/${encodeURIComponent(redisKey)}`, {
+      method: "POST",
+      headers,
+    });
+    const count = Number((await incrRes.json()).result);
+
+    // Première occurrence de la fenêtre → poser le TTL.
+    if (count === 1) {
+      await fetch(
+        `${url}/expire/${encodeURIComponent(redisKey)}/${opts.windowSeconds}`,
+        { method: "POST", headers },
+      );
+    }
+
+    if (count > opts.max) {
+      const ttlRes = await fetch(`${url}/ttl/${encodeURIComponent(redisKey)}`, {
+        method: "POST",
+        headers,
+      });
+      const ttl = Number((await ttlRes.json()).result);
+      return {
+        allowed: false,
+        retryAfterSeconds: ttl > 0 ? ttl : opts.windowSeconds,
+      };
+    }
+    return { allowed: true, retryAfterSeconds: 0 };
+  } catch {
+    return { allowed: true, retryAfterSeconds: 0 };
+  }
 }
