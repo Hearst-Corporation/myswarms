@@ -4,10 +4,15 @@ import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { checkBodySize } from "@/lib/utils/body-limit";
 import { extractVehicleFromUrl, isAllowedAutomobileUrl } from "@/lib/automobile/urlExtractor";
 import { findRecentRunByUrl } from "@/lib/automobile/dedup";
+import { checkRateLimitDistributed } from "@/lib/utils/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 15;
+
+// Rate-limit : fetch sortant + dédup fan-out N status engine. Env-driven.
+const RL_MAX = Number(process.env.EXTRACT_URL_RATELIMIT_MAX ?? "30");
+const RL_WINDOW_S = Number(process.env.EXTRACT_URL_RATELIMIT_WINDOW_S ?? "60");
 
 const BodySchema = z.object({
   url: z.string().trim().url("URL invalide"),
@@ -25,6 +30,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     throw err;
+  }
+
+  const rl = await checkRateLimitDistributed(`extract-url:${ownerId}`, {
+    max: RL_MAX,
+    windowSeconds: RL_WINDOW_S,
+  });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Trop de requêtes — réessaie dans un instant." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } },
+    );
   }
 
   let body: unknown;

@@ -2,20 +2,22 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { useTenantConfig } from "@/components/cockpit/TenantConfigProvider";
 
 /**
- * Switcher de dashboard / espace produit. Permet de passer de l'espace
- * **Automobile** (couleurs propres) à l'espace **Admin/Hive**.
+ * Switcher de dashboard / espace produit. Pose `data-product` sur <html> selon
+ * l'espace actif → l'accent couleur change (cf. overrides [data-product="…"]
+ * dans cockpit.css).
  *
- * Pose `data-product` sur <html> selon l'espace actif → l'accent couleur change
- * (cf. overrides [data-product="automobile"] dans cockpit.css). Piloté par la
- * route : naviguer vers /automobile applique l'accent automobile, même sans
- * cliquer le switcher.
+ * Accent de base = produit du **tenant actif** (niveau 1, registre `tenants`).
+ * La sous-section /automobile force son propre accent au sein du front natif,
+ * même sans cliquer le switcher.
  */
 export function DashboardSwitcher() {
   const pathname = usePathname() ?? "/";
+  const { product: tenantProduct } = useTenantConfig();
 
-  const product = pathname.startsWith("/automobile") ? "automobile" : "hive";
+  const product = pathname.startsWith("/automobile") ? "automobile" : tenantProduct;
 
   useEffect(() => {
     document.documentElement.setAttribute("data-product", product);

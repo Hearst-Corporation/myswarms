@@ -374,7 +374,11 @@ export function ActivityFeed({
       }
     };
 
-    intervalRef.current = setInterval(poll, 3000);
+    // Intervalle env-driven (défaut 8s vs 3s avant) — réduit la charge du poll
+    // (cascade engine→DB à chaque tick, cf audit perf). Le guard visibilité
+    // ci-dessus coupe déjà le poll hors focus.
+    const pollMs = Number(process.env.NEXT_PUBLIC_ACTIVITY_POLL_MS ?? "8000");
+    intervalRef.current = setInterval(poll, pollMs);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };

@@ -43,6 +43,8 @@ next-env.d.ts
 # setup-adrien (secrets projet)
 docs/api-config/
 .supabase-db-password.tmp
+.hedge-admin-*.tmp
+docs/credentials.local.txt
 
 # electron
 dist-electron/
