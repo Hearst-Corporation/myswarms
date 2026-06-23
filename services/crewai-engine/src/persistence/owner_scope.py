@@ -116,6 +116,86 @@ class ScopedSwarmStore:
             return None
         return swarm_store.list_run_steps(run_id)
 
+    # ── ÉCRITURES (R2 write-side) ─────────────────────────────────────────
+    # create force owner_id=scope ; update/delete/replace valident un owner
+    # STRICT (templates globaux immuables) ; les writes de run valident le run
+    # owner-scopé (get_run strict, R1/R3). Cross-owner / owner-NULL → None/False.
+
+    def _owns_swarm_strict(self, swarm_id: str) -> bool:
+        return swarm_store.is_swarm_owned(swarm_id, self._scope.owner_id, allow_template=False)
+
+    def create_swarm(self, payload: dict[str, Any]) -> str | None:
+        """Crée un swarm en FORÇANT owner_id=scope. Refuse les templates globaux."""
+        if payload.get("is_template"):
+            raise OwnerScopeError("global templates are created via DB migration, not the API")
+        forced = {**payload, "owner_id": self._scope.owner_id}
+        return swarm_store.create_swarm(forced)
+
+    def update_swarm(self, swarm_id: str, fields: dict[str, Any]) -> bool | None:
+        if not self._owns_swarm_strict(swarm_id):
+            return None
+        return swarm_store.update_swarm(swarm_id, fields, owner_id=self._scope.owner_id)
+
+    def delete_swarm(self, swarm_id: str, *, hard: bool = False) -> bool | None:
+        if not self._owns_swarm_strict(swarm_id):
+            return None
+        return swarm_store.delete_swarm(swarm_id, owner_id=self._scope.owner_id, hard=hard)
+
+    def replace_agents(self, swarm_id: str, agents: list[dict[str, Any]]) -> dict[str, str] | None:
+        if not self._owns_swarm_strict(swarm_id):
+            return None
+        return swarm_store.replace_agents(swarm_id, agents)
+
+    def replace_tasks(
+        self, swarm_id: str, tasks: list[dict[str, Any]], agent_id_map: dict[str, str]
+    ) -> dict[str, str] | None:
+        if not self._owns_swarm_strict(swarm_id):
+            return None
+        return swarm_store.replace_tasks(swarm_id, tasks, agent_id_map=agent_id_map)
+
+    def replace_tool_bindings(
+        self, swarm_id: str, bindings: list[dict[str, Any]], agent_id_map: dict[str, str]
+    ) -> bool | None:
+        if not self._owns_swarm_strict(swarm_id):
+            return None
+        return swarm_store.replace_tool_bindings(swarm_id, bindings, agent_id_map=agent_id_map)
+
+    def save_run(
+        self,
+        run_id: str,
+        swarm_id: str,
+        trigger: str,
+        status: str = "running",
+        inputs_json: dict[str, Any] | None = None,
+    ) -> bool | None:
+        """Crée un run. Autorisé sur un swarm possédé OU un template global
+        (kickoff). Le run porte owner_id=scope (R1)."""
+        if self.get_swarm(swarm_id) is None:  # règle lecture : owner OU template
+            return None
+        return swarm_store.save_swarm_run(
+            run_id=run_id,
+            swarm_id=swarm_id,
+            trigger=trigger,
+            status=status,
+            inputs_json=inputs_json,
+            owner_id=self._scope.owner_id,
+        )
+
+    def update_run(self, run_id: str, **fields: Any) -> bool | None:
+        if self.get_run(run_id) is None:
+            return None
+        return swarm_store.update_swarm_run(run_id, **fields)
+
+    def cas_pause_to_running(self, run_id: str, expected_resume_count: int = 0) -> bool:
+        if self.get_run(run_id) is None:
+            return False
+        return swarm_store.cas_pause_to_running(run_id, expected_resume_count=expected_resume_count)
+
+    def resolve_decision(self, run_id: str, decision_id: str, value: str) -> bool | None:
+        if self.get_run(run_id) is None:
+            return None
+        return swarm_store.resolve_decision(run_id, decision_id, value)
+
 
 class ScopedChiefStore:
     """Lectures owner-scopées du Daily Chief of Staff (chief_run_log/steps/decisions)."""
@@ -149,3 +229,8 @@ class ScopedChiefStore:
         if not self._owns_run(kickoff_id):
             return None
         return _list_chief_decisions(kickoff_id)
+
+    # ── ÉCRITURE (R2 write-side) ──────────────────────────────────────────
+    def save_run(self, kickoff_id: str, trigger: str, status: str, started_at: str) -> bool:
+        """Crée un run chief en FORÇANT owner_id=scope (kickoff Chief of Staff)."""
+        return run_store.save_run(kickoff_id, trigger, status, started_at, owner_id=self._scope.owner_id)

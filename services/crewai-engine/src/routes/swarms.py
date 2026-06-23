@@ -523,7 +523,7 @@ def create_swarm_endpoint(
             detail="Duplicate task client_id in payload (each task.id must be unique)",
         )
 
-    new_id = swarm_store.create_swarm(swarm_payload)
+    new_id = _scoped(identity).create_swarm(swarm_payload)
     if not new_id:
         raise HTTPException(
             status_code=500,
@@ -537,7 +537,7 @@ def create_swarm_endpoint(
             "Partial create failed for swarm %s, rolling back: %s",
             new_id, exc,
         )
-        swarm_store.delete_swarm(new_id, hard=True)
+        _scoped(identity).delete_swarm(new_id, hard=True)
         raise HTTPException(
             status_code=500,
             detail=f"Failed to hydrate swarm children: {exc}",
@@ -617,7 +617,7 @@ def update_swarm_endpoint(
         raise HTTPException(status_code=400, detail="No fields to update")
 
     if payload_set:
-        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=identity.owner_id)
+        ok = scoped.update_swarm(swarm_id, payload_set)
         if not ok:
             raise HTTPException(
                 status_code=500,
@@ -637,19 +637,19 @@ def update_swarm_endpoint(
     agent_id_map: dict[str, str] = {}
     errors: list[str] = []
     if has_agents_key:
-        result = swarm_store.replace_agents(swarm_id, agents_payload or [])
+        result = scoped.replace_agents(swarm_id, agents_payload or [])
         if result is None:
             errors.append("replace_agents failed (snapshot/delete/insert KO, rollback applied)")
         else:
             agent_id_map = result
     if has_tasks_key:
-        result = swarm_store.replace_tasks(
+        result = scoped.replace_tasks(
             swarm_id, tasks_payload or [], agent_id_map=agent_id_map
         )
         if result is None:
             errors.append("replace_tasks failed (snapshot/delete/insert KO, rollback applied)")
     if has_bindings_key:
-        ok = swarm_store.replace_tool_bindings(
+        ok = scoped.replace_tool_bindings(
             swarm_id, bindings_payload or [], agent_id_map=agent_id_map
         )
         if not ok:
@@ -676,8 +676,6 @@ def delete_swarm_endpoint(
 
     Owner dérivé du JWT interne vérifié : scope la suppression sur ce propriétaire.
     """
-    oid = identity.owner_id
-
     # I6 fix : DELETE non-idempotent — aligné sur GET/PATCH pour cohérence
     # interne du projet. On vérifie l'existence du swarm (scopé owner) avant le
     # soft delete (404 si inexistant). Reste valide REST : DELETE peut renvoyer
@@ -688,7 +686,7 @@ def delete_swarm_endpoint(
 
     # Guard: global templates (owner_id=NULL, is_template=True) are read/run-only.
     _deny_if_global_template(guard, swarm_id)
-    ok = swarm_store.delete_swarm(swarm_id, owner_id=oid)
+    ok = _scoped(identity).delete_swarm(swarm_id)
     if not ok:
         raise HTTPException(
             status_code=500,
@@ -737,13 +735,14 @@ async def kickoff_swarm_endpoint(
         )
 
     run_id = str(uuid4())
-    swarm_store.save_swarm_run(
+    # Couche write-side : valide l'accès au swarm (owner ou template) et force
+    # owner_id=scope sur le run créé (R1/R2).
+    _scoped(identity).save_run(
         run_id=run_id,
         swarm_id=swarm_id,
         trigger=request.trigger,
         status="running",
         inputs_json=request.inputs or {},
-        owner_id=oid,
     )
 
     # n_tasks is known here (swarm already loaded) — pass for adaptive timeout.
@@ -833,7 +832,7 @@ async def resume_swarm_run_endpoint(
 
     # Borne de convergence — au-delà de la limite, on échoue proprement.
     if int(run.get("resume_count") or 0) >= settings.HITL_RESUME_MAX:
-        swarm_store.update_swarm_run(
+        scoped.update_run(
             rid,
             status="failed",
             error_text="HITL non-convergence — too many resumes",
@@ -843,12 +842,12 @@ async def resume_swarm_run_endpoint(
     # R02 — CAS atomique paused_hitl → running + incrément resume_count.
     # Le perdant (double POST concurrent ou resume_count déjà avancé) fait un no-op.
     expected_rc = int(run.get("resume_count") or 0)
-    if not swarm_store.cas_pause_to_running(rid, expected_resume_count=expected_rc):
+    if not scoped.cas_pause_to_running(rid, expected_resume_count=expected_rc):
         return {"run_id": rid, "swarm_id": swarm_id, "status": "running"}
 
     # Gagnant du CAS : enregistre la réponse + injecte _hitl_answers + relance.
     ordinal = int(decision.get("ordinal") or 0)
-    swarm_store.resolve_decision(rid, request.decision_id, request.value)
+    scoped.resolve_decision(rid, request.decision_id, request.value)
     merged_inputs = swarm_store.apply_resume_inputs(rid, ordinal, request.value)
 
     # Timeout adaptatif sur le total de tasks (le re-run rejoue la task de
