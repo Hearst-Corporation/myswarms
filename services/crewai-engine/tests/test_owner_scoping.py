@@ -90,39 +90,48 @@ class TestGetSwarmOwnerScoping:
 
 
 class TestGetSwarmRunOwnerScoping:
-    """get_swarm_run() with owner_id scopes via swarms.owner_id secondary check."""
+    """get_swarm_run() with owner_id scopes STRICTEMENT sur swarm_runs.owner_id.
 
-    def test_returns_none_when_run_found_but_swarm_owner_mismatches(self):
-        """Run belongs to swarm owned by owner_A → invisible to owner_B."""
+    R1 — IDOR fix : plus de fallback secondaire via swarms.owner_id/is_template.
+    Un run n'est lisible que si run.owner_id == owner_id (requête unique).
+    """
+
+    def test_returns_none_when_run_owner_mismatches(self):
+        """Run owned by owner_A → invisible to owner_B (scope direct run.owner_id)."""
         from src.persistence import swarm_store  # noqa: PLC0415
 
         result_run = MagicMock()
-        result_run.data = {"id": "run-1", "swarm_id": "swarm-1"}
+        result_run.data = {"id": "run-1", "swarm_id": "swarm-1", "owner_id": _OWNER_A}
 
-        # Owner check: no swarm found for owner_B.
-        result_no_swarm = MagicMock()
-        result_no_swarm.data = None
-
-        stub = _chain(side_effect=[result_run, result_no_swarm])
+        stub = _chain(side_effect=[result_run])
         with patch.object(swarm_store, "_get_client", return_value=stub):
             result = swarm_store.get_swarm_run("run-1", owner_id=_OWNER_B)
 
         assert result is None, "Run should be invisible when owner mismatches"
 
-    def test_returns_run_when_owner_matches(self):
-        """Run belongs to swarm owned by owner_A → visible to owner_A."""
+    def test_returns_none_for_null_owner_run(self):
+        """Run legacy/template avec owner_id NULL → inaccessible (plus de fallback is_template)."""
         from src.persistence import swarm_store  # noqa: PLC0415
 
-        run_row = {"id": "run-1", "swarm_id": "swarm-1", "status": "completed"}
+        result_run = MagicMock()
+        result_run.data = {"id": "run-1", "swarm_id": "tmpl-1", "owner_id": None}
+
+        stub = _chain(side_effect=[result_run])
+        with patch.object(swarm_store, "_get_client", return_value=stub):
+            result = swarm_store.get_swarm_run("run-1", owner_id=_OWNER_A)
+
+        assert result is None, "Null-owner run must never be readable via owner scope"
+
+    def test_returns_run_when_owner_matches(self):
+        """Run owned by owner_A → visible to owner_A (requête unique, sans fallback swarm)."""
+        from src.persistence import swarm_store  # noqa: PLC0415
+
+        run_row = {"id": "run-1", "swarm_id": "swarm-1", "owner_id": _OWNER_A, "status": "completed"}
 
         result_run = MagicMock()
         result_run.data = run_row
 
-        # Owner check succeeds for owner_A.
-        result_owner_ok = MagicMock()
-        result_owner_ok.data = {"id": "swarm-1"}
-
-        stub = _chain(side_effect=[result_run, result_owner_ok])
+        stub = _chain(side_effect=[result_run])
         with patch.object(swarm_store, "_get_client", return_value=stub):
             result = swarm_store.get_swarm_run("run-1", owner_id=_OWNER_A)
 
@@ -131,22 +140,24 @@ class TestGetSwarmRunOwnerScoping:
 
 
 class TestListSwarmRunsOwnerScoping:
-    """list_swarm_runs() with owner_id returns [] when swarm belongs to different owner."""
+    """list_swarm_runs() with owner_id ne renvoie QUE les runs de cet owner (run.owner_id)."""
 
     def test_returns_empty_list_when_owner_mismatches(self):
-        """Runs of swarm owned by owner_A are invisible to owner_B."""
+        """Runs non possédés par owner_B sont filtrés (scope run.owner_id) → []."""
         from src.persistence import swarm_store  # noqa: PLC0415
 
-        # Owner check query: no swarm matches (wrong owner).
-        result_owner_check = MagicMock()
-        result_owner_check.data = None
+        # Le filtre .eq("owner_id", owner_B) ne matche aucun run → [].
+        result_runs = MagicMock()
+        result_runs.data = []
 
-        stub = _chain(data=None)
-        stub.execute.return_value = result_owner_check
+        stub = _chain(data=[])
+        stub.execute.return_value = result_runs
         with patch.object(swarm_store, "_get_client", return_value=stub):
             result = swarm_store.list_swarm_runs("swarm-1", owner_id=_OWNER_B)
 
         assert result == [], "Should return empty list for wrong owner"
+        # Le scope est appliqué sur owner_id du run (plus de gate template).
+        assert ("owner_id", _OWNER_B) in [c.args for c in stub.eq.call_args_list]
 
     def test_no_owner_filter_returns_all_runs(self):
         """Without owner_id, list_swarm_runs skips the owner check."""

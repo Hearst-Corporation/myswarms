@@ -1094,12 +1094,13 @@ def get_swarm_run(
 ) -> dict[str, Any] | None:
     """Récupère un run par son id.
 
-    R07 — IDOR fix : si `owner_id` est fourni, on scope D'ABORD sur
-    `swarm_runs.owner_id` (colonne posée au kickoff depuis migration 0033).
-    Fallback legacy : si la row a `owner_id` NULL (run créé AVANT la migration),
-    on conserve la vérification via le swarm parent (JOIN via swarms.owner_id).
-    Ainsi un run de template lancé par tenant A (owner_id=A en DB) n'est plus
-    accessible à tenant B.
+    R1 — IDOR fix : si `owner_id` est fourni, lecture STRICTE par
+    `swarm_runs.owner_id`. Un run dont l'owner ne matche pas — ou dont l'owner
+    est NULL (run système ou lancé sur un template global, non backfillable) —
+    est traité comme inexistant (404 côté route). Plus AUCUN fallback via le
+    statut `is_template` du swarm parent : un run n'est jamais lisible parce que
+    son swarm parent est un template global. Les runs ownerless restent
+    atteignables uniquement en service_role / SQL direct (admin).
     """
     _assert_valid_uuid(owner_id)
     client = _get_client()
@@ -1118,27 +1119,11 @@ def get_swarm_run(
             return None
 
         if owner_id:
+            # Scope strict : seul le propriétaire du run y accède. owner_id NULL
+            # (legacy non rattachable / run système / template global) ⇒ 404.
             run_owner = run.get("owner_id")
-            if run_owner is not None:
-                # Colonne owner_id présente (post-migration 0033) : scope direct.
-                if str(run_owner) != owner_id:
-                    return None
-            else:
-                # Legacy run (owner_id NULL) : fallback via swarm parent.
-                swarm_id = run.get("swarm_id")
-                if not swarm_id:
-                    return None
-                # Accept runs belonging to owner's swarms OR global template swarms.
-                owner_check = (
-                    client.table("swarms")
-                    .select("id")
-                    .eq("id", swarm_id)
-                    .or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
-                    .maybe_single()
-                    .execute()
-                )
-                if not (owner_check and owner_check.data):
-                    return None
+            if run_owner is None or str(run_owner) != owner_id:
+                return None
         return run
     except Exception as exc:  # noqa: BLE001
         logger.error("get_swarm_run failed for %s: %s", run_id, exc)
@@ -1152,8 +1137,12 @@ def list_swarm_runs(
 ) -> list[dict[str, Any]]:
     """Liste les runs d'un swarm, plus récents en premier.
 
-    Si `owner_id` est fourni, valide d'abord que le swarm appartient à l'owner ;
-    sinon retourne `[]` (équivalent à un 404 côté route).
+    R1 — IDOR fix : si `owner_id` est fourni, on ne retourne QUE les runs
+    appartenant à ce propriétaire (filtre direct `swarm_runs.owner_id`). Plus de
+    gate « swarm template global ⇒ tous ses runs » : un run n'est jamais listé
+    via le statut template du swarm parent. Sur un template partagé, chaque
+    tenant ne voit donc que ses propres runs. `owner_id=None` (appel interne de
+    confiance) liste tous les runs du swarm.
 
     Les valeurs `total_cost_usd` sont castées en float — supabase-py peut les
     livrer en Decimal/str selon la version client.
@@ -1162,26 +1151,19 @@ def list_swarm_runs(
     if client is None:
         return []
     try:
-        if owner_id:
-            # Accept runs on owner's swarms OR global template swarms.
-            owner_check = (
-                client.table("swarms")
-                .select("id")
-                .eq("id", swarm_id)
-                .or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
-                .maybe_single()
-                .execute()
-            )
-            if not (owner_check and owner_check.data):
-                return []
-
-        result = (
+        query = (
             client.table("swarm_runs")
             .select(
                 "id,swarm_id,trigger,status,started_at,finished_at,"
                 "total_tokens_in,total_tokens_out,total_cost_usd,langfuse_trace_id"
             )
             .eq("swarm_id", swarm_id)
+        )
+        if owner_id:
+            query = query.eq("owner_id", owner_id)
+
+        result = (
+            query
             .order("started_at", desc=True)
             .limit(limit)
             .execute()
