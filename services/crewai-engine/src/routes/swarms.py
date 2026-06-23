@@ -36,11 +36,22 @@ from ..config import settings
 from ..crews.dynamic_crew import flush_run_steps
 from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
 from ..persistence import swarm_store
+from ..persistence.owner_scope import OwnerScope, ScopedSwarmStore
 from ..security.internal_auth import require_internal_identity, InternalIdentity
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+def _scoped(identity: InternalIdentity) -> ScopedSwarmStore:
+    """Couche de lecture owner-scopée (R2) dérivée du JWT interne vérifié.
+
+    Toute lecture owner-scopée d'une route DOIT passer par ce store — jamais
+    par `swarm_store.get_swarm*/list_swarm*` directement (cf test garde
+    `tests/test_owner_scope_guard.py`).
+    """
+    return ScopedSwarmStore(OwnerScope.from_identity(identity))
 
 
 def _deny_if_global_template(loaded: dict | None, swarm_id: str) -> None:
@@ -439,8 +450,8 @@ async def _execute_dynamic_flow_background(
 
 @router.get("/v1/swarms")
 def list_swarms_endpoint(identity: InternalIdentity = Depends(require_internal_identity)) -> list[dict[str, Any]]:
-    """Liste tous les swarms actifs, filtrés optionnellement par owner_id."""
-    return swarm_store.list_swarms(owner_id=identity.owner_id)
+    """Liste les swarms de l'owner (+ templates globaux), via la couche owner-scopée."""
+    return _scoped(identity).list_swarms()
 
 
 @router.get("/v1/swarms/{swarm_id}")
@@ -450,9 +461,10 @@ def get_swarm_endpoint(
 ) -> dict[str, Any]:
     """Renvoie un swarm complet (agents + tasks + tool_bindings).
 
-    `owner_id` requis : scope la lecture sur ce propriétaire — 404 si mismatch.
+    Lecture owner-scopée (couche R2) — 404 si le swarm n'appartient pas à l'owner
+    (les templates globaux restent visibles comme définitions).
     """
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=identity.owner_id)
+    loaded = _scoped(identity).get_swarm(swarm_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
     return _shape_swarm_response(loaded)
@@ -531,7 +543,7 @@ def create_swarm_endpoint(
             detail=f"Failed to hydrate swarm children: {exc}",
         ) from exc
 
-    loaded = swarm_store.get_swarm(new_id)
+    loaded = _scoped(identity).get_swarm(new_id)
     if loaded is None:
         # Insertion réussie mais relecture KO — squelette minimal aligné Zod.
         # created_at/updated_at sont requis (string) côté SwarmRecordSchema —
@@ -576,8 +588,9 @@ def update_swarm_endpoint(
 
     `owner_id` requis : la lecture est scopée sur ce propriétaire.
     """
-    # Pre-check : valide propriétaire (404 sinon).
-    guard = swarm_store.get_swarm(swarm_id, owner_id=identity.owner_id)
+    # Pre-check owner-scopé : valide propriétaire (404 sinon).
+    scoped = _scoped(identity)
+    guard = scoped.get_swarm(swarm_id)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
@@ -648,7 +661,7 @@ def update_swarm_endpoint(
             detail={"message": "Partial update failed", "errors": errors},
         )
 
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=identity.owner_id)
+    loaded = scoped.get_swarm(swarm_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found after update")
     return _shape_swarm_response(loaded)
@@ -669,7 +682,7 @@ def delete_swarm_endpoint(
     # interne du projet. On vérifie l'existence du swarm (scopé owner) avant le
     # soft delete (404 si inexistant). Reste valide REST : DELETE peut renvoyer
     # 404 ou 204 selon la convention choisie.
-    guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    guard = _scoped(identity).get_swarm(swarm_id)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
@@ -703,8 +716,8 @@ async def kickoff_swarm_endpoint(
     """
     oid = identity.owner_id
 
-    # Validation : le swarm doit exister (scopé propriétaire si owner_id fourni).
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    # Validation owner-scopée : le swarm doit exister et appartenir à l'owner.
+    loaded = _scoped(identity).get_swarm(swarm_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
@@ -767,8 +780,7 @@ def status_swarm_run_endpoint(
     Owner dérivé du JWT interne vérifié : scope la lecture sur ce propriétaire
     (swarm_runs.owner_id côté swarm_store).
     """
-    oid = identity.owner_id
-    run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
+    run = _scoped(identity).get_run(str(run_id))
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     if str(run.get("swarm_id")) != swarm_id:
@@ -800,8 +812,9 @@ async def resume_swarm_run_endpoint(
     """
     oid = identity.owner_id
     rid = str(run_id)
+    scoped = _scoped(identity)
 
-    run = swarm_store.get_swarm_run(rid, owner_id=oid)
+    run = scoped.get_run(rid)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     if str(run.get("swarm_id")) != swarm_id:
@@ -840,7 +853,7 @@ async def resume_swarm_run_endpoint(
 
     # Timeout adaptatif sur le total de tasks (le re-run rejoue la task de
     # décision + les suivantes — pas les antérieures).
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
+    loaded = scoped.get_swarm(swarm_id)
     n_tasks = len(loaded.get("tasks") or []) if loaded else 0
 
     task = asyncio.create_task(
@@ -868,11 +881,11 @@ def list_swarm_runs_endpoint(
 ) -> list[dict[str, Any]]:
     """Runs récents d'un swarm donné, plus récents en premier.
 
-    Owner dérivé du JWT interne vérifié : `list_swarm_runs` ne retourne que les
-    runs appartenant à cet owner (filtre direct `swarm_runs.owner_id`, R1
+    Owner dérivé du JWT interne vérifié : la couche owner-scopée ne retourne que
+    les runs appartenant à cet owner (filtre direct `swarm_runs.owner_id`, R1
     anti-IDOR). Sur un template partagé, chaque tenant ne voit que ses propres runs.
     """
-    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=identity.owner_id)
+    return _scoped(identity).list_runs(swarm_id, limit=limit)
 
 
 @router.get("/v1/runs/{run_id}")
@@ -884,8 +897,7 @@ def get_run_cross_swarm_endpoint(
 
     Owner dérivé du JWT interne vérifié : le run est filtré sur swarm_runs.owner_id.
     """
-    oid = identity.owner_id
-    run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
+    run = _scoped(identity).get_run(str(run_id))
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     return _shape_run_response(run)
@@ -924,7 +936,7 @@ async def architect_generate_endpoint(
     # Owner dérivé du JWT vérifié — le champ body.owner_id (legacy) est ignoré
     # comme source de vérité (anti-spoofing).
     effective_owner_id = identity.owner_id
-    available_tools = swarm_store.list_tools(owner_id=effective_owner_id)
+    available_tools = _scoped(identity).list_tools()
 
     try:
         result = await asyncio.wait_for(
@@ -968,8 +980,8 @@ async def architect_generate_endpoint(
 def list_tools_endpoint(
     identity: InternalIdentity = Depends(require_internal_identity),
 ) -> list[dict[str, Any]]:
-    """Liste le catalogue de tools actifs (filtre par owner dérivé du JWT)."""
-    return swarm_store.list_tools(owner_id=identity.owner_id)
+    """Liste le catalogue de tools actifs (couche owner-scopée, owner du JWT)."""
+    return _scoped(identity).list_tools()
 
 
 # ── Composio OAuth ───────────────────────────────────────────────────────────

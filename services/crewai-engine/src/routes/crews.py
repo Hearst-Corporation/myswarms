@@ -12,11 +12,20 @@ from pydantic import BaseModel, Field
 from ..config import settings
 from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
 from ..persistence import run_store
-from ..persistence.chief_step_store import list_chief_steps
 from ..persistence.chief_decision_store import record_decision
+from ..persistence.owner_scope import OwnerScope, ScopedChiefStore
 from ..security.internal_auth import InternalIdentity, require_internal_identity
 
 logger = logging.getLogger(__name__)
+
+
+def _chief_scoped(identity: InternalIdentity) -> ScopedChiefStore:
+    """Couche de lecture owner-scopée (R2) pour le Daily Chief of Staff.
+
+    Toute lecture chief owner-scopée d'une route DOIT passer par ce store —
+    jamais par `run_store.get_run/list_runs` directement (cf test garde).
+    """
+    return ScopedChiefStore(OwnerScope.from_identity(identity))
 
 router = APIRouter(prefix="/v1/crews/chief-of-staff")
 
@@ -234,8 +243,8 @@ def status(
     kid = str(kickoff_id)
     run = _runs.get(kid)
     if run is None:
-        # Fallback to Supabase — handles pod restarts where in-memory store is lost.
-        db_run = run_store.get_run(kid, owner_id=oid)
+        # Fallback owner-scopé vers Supabase — gère les redémarrages de pod.
+        db_run = _chief_scoped(identity).get_run(kid)
         if db_run is None:
             raise HTTPException(status_code=404, detail=f"kickoff_id {kid!r} not found")
         # Map DB column names to StatusResponse fields.
@@ -264,17 +273,16 @@ def list_runs_endpoint(
     Owner dérivé du JWT interne vérifié (anti cross-tenant).
     Returns empty list if Supabase is not configured.
     """
-    return run_store.list_runs(limit=limit, owner_id=identity.owner_id)
+    return _chief_scoped(identity).list_runs(limit=limit)
 
 
-def _require_run_owner(kickoff_id: str, owner_id: str) -> None:
-    """Raise 403 if the run does not belong to owner_id.
+def _require_run_owner(scoped: ScopedChiefStore, kickoff_id: str) -> None:
+    """Raise 404 if the run does not belong to the scoped owner.
 
-    Fetches the run from Supabase (owner-scoped). Raises 404 if not found
-    (run belongs to another owner — expose as not-found to prevent enumeration).
+    Lecture owner-scopée via la couche R2. 404 (et non 403) pour ne pas révéler
+    l'existence d'un run appartenant à un autre owner (anti-énumération).
     """
-    run = run_store.get_run(kickoff_id, owner_id=owner_id)
-    if run is None:
+    if scoped.get_run(kickoff_id) is None:
         raise HTTPException(status_code=404, detail="Run not found or access denied")
 
 
@@ -285,11 +293,13 @@ def get_run_steps(
 ) -> list[dict]:
     """Return all completed task steps for a given run, ordered by step_index.
 
-    Owner dérivé du JWT interne vérifié — seul l'owner du run lit ses steps.
-    401 si JWT absent/invalide, 404 si run inexistant ou non possédé.
+    Lecture owner-scopée (couche R2) : les steps ne sont lus que si le run parent
+    appartient à l'owner. 401 si JWT absent/invalide, 404 si run non possédé.
     """
-    _require_run_owner(kickoff_id, identity.owner_id)
-    return list_chief_steps(chief_run_id=kickoff_id)
+    steps = _chief_scoped(identity).list_steps(kickoff_id)
+    if steps is None:
+        raise HTTPException(status_code=404, detail="Run not found or access denied")
+    return steps
 
 
 @router.get("/runs/{kickoff_id}/decisions")
@@ -299,12 +309,13 @@ def list_run_decisions_endpoint(
 ) -> list[dict]:
     """Return all recorded user decisions for a given run, ordered by created_at desc.
 
-    Owner dérivé du JWT interne vérifié — seul l'owner du run lit ses décisions.
-    401 si JWT absent/invalide, 404 si run inexistant ou non possédé.
+    Lecture owner-scopée (couche R2) : les décisions ne sont lues que si le run
+    parent appartient à l'owner. 401 si JWT absent/invalide, 404 si non possédé.
     """
-    from ..persistence.chief_decision_store import list_decisions
-    _require_run_owner(kickoff_id, identity.owner_id)
-    return list_decisions(kickoff_id)
+    decisions = _chief_scoped(identity).list_decisions(kickoff_id)
+    if decisions is None:
+        raise HTTPException(status_code=404, detail="Run not found or access denied")
+    return decisions
 
 
 class DecisionRequest(BaseModel):
@@ -338,8 +349,7 @@ def post_decision(
     Returns 401 if JWT missing/invalid, 404 if run not owned.
     Returns 422 if action is invalid (Pydantic Literal validation).
     """
-    oid = identity.owner_id
-    _require_run_owner(request.kickoff_id, oid)
+    _require_run_owner(_chief_scoped(identity), request.kickoff_id)
     try:
         created = record_decision(
             chief_run_id=request.kickoff_id,
