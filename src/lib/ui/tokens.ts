@@ -31,6 +31,7 @@ export const RADIUS = {
 } as const;
 
 export const FONT = {
+  micro: 8,
   nano: 9,
   xxs: 11,
   xs: 10,
@@ -42,9 +43,14 @@ export const FONT = {
   display: 22,
   xxl: 24,
   iconLg: 32,
+  hero: 48,
 } as const;
 
 export const LINE_HEIGHT = {
+  none: 1,
+  snug: 1.25,
+  cozy: 1.3,
+  relaxed: 1.4,
   tight: 1.5,
   base: 1.6,
 } as const;
@@ -70,6 +76,7 @@ export const Z_INDEX = {
   panel: 10,
   rail: 20,
   bottomBar: 30,
+  dropdown: 50,
   modal: 100,
   toast: 200,
 } as const;
@@ -77,14 +84,42 @@ export const Z_INDEX = {
 export const COLOR = {
   brandHive: "var(--ct-brand-hive)",
   textOnAccent: "var(--ct-text-on-accent)",
+  textStrong: "var(--ct-text-strong)",
+  textPrimary: "var(--ct-text-primary)",
+  textBody: "var(--ct-text-body)",
+  textMuted: "var(--ct-text-muted)",
+  textFaint: "var(--ct-text-faint)",
+  accentStrong: "var(--ct-accent-strong)",
+  surface0: "var(--ct-surface-0)",
+  surface1: "var(--ct-surface-1)",
+  surface3: "var(--ct-surface-3)",
+  border: "var(--ct-border)",
+  borderSoft: "var(--ct-border-soft)",
+  borderStrong: "var(--ct-border-strong)",
+  borderAccent: "var(--ct-border-accent)",
   overlayModal: "var(--ct-overlay-modal)",
   overlayDark: "var(--ct-overlay-dark)",
+  overlayDarkStrong: "var(--ct-overlay-dark-strong)",
+  statusCompleted: "var(--ct-status-completed)",
+  statusRunning: "var(--ct-status-running)",
+  statusPaused: "var(--ct-status-paused)",
+  statusFailed: "var(--ct-status-failed)",
+} as const;
+
+export const OPACITY = {
+  disabled: 0.5,
+  skeletonStrong: 0.5,
+  skeleton: 0.45,
+  skeletonSoft: 0.4,
+  skeletonFaint: 0.35,
+  pulse: 0.4,
 } as const;
 
 export const BLUR = {
   panel: "blur(60px) saturate(110%) brightness(105%)",
   modal: "blur(24px) saturate(150%)",
   modalLight: "blur(4px)",
+  tooltip: "blur(12px)",
 } as const;
 
 export const SIZE = {
@@ -95,11 +130,46 @@ export const SIZE = {
   iconSm: 14,
   iconMd: 16,
   iconLg: 20,
+  avatar: 36,
   btnClose: 44,
   spinner: 28,
   modalMaxWidth: 560,
+  authCardW: 400,
   timelineRow: 40,
   agentDiffTimeCol: 38,
+  // status dots (normalisés à 8 — anciennes valeurs 6/7/9 hors échelle)
+  dotSm: 6,
+  dot: 8,
+  // cards / grilles auto-fit
+  cardMinW: 220,
+  // node system-map
+  nodeMinW: 150,
+  nodeMaxW: 220,
+  detailLabelCol: 72,
+  // dropdown / popovers
+  dropdownMaxH: 260,
+  labelMaxW: 240,
+  textMaxW: 200,
+  // decision canvas panels
+  panelBasis: 320,
+  panelMinW: 280,
+  sidebarW: 280,
+  // skeletons
+  skeletonLine: 12,
+  skeletonTitle: 14,
+  skeletonBar: 10,
+  skeletonCardMinH: 96,
+  skeletonBlockMinH: 240,
+} as const;
+
+// Durées d'animation (ms ou string CSS). Aligné sur --ct-dur-base (180ms).
+export const DURATION = {
+  base: "180ms",
+  fast: "120ms",
+  hover: "150ms",
+  spin: "0.8s",
+  pulse: "1.5s",
+  pulseSlow: "1.8s",
 } as const;
 
 

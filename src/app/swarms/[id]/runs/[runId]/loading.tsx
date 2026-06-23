@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Skeleton de chargement de la page détail d'un run Swarm.
@@ -12,10 +12,10 @@ export default function SwarmRunLoading() {
         className="ct-eyebrow"
         style={{
           width: 80,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.md,
         }}
       />
@@ -26,8 +26,8 @@ export default function SwarmRunLoading() {
           width: 200,
           height: 28,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.md,
         }}
       />
@@ -46,17 +46,17 @@ export default function SwarmRunLoading() {
             width: 72,
             height: 22,
             background: "var(--ct-surface-2)",
-            borderRadius: 9999,
-            opacity: 0.5,
+            borderRadius: RADIUS.full,
+            opacity: OPACITY.skeletonStrong,
           }}
         />
         <div
           style={{
             width: 120,
-            height: 14,
+            height: SIZE.skeletonTitle,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.4,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonSoft,
           }}
         />
       </div>
@@ -76,7 +76,7 @@ export default function SwarmRunLoading() {
           <div
             key={i}
             className="ct-card"
-            style={{ marginBottom: 0, opacity: 0.5, minHeight: 72 }}
+            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 72 }}
           />
         ))}
       </div>
@@ -84,7 +84,7 @@ export default function SwarmRunLoading() {
       {/* Métadonnées card skeleton */}
       <div
         className="ct-card"
-        style={{ opacity: 0.5, minHeight: 80, marginBottom: SPACING.md }}
+        style={{ opacity: OPACITY.skeletonStrong, minHeight: 80, marginBottom: SPACING.md }}
       />
 
       {/* Timeline skeleton */}
@@ -92,10 +92,10 @@ export default function SwarmRunLoading() {
         className="ct-eyebrow"
         style={{
           width: 120,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           margin: `${SPACING.xl}px 0 ${SPACING.md}px`,
         }}
       />
@@ -103,7 +103,7 @@ export default function SwarmRunLoading() {
         <div
           key={i}
           className="ct-card"
-          style={{ marginBottom: SPACING.sm, opacity: 0.45, minHeight: 48 }}
+          style={{ marginBottom: SPACING.sm, opacity: OPACITY.skeleton, minHeight: 48 }}
         />
       ))}
 

@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Skeleton de chargement de la page détail d'un run Chief of Staff.
@@ -11,10 +11,10 @@ export default function ChiefRunLoading() {
       <div
         style={{
           width: 80,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.md,
         }}
       />
@@ -25,8 +25,8 @@ export default function ChiefRunLoading() {
           width: 180,
           height: 28,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.sm,
         }}
       />
@@ -45,26 +45,26 @@ export default function ChiefRunLoading() {
             width: 72,
             height: 22,
             background: "var(--ct-surface-2)",
-            borderRadius: 9999,
-            opacity: 0.5,
+            borderRadius: RADIUS.full,
+            opacity: OPACITY.skeletonStrong,
           }}
         />
         <div
           style={{
-            width: 8,
-            height: 8,
+            width: SIZE.dot,
+            height: SIZE.dot,
             background: "var(--ct-surface-2)",
-            borderRadius: 9999,
-            opacity: 0.4,
+            borderRadius: RADIUS.full,
+            opacity: OPACITY.skeletonSoft,
           }}
         />
         <div
           style={{
             width: 110,
-            height: 14,
+            height: SIZE.skeletonTitle,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.4,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonSoft,
           }}
         />
       </div>
@@ -84,7 +84,7 @@ export default function ChiefRunLoading() {
           <div
             key={i}
             className="ct-card"
-            style={{ marginBottom: 0, opacity: 0.5, minHeight: 64 }}
+            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 64 }}
           />
         ))}
       </div>
@@ -94,16 +94,16 @@ export default function ChiefRunLoading() {
         className="ct-eyebrow"
         style={{
           width: 60,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.sm,
         }}
       />
       <div
         className="ct-card"
-        style={{ opacity: 0.5, minHeight: 120, marginBottom: SPACING.xl }}
+        style={{ opacity: OPACITY.skeletonStrong, minHeight: 120, marginBottom: SPACING.xl }}
       />
 
       {/* State card skeleton */}
@@ -111,16 +111,16 @@ export default function ChiefRunLoading() {
         className="ct-eyebrow"
         style={{
           width: 50,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.sm,
         }}
       />
       <div
         className="ct-card"
-        style={{ opacity: 0.45, minHeight: 80 }}
+        style={{ opacity: OPACITY.skeleton, minHeight: 80 }}
       />
 
       <p className="ct-sub">Loading run…</p>

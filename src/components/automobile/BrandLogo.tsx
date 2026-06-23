@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import { brandLogoUrl } from "@/lib/automobile/brands";
-import { RADIUS, SPACING, FONT, FONT_WEIGHT } from "@/lib/ui/tokens";
+import { RADIUS, SPACING, FONT, FONT_WEIGHT, COLOR, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Logo de marque automobile avec deux variantes :
  *
- * - `variant="chip"` (défaut) : chip arrondi à fond clair (#fff) contenant le
- *   logo PNG. Le fond clair est obligatoire : les logos jsDelivr sont souvent
- *   sombres/colorés et seraient illisibles sur le thème cockpit foncé. C'est
- *   la SEULE couleur en dur tolérée ici. Tout le reste passe par les variables
- *   --ct-*.
+ * - `variant="chip"` (défaut) : chip arrondi à fond clair (COLOR.textStrong =
+ *   --ct-text-strong = blanc pur) contenant le logo PNG. Le fond clair est
+ *   obligatoire : les logos jsDelivr sont souvent sombres/colorés et seraient
+ *   illisibles sur le thème cockpit foncé. Tout passe par les tokens --ct-*.
  *
  * - `variant="inline"` : simple `<img>` sans chip, pour les contextes où le
  *   fond clair jurerait (dropdown compact, liste dense). Le fond du contenant
@@ -21,8 +20,8 @@ import { RADIUS, SPACING, FONT, FONT_WEIGHT } from "@/lib/ui/tokens";
  * si la marque est inconnue, on affiche les initiales (1-2 lettres).
  */
 
-const CHIP_BG = "#ffffff"; // fond clair obligatoire pour la lisibilité des logos colorés
-const DEFAULT_SIZE = 36;
+const CHIP_BG = COLOR.textStrong; // blanc pur (--ct-text-strong) — lisibilité des logos colorés
+const DEFAULT_SIZE = SIZE.avatar;
 
 function initials(brand: string): string {
   const trimmed = brand.trim();

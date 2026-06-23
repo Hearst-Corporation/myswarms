@@ -6,7 +6,7 @@ import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 import { getDecision } from "@/lib/automobile/decisions";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import { DecisionCanvas } from "@/components/automobile/DecisionCanvas";
-import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, SPACING, RADIUS } from "@/lib/ui/tokens";
 import type { SwarmRun } from "@/lib/forms/swarmSchemas";
 
 export const metadata = { title: "Canvas — Automobile" };
@@ -86,9 +86,9 @@ export default async function CanvasPage() {
       {run ? (
         <div
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid rgba(255,255,255,0.07)",
-            borderRadius: 10,
+            background: "var(--ct-surface-0)",
+            border: "1px solid var(--ct-border-soft)",
+            borderRadius: RADIUS.nav,
             padding: `${SPACING.md}px ${SPACING.xl}px`,
             display: "flex",
             gap: SPACING.xxl,

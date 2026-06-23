@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Skeleton de chargement de l'historique Chief of Staff — affiché pendant
@@ -11,10 +11,10 @@ export default function HistoryLoading() {
       <div
         style={{
           width: 80,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.sm,
         }}
       />
@@ -26,18 +26,18 @@ export default function HistoryLoading() {
             width: 220,
             height: 28,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.5,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonStrong,
             marginBottom: SPACING.xs,
           }}
         />
         <div
           style={{
             width: 260,
-            height: 14,
+            height: SIZE.skeletonTitle,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.4,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonSoft,
           }}
         />
       </div>
@@ -47,10 +47,10 @@ export default function HistoryLoading() {
         <div
           style={{
             width: 100,
-            height: 12,
+            height: SIZE.skeletonLine,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.5,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonStrong,
             marginBottom: SPACING.md,
           }}
         />
@@ -62,7 +62,7 @@ export default function HistoryLoading() {
             style={{
               height: 40,
               background: "var(--ct-surface-2)",
-              opacity: 0.5,
+              opacity: OPACITY.skeletonStrong,
               borderBottom: "1px solid var(--ct-border-soft)",
             }}
           />
@@ -73,7 +73,7 @@ export default function HistoryLoading() {
               style={{
                 height: 48,
                 background: "var(--ct-surface-2)",
-                opacity: i % 2 === 0 ? 0.45 : 0.3,
+                opacity: i % 2 === 0 ? OPACITY.skeleton : OPACITY.skeletonFaint,
                 borderBottom: "1px solid var(--ct-border-soft)",
               }}
             />

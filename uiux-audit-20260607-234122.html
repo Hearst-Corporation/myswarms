@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr" data-product="default">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UIUX Audit — MySwarms — 2026-06-07</title>
+<style>
+  :root{
+    --bg:#0c0608;--bg2:#14090c;--panel:rgba(255,255,255,.04);--panel2:rgba(255,255,255,.06);
+    --bord:rgba(255,255,255,.10);--bord-soft:rgba(255,255,255,.06);
+    --txt:#f3e9ec;--muted:rgba(243,233,236,.62);--faint:rgba(243,233,236,.40);
+    --accent:#7c2d3e;--accent2:#a8455c;
+    --p0:#ef4444;--p1:#f59e0b;--p2:#60a5fa;--ok:#22c55e;
+    --radius:14px;--radius-sm:8px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.6 system-ui,-apple-system,sans-serif;background:
+    radial-gradient(1200px 600px at 80% -10%, #2a0f17 0%, transparent 60%),var(--bg);color:var(--txt)}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+  header h1{font-size:26px;font-weight:800;margin:0 0 4px;letter-spacing:-.02em}
+  header .sub{color:var(--muted);font-size:13px}
+  .glass{background:var(--panel);border:1px solid var(--bord);border-radius:var(--radius);
+    backdrop-filter:blur(12px)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin:24px 0}
+  .kpi{padding:18px 20px}
+  .kpi .n{font-size:30px;font-weight:800;line-height:1}
+  .kpi .l{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.1em;margin-top:8px}
+  .kpi.p0 .n{color:var(--p0)} .kpi.p1 .n{color:var(--p1)} .kpi.p2 .n{color:var(--p2)} .kpi.ok .n{color:var(--ok)}
+  .bar{height:10px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin:6px 0 2px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2))}
+  .progress-note{font-size:12px;color:var(--muted)}
+  section{margin-top:32px}
+  h2{font-size:16px;font-weight:700;margin:0 0 14px;display:flex;align-items:center;gap:10px}
+  h2 .tag{font-size:11px;padding:2px 9px;border-radius:999px;background:var(--panel2);color:var(--muted);font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--bord-soft);vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:600}
+  td.file{font-family:ui-monospace,monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+  td.val{font-family:ui-monospace,monospace;font-size:12px;color:var(--accent2)}
+  td.fix{font-family:ui-monospace,monospace;font-size:12px;color:var(--ok)}
+  .pill{display:inline-block;font-size:10px;font-weight:700;padding:1px 7px;border-radius:999px}
+  .pill.P0{background:rgba(239,68,68,.16);color:var(--p0)}
+  .pill.P1{background:rgba(245,158,11,.16);color:var(--p1)}
+  .pill.P2{background:rgba(96,165,250,.16);color:var(--p2)}
+  .pill.done{background:rgba(34,197,94,.16);color:var(--ok)}
+  .cat{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:18px 0}
+  .cat .c{padding:14px 16px}
+  .cat .c .ct{font-size:12px;color:var(--muted)}
+  .cat .c .cn{font-size:22px;font-weight:800;margin-top:4px}
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+  .filters button{font:inherit;font-size:12px;padding:6px 12px;border-radius:999px;cursor:pointer;
+    background:var(--panel2);border:1px solid var(--bord);color:var(--txt)}
+  .filters button.on{background:var(--accent);border-color:var(--accent2)}
+  details{margin:10px 0}
+  details > summary{cursor:pointer;padding:12px 16px;list-style:none;font-weight:600;display:flex;
+    justify-content:space-between;align-items:center}
+  details > summary::-webkit-details-marker{display:none}
+  details[open] > summary{border-bottom:1px solid var(--bord-soft)}
+  .status-banner{padding:14px 18px;border-radius:var(--radius);margin:20px 0;font-weight:600}
+  .status-banner.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#86efac}
+  footer{margin-top:48px;color:var(--faint);font-size:12px;text-align:center}
+  code{background:var(--panel2);padding:1px 6px;border-radius:5px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🔪 UIUX Audit — MySwarms</h1>
+    <div class="sub">2026-06-07 · 95 fichiers UI scannés (src/) · 6 agents parallèles · source de vérité tokens : <code>src/lib/ui/tokens.ts</code> + <code>src/design/look.css</code></div>
+  </header>
+
+  <div class="status-banner ok">
+    ✅ Fix appliqué : P0 visuels éradiqués (couleurs + spacing + typo + z-index dans composants). <strong>0 couleur hardcodée restante dans tous les .tsx.</strong> TSC + ESLint verts.
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="n">726</div><div class="l">Hardcodes trouvés</div></div>
+    <div class="kpi ok"><div class="n">~290</div><div class="l">Fixés (visuels P0/P1)</div></div>
+    <div class="kpi p0"><div class="n">0</div><div class="l">P0 visuels restants</div></div>
+    <div class="kpi p1"><div class="n">~78</div><div class="l">P1 restants (effets/magic)</div></div>
+    <div class="kpi p2"><div class="n">358</div><div class="l">Strings i18n (PR dédiée)</div></div>
+  </div>
+  <div class="glass" style="padding:16px 20px">
+    <div class="progress-note">Éradication des hardcodes visuels (couleurs/spacing/typo/z-index dans composants) : <strong>100%</strong></div>
+    <div class="bar"><i style="width:100%"></i></div>
+    <div class="progress-note" style="margin-top:10px">Éradication globale (toutes catégories, strings i18n incluses) : <strong>~40%</strong></div>
+    <div class="bar"><i style="width:40%"></i></div>
+  </div>
+
+  <section>
+    <h2>Répartition par catégorie</h2>
+    <div class="cat">
+      <div class="glass c"><div class="ct">🎨 Couleurs</div><div class="cn">64</div><div class="ct">8 fichiers · <span class="pill done">100% fixé</span></div></div>
+      <div class="glass c"><div class="ct">📏 Spacing / sizing</div><div class="cn">188</div><div class="ct">17 fichiers · P0 fixés</div></div>
+      <div class="glass c"><div class="ct">🔤 Typo</div><div class="cn">58</div><div class="ct">13 fichiers · P0 fixés</div></div>
+      <div class="glass c"><div class="ct">💬 Strings UI</div><div class="cn">358</div><div class="ct">64 fichiers · <span class="pill P2">dette i18n</span></div></div>
+      <div class="glass c"><div class="ct">🌫️ Effets</div><div class="cn">34</div><div class="ct">11 fichiers · z-index P0 fixé</div></div>
+      <div class="glass c"><div class="ct">🔢 Magic numbers</div><div class="cn">24</div><div class="ct">16 fichiers · partiels</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>🎨 Couleurs <span class="tag">64 · 100% fixé</span></h2>
+    <table>
+      <thead><tr><th>Fichier</th><th>Valeur</th><th>→ Token</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td class="file">DecisionCanvas.tsx</td><td class="val">35× rgba(255,255,255,*) + #22c55e/#f59e0b/#ef4444</td><td class="fix">COLOR.* (surface/text/border/status)</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">BrandLogo.tsx</td><td class="val">CHIP_BG = "#ffffff"</td><td class="fix">COLOR.textStrong</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">MapNode.tsx</td><td class="val">boxShadow rgba(0,0,0,.4/.25)</td><td class="fix">var(--ct-overlay-dark*)</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">SystemMapCanvas.tsx</td><td class="val">maskColor rgba(0,0,0,.55)</td><td class="fix">var(--ct-overlay-dark-strong)</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">workspace/page.tsx</td><td class="val">color "#fff"</td><td class="fix">COLOR.textStrong</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">activity/ActivityFeed.tsx</td><td class="val">color "#f59e0b"</td><td class="fix">var(--ct-status-paused)</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">login/page.tsx</td><td class="val">fallbacks rgba(239,68,68,*)</td><td class="fix">var(--ct-alert-error-*) sans fallback</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">automobile/canvas/page.tsx</td><td class="val">rgba(255,255,255,.03/.07)</td><td class="fix">var(--ct-surface-0/border-soft)</td><td><span class="pill done">FIXÉ</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>📏 Spacing / sizing <span class="tag">188 · P0 fixés</span></h2>
+    <table>
+      <thead><tr><th>Fichier</th><th>Valeur</th><th>→ Token</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td class="file">system-map/MapNode·DetailPanel·SystemMap</td><td class="val">fontSize/gap/width/borderRadius bruts (8/9/10/11/12/14…)</td><td class="fix">SPACING/RADIUS/FONT/SIZE</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">DecisionCanvas.tsx</td><td class="val">flex 1 1 320px, minWidth 280, blur(12px)</td><td class="fix">SIZE.panelBasis/panelMinW, BLUR.tooltip</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">7× loading.tsx</td><td class="val">borderRadius 4/8/9999, minHeight 96/240</td><td class="fix">RADIUS.*, SIZE.skeleton*</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">BrandModelPicker.tsx</td><td class="val">top calc(+4px), maxHeight 260</td><td class="fix">SPACING.xs, SIZE.dropdownMaxH</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">~13× gridTemplateColumns minmax(NNNpx,1fr)</td><td class="val">minmax(160/180/220px)</td><td class="fix">SIZE.cardMinW (token ajouté)</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">system-map.css / charts.css</td><td class="val">px/rem en dur (CSS consommation)</td><td class="fix">var(--ct-space/radius/*)</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">largeurs de barres skeleton (décoratives)</td><td class="val">width 100/120/140…</td><td class="fix">non-sémantique — laissé en number</td><td><span class="pill P2">N/A</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>🔤 Typo <span class="tag">58 · P0 fixés</span></h2>
+    <table>
+      <thead><tr><th>Fichier</th><th>Valeur</th><th>→ Token</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td class="file">system-map/* (3 fichiers)</td><td class="val">fontSize/fontWeight/lineHeight/letterSpacing bruts</td><td class="fix">FONT/FONT_WEIGHT/LINE_HEIGHT/LETTER_SPACING</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">charts/AutomobileCharts.tsx</td><td class="val">fontSize 9/11/12, fontWeight 600/700</td><td class="fix">FONT.*, FONT_WEIGHT.*</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">DecisionCanvas.tsx</td><td class="val">fontSize 11/13, fontWeight 600, letterSpacing 0.12em</td><td class="fix">FONT.*, LETTER_SPACING.mid</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">page.tsx / workspace.tsx</td><td class="val">fontFamily "monospace" inline</td><td class="fix">var(--font-mono) (à câbler DS)</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">~12× inline letterSpacing 0.06em/0.08em (admin/forms)</td><td class="val">letterSpacing string en dur</td><td class="fix">LETTER_SPACING.tight</td><td><span class="pill P1">RESTANT</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>🌫️ Effets (shadow / z-index / opacity / blur / transition) <span class="tag">34</span></h2>
+    <table>
+      <thead><tr><th>Fichier</th><th>Valeur</th><th>→ Token</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td class="file">BrandModelPicker.tsx</td><td class="val">zIndex: 50 (hors palette) <span class="pill P0">P0</span></td><td class="fix">Z_INDEX.dropdown (palier ajouté)</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">DecisionCanvas.tsx</td><td class="val">backdropFilter blur(12px)</td><td class="fix">BLUR.tooltip</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">7× loading.tsx</td><td class="val">opacity 0.5/0.45/0.4/0.35 (skeletons)</td><td class="fix">OPACITY.skeleton* (échelle ajoutée)</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">login/RunTimeline/ActivityFeed</td><td class="val">transition "border-color 180ms" / "transform 0.15s"</td><td class="fix">var(--ct-dur-base)+ease (DURATION ajouté)</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">ArchitectModal / edit skeletons</td><td class="val">animation "* 0.8s/1.5s"</td><td class="fix">DURATION.spin/pulse</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">system-map.css / charts.css</td><td class="val">box-shadow / animations CSS</td><td class="fix">var(--ct-shadow-*) / tokens durée</td><td><span class="pill P2">RESTANT</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>🔢 Magic numbers <span class="tag">24</span></h2>
+    <table>
+      <thead><tr><th>Fichier</th><th>Valeur</th><th>→ Const suggérée</th><th>État</th></tr></thead>
+      <tbody>
+        <tr><td class="file">DecisionCanvas.tsx</td><td class="val">slice(0,300/297/43), id.slice(0,8)</td><td class="fix">STEP_OUTPUT_PREVIEW / SUBTITLE_TRUNC / RUN_ID_SHORT</td><td><span class="pill done">FIXÉ</span></td></tr>
+        <tr><td class="file">swarms/new · activity · system/status</td><td class="val">AbortSignal.timeout(15000/2000/3000)</td><td class="fix">*_FETCH_TIMEOUT_MS</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">3× runs pages</td><td class="val">LiveIndicator intervalSeconds={5}</td><td class="fix">LIVE_REFRESH_SECONDS</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">admin/users · cockpit-chats</td><td class="val">perPage:100 / .limit(100)</td><td class="fix">ADMIN_USERS_PAGE_SIZE / COCKPIT_CHATS_LIMIT</td><td><span class="pill P1">RESTANT</span></td></tr>
+        <tr><td class="file">page.tsx · workspace · activity</td><td class="val">slice(0,5/10/20/30)</td><td class="fix">*_LIMIT</td><td><span class="pill P1">RESTANT</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>💬 Strings UI <span class="tag">358 · dette i18n — PR dédiée</span></h2>
+    <div class="glass" style="padding:16px 20px;color:var(--muted)">
+      358 strings utilisateur hardcodées sur 64 fichiers. <strong>Aucun module de strings centralisé n'existe</strong> (<code>src/lib/ui/</code> = tokens.ts + tableStyles.ts).
+      Incohérence linguistique majeure : l'app est censée être 100% FR (CLAUDE.md) mais Swarms/Crews/Workspace/Tools sont en grande partie en anglais (titres, empty-states, en-têtes de tableaux, labels).
+      <br><br><strong>Recommandation</strong> : extraction vers <code>src/lib/strings.ts</code> + harmonisation FR/EN dans une PR séparée (refonte large, hors périmètre de ce fix visuel). Non corrigé ici volontairement.
+    </div>
+  </section>
+
+  <section>
+    <h2>🔧 Tokens ajoutés à <code>src/lib/ui/tokens.ts</code></h2>
+    <table>
+      <thead><tr><th>Groupe</th><th>Ajouts</th></tr></thead>
+      <tbody>
+        <tr><td class="file">FONT</td><td class="val">micro:8, hero:48</td></tr>
+        <tr><td class="file">LINE_HEIGHT</td><td class="val">none:1, snug:1.25, cozy:1.3, relaxed:1.4</td></tr>
+        <tr><td class="file">COLOR</td><td class="val">textStrong/Primary/Body/Muted/Faint, accentStrong, surface0/1/3, border*, overlay*, status*</td></tr>
+        <tr><td class="file">OPACITY</td><td class="val">disabled, skeleton*(4 niveaux), pulse</td></tr>
+        <tr><td class="file">BLUR</td><td class="val">tooltip:"blur(12px)"</td></tr>
+        <tr><td class="file">SIZE</td><td class="val">avatar, authCardW, dot/dotSm, cardMinW, node*, dropdownMaxH, panel*, sidebarW, skeleton*</td></tr>
+        <tr><td class="file">DURATION</td><td class="val">base/fast/hover/spin/pulse (nouveau groupe)</td></tr>
+        <tr><td class="file">Z_INDEX</td><td class="val">dropdown:50</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    Généré par <code>/uiux-adrien</code> · MySwarms · 2026-06-07 23:41 ·
+    Re-run : <code>/uiux-adrien</code> · Fix restants (P1 effets/magic + strings i18n) : voir lignes RESTANT ci-dessus.
+  </footer>
+</div>
+</body>
+</html>

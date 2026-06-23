@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { SPACING, FONT, FONT_WEIGHT, LINE_HEIGHT, LETTER_SPACING, SIZE } from "@/lib/ui/tokens";
 import type { MapNodeData } from "./types";
 import { KIND_LABEL, nodeColor } from "./MapNode";
 
@@ -29,15 +30,15 @@ export function DetailPanel({
           display: "flex",
           alignItems: "flex-start",
           justifyContent: "space-between",
-          gap: 8,
-          marginBottom: 10,
+          gap: SPACING.sm,
+          marginBottom: SPACING.s,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm, minWidth: 0 }}>
           <span
             style={{
-              width: 9,
-              height: 9,
+              width: SIZE.dot,
+              height: SIZE.dot,
               borderRadius: "50%",
               background: accent,
               flexShrink: 0,
@@ -45,11 +46,11 @@ export function DetailPanel({
           />
           <h2
             style={{
-              fontSize: 14,
-              fontWeight: 700,
+              fontSize: FONT.md,
+              fontWeight: FONT_WEIGHT.bold,
               color: "var(--ct-text-strong)",
               margin: 0,
-              lineHeight: 1.25,
+              lineHeight: LINE_HEIGHT.snug,
             }}
           >
             {title}
@@ -65,9 +66,9 @@ export function DetailPanel({
             border: "none",
             color: "var(--ct-text-muted)",
             cursor: "pointer",
-            fontSize: 16,
-            lineHeight: 1,
-            padding: 2,
+            fontSize: FONT.lg,
+            lineHeight: LINE_HEIGHT.none,
+            padding: SPACING.hair,
           }}
         >
           ✕
@@ -77,11 +78,11 @@ export function DetailPanel({
       <span
         style={{
           display: "inline-block",
-          fontSize: 9,
-          letterSpacing: "0.12em",
+          fontSize: FONT.nano,
+          letterSpacing: LETTER_SPACING.mid,
           textTransform: "uppercase",
           color: "var(--ct-text-faint)",
-          marginBottom: 12,
+          marginBottom: SPACING.md,
         }}
       >
         {KIND_LABEL[data.kind]}
@@ -93,16 +94,16 @@ export function DetailPanel({
             key={`${r.label}-${i}`}
             style={{
               display: "grid",
-              gridTemplateColumns: "minmax(72px, 38%) 1fr",
-              gap: 8,
-              padding: "5px 0",
+              gridTemplateColumns: `minmax(${SIZE.detailLabelCol}px, 38%) 1fr`,
+              gap: SPACING.sm,
+              padding: `${SPACING.xs}px 0`,
               borderBottom: "1px solid var(--ct-border-soft)",
             }}
           >
             <dt
               style={{
-                fontSize: 10,
-                letterSpacing: "0.06em",
+                fontSize: FONT.xs,
+                letterSpacing: LETTER_SPACING.tight,
                 textTransform: "uppercase",
                 color: "var(--ct-text-faint)",
               }}
@@ -112,10 +113,10 @@ export function DetailPanel({
             <dd
               style={{
                 margin: 0,
-                fontSize: 12,
+                fontSize: FONT.sm,
                 color: "var(--ct-text-primary)",
                 wordBreak: "break-word",
-                lineHeight: 1.4,
+                lineHeight: LINE_HEIGHT.relaxed,
               }}
             >
               {r.value}
@@ -125,15 +126,15 @@ export function DetailPanel({
       </dl>
 
       {body ? (
-        <div style={{ marginTop: 12 }}>
+        <div style={{ marginTop: SPACING.md }}>
           {d?.bodyLabel ? (
             <div
               style={{
-                fontSize: 9,
-                letterSpacing: "0.12em",
+                fontSize: FONT.nano,
+                letterSpacing: LETTER_SPACING.mid,
                 textTransform: "uppercase",
                 color: "var(--ct-text-faint)",
-                marginBottom: 4,
+                marginBottom: SPACING.xs,
               }}
             >
               {d.bodyLabel}
@@ -141,9 +142,9 @@ export function DetailPanel({
           ) : null}
           <p
             style={{
-              fontSize: 12,
+              fontSize: FONT.sm,
               color: "var(--ct-text-primary)",
-              lineHeight: 1.5,
+              lineHeight: LINE_HEIGHT.tight,
               margin: 0,
               whiteSpace: "pre-wrap",
             }}
@@ -154,9 +155,9 @@ export function DetailPanel({
       ) : null}
 
       {d?.links?.length ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: SPACING.sm, marginTop: SPACING.lg }}>
           {d.links.map((l) => (
-            <Link key={l.href} href={l.href} className="ct-seg-btn" style={{ fontSize: 11 }}>
+            <Link key={l.href} href={l.href} className="ct-seg-btn" style={{ fontSize: FONT.xxs }}>
               {l.label}
             </Link>
           ))}

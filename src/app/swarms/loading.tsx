@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Skeleton de chargement de la liste Swarms — affiché pendant le fetch
@@ -27,7 +27,7 @@ export default function SwarmsLoading() {
           <div
             key={i}
             className="ct-card"
-            style={{ marginBottom: 0, opacity: 0.5, minHeight: 72 }}
+            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 72 }}
           />
         ))}
       </div>
@@ -44,10 +44,10 @@ export default function SwarmsLoading() {
         <div
           style={{
             width: 100,
-            height: 12,
+            height: SIZE.skeletonLine,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.5,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonStrong,
           }}
         />
         <div
@@ -55,8 +55,8 @@ export default function SwarmsLoading() {
             width: 120,
             height: 32,
             background: "var(--ct-surface-2)",
-            borderRadius: 8,
-            opacity: 0.4,
+            borderRadius: RADIUS.md,
+            opacity: OPACITY.skeletonSoft,
           }}
         />
       </div>
@@ -69,7 +69,7 @@ export default function SwarmsLoading() {
             style={{
               height: 52,
               background: "var(--ct-surface-2)",
-              opacity: i % 2 === 0 ? 0.5 : 0.35,
+              opacity: i % 2 === 0 ? OPACITY.skeletonStrong : OPACITY.skeletonFaint,
               borderBottom: "1px solid var(--ct-border-soft)",
             }}
           />

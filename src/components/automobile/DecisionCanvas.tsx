@@ -10,7 +10,16 @@ import {
 } from "@/lib/automobile/decisionStatus";
 import type { Recommendation } from "@/lib/swarms/recommendation";
 import { fmtKm, fmtPrice, formatDate } from "@/lib/utils/format";
-import { FONT, FONT_WEIGHT, SPACING, RADIUS } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, SPACING, RADIUS, COLOR, SIZE, BLUR, LETTER_SPACING } from "@/lib/ui/tokens";
+
+// ─── Constantes de troncature (magic numbers extraits) ─────────────────────────
+const SUBTITLE_MAX_LEN = 46;
+const SUBTITLE_TRUNC = 43;
+const DETAIL_VALUE_MAX_LEN = 300;
+const DETAIL_VALUE_TRUNC = 297;
+const STEP_OUTPUT_PREVIEW = 300;
+const RESULT_PREVIEW = 300;
+const RUN_ID_SHORT = 8;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -85,10 +94,10 @@ function findStep(
 type NodeState = "completed" | "running" | "failed" | "pending";
 
 const STATE_COLORS: Record<NodeState, { border: string; dot: string }> = {
-  completed: { border: "#22c55e", dot: "#22c55e" },
-  running: { border: "#f59e0b", dot: "#f59e0b" },
-  failed: { border: "var(--ct-alert-error-text, #ef4444)", dot: "var(--ct-alert-error-text, #ef4444)" },
-  pending: { border: "var(--ct-border-soft, #334155)", dot: "var(--ct-text-faint, #64748b)" },
+  completed: { border: COLOR.statusCompleted, dot: COLOR.statusCompleted },
+  running: { border: COLOR.statusPaused, dot: COLOR.statusPaused },
+  failed: { border: COLOR.statusFailed, dot: COLOR.statusFailed },
+  pending: { border: COLOR.borderSoft, dot: COLOR.textFaint },
 };
 
 function statusToState(status: string | undefined): NodeState {
@@ -109,10 +118,10 @@ function recToState(rec: Recommendation): NodeState {
 // ─── Recommendation colors ────────────────────────────────────────────────────
 
 const REC_COLORS: Record<Recommendation, string> = {
-  APPELER: "#22c55e",
-  ATTENDRE: "#f59e0b",
-  "ÉVITER": "#ef4444",
-  UNKNOWN: "var(--ct-text-faint, #64748b)",
+  APPELER: COLOR.statusCompleted,
+  ATTENDRE: COLOR.statusPaused,
+  "ÉVITER": COLOR.statusFailed,
+  UNKNOWN: COLOR.textFaint,
 };
 
 // ─── Node definitions (data, not SVG) ────────────────────────────────────────
@@ -128,6 +137,7 @@ interface NodeDef {
 
 // ─── SVG constants ────────────────────────────────────────────────────────────
 
+// Géométrie SVG (coordonnées dans un viewBox fixe — pas du spacing CSS).
 const VB_W = 700;
 const NODE_W = 320;
 const NODE_H = 56;
@@ -136,7 +146,13 @@ const START_Y = 48;
 const STEP_Y = 90;
 const ARROW_H = 12;
 const NODE_COUNT = 9;
-const VB_H = START_Y + (NODE_COUNT - 1) * STEP_Y + NODE_H + 48;
+const VB_BOTTOM_PAD = 48;
+const VB_H = START_Y + (NODE_COUNT - 1) * STEP_Y + NODE_H + VB_BOTTOM_PAD;
+const ACCENT_BAR_W = 3;
+const DOT_R = 4;
+const TEXT_PAD_X = 18;
+const LABEL_BASELINE_Y = 20;
+const SUBTITLE_BASELINE_Y = 38;
 
 // ─── SVG Node ────────────────────────────────────────────────────────────────
 
@@ -164,7 +180,7 @@ function SvgNode({
   recColor?: string;
 }) {
   const { border, dot } = STATE_COLORS[state];
-  const bg = hovered ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.03)";
+  const bg = hovered ? COLOR.surface3 : COLOR.surface0;
   const borderColor = recColor ?? border;
 
   const inner = (
@@ -179,51 +195,51 @@ function SvgNode({
         y={y}
         width={NODE_W}
         height={NODE_H}
-        rx={8}
-        ry={8}
+        rx={RADIUS.md}
+        ry={RADIUS.md}
         fill={bg}
-        stroke="rgba(255,255,255,0.08)"
+        stroke={COLOR.borderSoft}
         strokeWidth={1}
       />
       {/* Left accent bar */}
       <rect
         x={x}
-        y={y + 8}
-        width={3}
-        height={NODE_H - 16}
-        rx={2}
-        ry={2}
+        y={y + SPACING.sm}
+        width={ACCENT_BAR_W}
+        height={NODE_H - SPACING.lg}
+        rx={RADIUS.hair}
+        ry={RADIUS.hair}
         fill={borderColor}
       />
       {/* State dot */}
       <circle
-        cx={x + NODE_W - 16}
+        cx={x + NODE_W - SPACING.lg}
         cy={y + NODE_H / 2}
-        r={4}
+        r={DOT_R}
         fill={dot}
         opacity={0.9}
       />
       {/* Label */}
       <text
-        x={x + 18}
-        y={y + 20}
-        fontSize={13}
-        fontWeight={600}
-        fill="rgba(255,255,255,0.9)"
-        fontFamily="system-ui, -apple-system, sans-serif"
+        x={x + TEXT_PAD_X}
+        y={y + LABEL_BASELINE_Y}
+        fontSize={FONT.base}
+        fontWeight={FONT_WEIGHT.semibold}
+        fill={COLOR.textPrimary}
+        fontFamily="inherit"
       >
         {label}
       </text>
       {/* Subtitle */}
       <text
-        x={x + 18}
-        y={y + 38}
-        fontSize={11}
-        fontWeight={400}
-        fill="rgba(255,255,255,0.45)"
-        fontFamily="system-ui, -apple-system, sans-serif"
+        x={x + TEXT_PAD_X}
+        y={y + SUBTITLE_BASELINE_Y}
+        fontSize={FONT.xxs}
+        fontWeight={FONT_WEIGHT.regular}
+        fill={COLOR.textMuted}
+        fontFamily="inherit"
       >
-        {subtitle.length > 46 ? subtitle.slice(0, 43) + "…" : subtitle}
+        {subtitle.length > SUBTITLE_MAX_LEN ? subtitle.slice(0, SUBTITLE_TRUNC) + "…" : subtitle}
       </text>
     </g>
   );
@@ -246,13 +262,13 @@ function Connector({ x, y1, y2 }: { x: number; y1: number; y2: number }) {
         y1={y1}
         x2={midX}
         y2={arrowY}
-        stroke="rgba(255,255,255,0.12)"
+        stroke={COLOR.borderStrong}
         strokeWidth={1.5}
         strokeDasharray="4 3"
       />
       <polygon
         points={`${midX - 5},${arrowY} ${midX + 5},${arrowY} ${midX},${y2}`}
-        fill="rgba(255,255,255,0.2)"
+        fill={COLOR.textFaint}
       />
     </g>
   );
@@ -264,13 +280,13 @@ function DetailPanel({ node }: { node: NodeDef }) {
   return (
     <div
       style={{
-        background: "rgba(15,23,42,0.96)",
-        border: "1px solid rgba(255,255,255,0.1)",
+        background: COLOR.overlayModal,
+        border: `1px solid ${COLOR.border}`,
         borderRadius: RADIUS.lg,
         padding: `${SPACING.lg}px`,
-        minWidth: 240,
-        maxWidth: 360,
-        backdropFilter: "blur(12px)",
+        minWidth: SIZE.labelMaxW,
+        maxWidth: SIZE.modalMaxWidth,
+        backdropFilter: BLUR.tooltip,
         flexShrink: 0,
       }}
     >
@@ -278,7 +294,7 @@ function DetailPanel({ node }: { node: NodeDef }) {
         style={{
           fontSize: FONT.md,
           fontWeight: FONT_WEIGHT.semibold,
-          color: "rgba(255,255,255,0.9)",
+          color: COLOR.textPrimary,
           marginBottom: SPACING.sm,
         }}
       >
@@ -287,10 +303,10 @@ function DetailPanel({ node }: { node: NodeDef }) {
       <div
         style={{
           fontSize: FONT.sm,
-          color: "rgba(255,255,255,0.4)",
+          color: COLOR.textMuted,
           marginBottom: SPACING.md,
           textTransform: "uppercase",
-          letterSpacing: "0.08em",
+          letterSpacing: LETTER_SPACING.tight,
         }}
       >
         {node.state}
@@ -302,18 +318,18 @@ function DetailPanel({ node }: { node: NodeDef }) {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 2,
+              gap: SPACING.hair,
               marginBottom: SPACING.sm,
               paddingBottom: SPACING.sm,
-              borderBottom: "1px solid rgba(255,255,255,0.06)",
+              borderBottom: `1px solid ${COLOR.borderSoft}`,
             }}
           >
             <span
               style={{
                 fontSize: FONT.xs,
-                color: "rgba(255,255,255,0.35)",
+                color: COLOR.textFaint,
                 textTransform: "uppercase",
-                letterSpacing: "0.08em",
+                letterSpacing: LETTER_SPACING.tight,
               }}
             >
               {k}
@@ -321,11 +337,11 @@ function DetailPanel({ node }: { node: NodeDef }) {
             <span
               style={{
                 fontSize: FONT.sm,
-                color: "rgba(255,255,255,0.75)",
+                color: COLOR.textBody,
                 wordBreak: "break-word",
               }}
             >
-              {v.length > 300 ? v.slice(0, 297) + "…" : v}
+              {v.length > DETAIL_VALUE_MAX_LEN ? v.slice(0, DETAIL_VALUE_TRUNC) + "…" : v}
             </span>
           </div>
         ) : null,
@@ -348,9 +364,9 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          minHeight: 320,
+          minHeight: SIZE.panelBasis,
           gap: SPACING.xl,
-          color: "rgba(255,255,255,0.4)",
+          color: COLOR.textMuted,
           fontSize: FONT.md,
         }}
       >
@@ -358,7 +374,7 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
         <Link
           href="/automobile/nouvelle"
           style={{
-            color: "var(--ct-accent-strong, #6366f1)",
+            color: COLOR.accentStrong,
             fontSize: FONT.sm,
             textDecoration: "underline",
           }}
@@ -455,7 +471,7 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
         Statut: collectorStep?.status,
         "Tokens in": collectorStep?.tokens_in.toLocaleString("fr-FR"),
         "Tokens out": collectorStep?.tokens_out.toLocaleString("fr-FR"),
-        Sortie: collectorStep?.output_text?.slice(0, 300),
+        Sortie: collectorStep?.output_text?.slice(0, STEP_OUTPUT_PREVIEW),
       },
     },
     {
@@ -469,7 +485,7 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
         Statut: riskStep?.status,
         "Tokens in": riskStep?.tokens_in.toLocaleString("fr-FR"),
         "Tokens out": riskStep?.tokens_out.toLocaleString("fr-FR"),
-        Sortie: riskStep?.output_text?.slice(0, 300),
+        Sortie: riskStep?.output_text?.slice(0, STEP_OUTPUT_PREVIEW),
       },
     },
     {
@@ -483,7 +499,7 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
         Statut: writerStep?.status,
         "Tokens in": writerStep?.tokens_in.toLocaleString("fr-FR"),
         "Tokens out": writerStep?.tokens_out.toLocaleString("fr-FR"),
-        Sortie: writerStep?.output_text?.slice(0, 300),
+        Sortie: writerStep?.output_text?.slice(0, STEP_OUTPUT_PREVIEW),
       },
     },
     {
@@ -494,7 +510,7 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
       detail: {
         Recommandation: recommendation,
         "Run ID": run.id,
-        "Résultat (extrait)": run.result_text?.slice(0, 300),
+        "Résultat (extrait)": run.result_text?.slice(0, RESULT_PREVIEW),
       },
       href: run.id ? `/automobile/${run.id}` : undefined,
     },
@@ -534,22 +550,22 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
       }}
     >
       {/* SVG Canvas */}
-      <div style={{ flex: "1 1 320px", minWidth: 280 }}>
+      <div style={{ flex: `1 1 ${SIZE.panelBasis}px`, minWidth: SIZE.panelMinW }}>
         <svg
           viewBox={`0 0 ${VB_W} ${VB_H}`}
           width="100%"
           style={{
             display: "block",
-            background: "rgba(8,12,28,0.92)",
+            background: COLOR.overlayModal,
             borderRadius: RADIUS.lg,
-            border: "1px solid rgba(255,255,255,0.07)",
+            border: `1px solid ${COLOR.borderSoft}`,
           }}
           aria-label="Decision flow canvas"
         >
           {/* Background grid hint */}
           <defs>
             <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-              <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="0.5" />
+              <path d="M 20 0 L 0 0 0 20" fill="none" stroke={COLOR.surface0} strokeWidth="0.5" />
             </pattern>
           </defs>
           <rect width={VB_W} height={VB_H} fill="url(#grid)" />
@@ -559,11 +575,11 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
             x={VB_W / 2}
             y={24}
             textAnchor="middle"
-            fontSize={11}
-            fontWeight={600}
-            fill="rgba(255,255,255,0.25)"
-            fontFamily="system-ui, -apple-system, sans-serif"
-            letterSpacing="0.12em"
+            fontSize={FONT.xxs}
+            fontWeight={FONT_WEIGHT.semibold}
+            fill={COLOR.textFaint}
+            fontFamily="inherit"
+            letterSpacing={LETTER_SPACING.mid}
             style={{ textTransform: "uppercase" }}
           >
             AUTOMOBILE · DECISION CANVAS
@@ -610,9 +626,9 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
       {/* Detail panel */}
       <div
         style={{
-          flex: "0 0 280px",
-          minWidth: 240,
-          maxWidth: 360,
+          flex: `0 0 ${SIZE.sidebarW}px`,
+          minWidth: SIZE.labelMaxW,
+          maxWidth: SIZE.modalMaxWidth,
           position: "sticky",
           top: SPACING.xxl,
         }}
@@ -622,12 +638,12 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
         ) : (
           <div
             style={{
-              background: "rgba(15,23,42,0.5)",
-              border: "1px dashed rgba(255,255,255,0.08)",
+              background: COLOR.overlayDarkStrong,
+              border: `1px dashed ${COLOR.borderSoft}`,
               borderRadius: RADIUS.lg,
               padding: `${SPACING.xl}px`,
               textAlign: "center",
-              color: "rgba(255,255,255,0.2)",
+              color: COLOR.textFaint,
               fontSize: FONT.sm,
             }}
           >
@@ -639,8 +655,8 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
         <div
           style={{
             marginTop: SPACING.lg,
-            background: "rgba(15,23,42,0.5)",
-            border: "1px solid rgba(255,255,255,0.06)",
+            background: COLOR.overlayDarkStrong,
+            border: `1px solid ${COLOR.borderSoft}`,
             borderRadius: RADIUS.lg,
             padding: `${SPACING.lg}px`,
             display: "flex",
@@ -649,7 +665,7 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
           }}
         >
           {[
-            { label: "Run ID", value: run.id.slice(0, 8) + "…" },
+            { label: "Run ID", value: run.id.slice(0, RUN_ID_SHORT) + "…" },
             { label: "Statut", value: run.status },
             { label: "Recommandation", value: recommendation },
             { label: "Tokens totaux", value: totalTokens.toLocaleString("fr-FR") },
@@ -662,17 +678,17 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
                 justifyContent: "space-between",
                 gap: SPACING.sm,
                 paddingBottom: SPACING.xs,
-                borderBottom: "1px solid rgba(255,255,255,0.05)",
+                borderBottom: `1px solid ${COLOR.surface1}`,
                 fontSize: FONT.sm,
               }}
             >
-              <span style={{ color: "rgba(255,255,255,0.35)" }}>{label}</span>
+              <span style={{ color: COLOR.textFaint }}>{label}</span>
               <span
                 style={{
                   color:
                     label === "Recommandation"
                       ? REC_COLORS[recommendation]
-                      : "rgba(255,255,255,0.7)",
+                      : COLOR.textBody,
                   fontWeight: FONT_WEIGHT.medium,
                 }}
               >
@@ -686,11 +702,11 @@ export function DecisionCanvas({ run, decision, recommendation }: DecisionCanvas
               marginTop: SPACING.xs,
               textAlign: "center",
               fontSize: FONT.sm,
-              color: "var(--ct-accent-strong, #6366f1)",
+              color: COLOR.accentStrong,
               textDecoration: "none",
               padding: `${SPACING.sm}px`,
               borderRadius: RADIUS.sm,
-              border: "1px solid rgba(99,102,241,0.25)",
+              border: `1px solid ${COLOR.borderAccent}`,
               display: "block",
             }}
           >

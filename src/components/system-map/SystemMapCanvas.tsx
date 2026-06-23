@@ -50,7 +50,7 @@ export function SystemMapCanvas({
       <MiniMap
         pannable
         zoomable
-        maskColor="rgba(0,0,0,0.55)"
+        maskColor="var(--ct-overlay-dark-strong)"
         nodeColor={(n) => nodeColor(n.data as MapNodeData)}
         nodeStrokeWidth={0}
       />

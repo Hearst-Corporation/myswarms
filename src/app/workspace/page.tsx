@@ -8,7 +8,7 @@ import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem, SwarmRunSummary } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING, COLOR } from "@/lib/ui/tokens";
 import { makeTableStyles } from "@/lib/ui/tableStyles";
 import { Chevron } from "@/components/ui/Chevron";
 
@@ -40,7 +40,7 @@ function OwnerBadge({ email, id }: { email: string | null; id: string }) {
           justifyContent: "center",
           fontSize: FONT.md,
           fontWeight: FONT_WEIGHT.bold,
-          color: "#fff",
+          color: COLOR.textStrong,
           flexShrink: 0,
         }}
       >

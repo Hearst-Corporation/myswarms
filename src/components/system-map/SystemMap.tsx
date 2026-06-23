@@ -4,6 +4,7 @@ import "./system-map.css";
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
+import { SPACING, FONT, LINE_HEIGHT, SIZE } from "@/lib/ui/tokens";
 import { DetailPanel } from "./DetailPanel";
 import { buildArchitecture } from "./buildArchitecture";
 import { buildAgentGraph } from "./buildAgentGraph";
@@ -24,7 +25,7 @@ const SystemMapCanvas = dynamic(
           justifyContent: "center",
           height: "100%",
           color: "var(--ct-text-faint)",
-          fontSize: 13,
+          fontSize: FONT.base,
         }}
       >
         Chargement de la cartographie…
@@ -62,9 +63,9 @@ export function SystemMap({ data }: { data: SystemMapData }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 12,
+          gap: SPACING.md,
           flexWrap: "wrap",
-          marginBottom: 12,
+          marginBottom: SPACING.md,
         }}
       >
         <div className="ct-seg-track" role="tablist" aria-label="Vue de la cartographie">
@@ -88,19 +89,19 @@ export function SystemMap({ data }: { data: SystemMapData }) {
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: SPACING.lg, flexWrap: "wrap" }}>
           {LEGEND.map((l) => (
             <span
               key={l.label}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
-                fontSize: 11,
+                gap: SPACING.xxs,
+                fontSize: FONT.xxs,
                 color: "var(--ct-text-muted)",
               }}
             >
-              <span style={{ width: 9, height: 9, borderRadius: "50%", background: l.color }} />
+              <span style={{ width: SIZE.dot, height: SIZE.dot, borderRadius: "50%", background: l.color }} />
               {l.label}
             </span>
           ))}
@@ -108,7 +109,7 @@ export function SystemMap({ data }: { data: SystemMapData }) {
       </div>
 
       {/* Caption contextuelle */}
-      <p style={{ fontSize: 12, color: "var(--ct-text-muted)", margin: "0 0 12px", lineHeight: 1.5 }}>
+      <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `0 0 ${SPACING.md}px`, lineHeight: LINE_HEIGHT.tight }}>
         {view === "architecture"
           ? "Flux réel : browser → Next.js (BFF) → Supabase auth / owner_id → FastAPI engine → CrewAI run → persistence Supabase (swarm_runs → swarm_run_steps) → rapport → dashboard Automobile. Clique un nœud pour le détail."
           : "Pipeline du template Automobile alimenté par le dernier run réel. Liaisons : « Transmission via contexte de task / output précédent » — le handoff n'est pas sérialisé en DB. Clique un nœud pour le détail."}

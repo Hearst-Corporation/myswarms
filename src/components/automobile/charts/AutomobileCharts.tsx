@@ -1,5 +1,6 @@
 import "./charts.css";
 import { fmtPrice } from "@/lib/utils/format";
+import { FONT, FONT_WEIGHT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
 
 // Données sérialisables (calculées côté serveur depuis les runs réels).
 interface ChartSlice {
@@ -65,13 +66,13 @@ function Donut({ slices, total }: { slices: ChartSlice[]; total: number }) {
         <text x={cx} y={cx - 4} textAnchor="middle" fontSize={30} fontWeight={800} fill="var(--ct-text-primary)">
           {total}
         </text>
-        <text x={cx} y={cx + 16} textAnchor="middle" fontSize={9} letterSpacing="0.12em" fill="var(--ct-text-muted)">
+        <text x={cx} y={cx + 16} textAnchor="middle" fontSize={FONT.nano} letterSpacing={LETTER_SPACING.mid} fill="var(--ct-text-muted)">
           ANALYSES
         </text>
       </svg>
       <div style={{ display: "flex", flexDirection: "column", gap: 7, minWidth: 100 }}>
         {slices.map((s) => (
-          <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: 12 }}>
+          <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 7, fontSize: FONT.sm }}>
             <span style={{ width: 9, height: 9, borderRadius: 3, background: s.color, flexShrink: 0 }} />
             <span style={{ color: "var(--ct-text-muted)", flex: 1 }}>{s.label}</span>
             <strong style={{ color: "var(--ct-text-primary)" }}>{s.count}</strong>
@@ -91,7 +92,7 @@ function Bars({ slices }: { slices: ChartSlice[] }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       {slices.map((s, i) => (
         <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ width: 78, fontSize: 11, color: "var(--ct-text-muted)", flexShrink: 0 }}>{s.label}</span>
+          <span style={{ width: 78, fontSize: FONT.xxs, color: "var(--ct-text-muted)", flexShrink: 0 }}>{s.label}</span>
           <div style={{ flex: 1, height: 10, background: "var(--ct-surface-3)", borderRadius: 999, overflow: "hidden" }}>
             <div
               className="av-bar-fill"
@@ -103,7 +104,7 @@ function Bars({ slices }: { slices: ChartSlice[] }) {
               }}
             />
           </div>
-          <strong style={{ width: 24, textAlign: "right", fontSize: 12, color: "var(--ct-text-primary)" }}>
+          <strong style={{ width: 24, textAlign: "right", fontSize: FONT.sm, color: "var(--ct-text-primary)" }}>
             {s.count}
           </strong>
         </div>
@@ -129,9 +130,9 @@ function PriceVsMarket({ rows }: { rows: PriceMarketRow[] }) {
         const delta = r.median > 0 ? Math.round(((r.price - r.median) / r.median) * 100) : 0;
         return (
           <div key={`${r.label}-${idx}`}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginBottom: 5 }}>
-              <span style={{ color: "var(--ct-text-primary)", fontWeight: 600 }}>{r.label}</span>
-              <span style={{ color: dotColor, fontWeight: 700 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: FONT.xxs, marginBottom: 5 }}>
+              <span style={{ color: "var(--ct-text-primary)", fontWeight: FONT_WEIGHT.semibold }}>{r.label}</span>
+              <span style={{ color: dotColor, fontWeight: FONT_WEIGHT.bold }}>
                 {fmtPrice(r.price)} · {delta > 0 ? "+" : ""}{delta}% vs marché
               </span>
             </div>
@@ -159,7 +160,7 @@ function PriceVsMarket({ rows }: { rows: PriceMarketRow[] }) {
                 style={{
                   position: "absolute",
                   top: 2,
-                  left: `calc(${pct(r.price)}% - 6px)`,
+                  left: `calc(${pct(r.price)}% - ${SPACING.xxs}px)`,
                   width: 12,
                   height: 12,
                   borderRadius: "50%",
@@ -172,7 +173,7 @@ function PriceVsMarket({ rows }: { rows: PriceMarketRow[] }) {
           </div>
         );
       })}
-      <div style={{ display: "flex", gap: 14, fontSize: 9, color: "var(--ct-text-faint)", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: 14, fontSize: FONT.nano, color: "var(--ct-text-faint)", flexWrap: "wrap" }}>
         <span>● <span style={{ color: "var(--ct-state-ok)" }}>sous le marché</span></span>
         <span>● <span style={{ color: "var(--ct-accent-strong)" }}>dans la fourchette</span></span>
         <span>● <span style={{ color: "var(--ct-alert-error-text)" }}>au-dessus</span></span>

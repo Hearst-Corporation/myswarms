@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BRANDS, getModelsForBrand } from "@/lib/automobile/brands";
 import { BrandLogo } from "@/components/automobile/BrandLogo";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
+import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING, Z_INDEX, SIZE } from "@/lib/ui/tokens";
 
 // ── Styles partagés (alignés sur SwarmInputForm) ─────────────────────────────
 
@@ -113,10 +113,10 @@ function Combobox({
         <div
           style={{
             position: "absolute",
-            top: "calc(100% + 4px)",
+            top: `calc(100% + ${SPACING.xs}px)`,
             left: 0,
             right: 0,
-            zIndex: 50,
+            zIndex: Z_INDEX.dropdown,
             // Fond OPAQUE obligatoire : les tokens --ct-surface-* sont des
             // blancs translucides (~4%), qui laisseraient transparaître les
             // champs du formulaire derrière le dropdown. --ct-bg-deep est le
@@ -160,7 +160,7 @@ function Combobox({
               listStyle: "none",
               margin: 0,
               padding: 0,
-              maxHeight: 260,
+              maxHeight: SIZE.dropdownMaxH,
               overflowY: "auto",
             }}
           >

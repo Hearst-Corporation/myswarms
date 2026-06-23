@@ -1,6 +1,7 @@
 "use client";
 
 import { Handle, Position, type NodeProps } from "@xyflow/react";
+import { SPACING, RADIUS, FONT, FONT_WEIGHT, LINE_HEIGHT, LETTER_SPACING, SIZE } from "@/lib/ui/tokens";
 import type { MapNode, MapNodeData, NodeKind, MapStatus } from "./types";
 
 export function statusColor(status?: MapStatus): string {
@@ -52,8 +53,8 @@ export const KIND_LABEL: Record<NodeKind, string> = {
 };
 
 const handleStyle = {
-  width: 6,
-  height: 6,
+  width: SIZE.dotSm,
+  height: SIZE.dotSm,
   background: "var(--ct-border-strong)",
   border: "none",
 } as const;
@@ -64,8 +65,8 @@ function MapNodeView({ data, selected }: NodeProps<MapNode>) {
   return (
     <div
       style={{
-        minWidth: 150,
-        maxWidth: 220,
+        minWidth: SIZE.nodeMinW,
+        maxWidth: SIZE.nodeMaxW,
         background: "var(--ct-surface-2)",
         borderStyle: "solid",
         borderTopWidth: 1,
@@ -76,20 +77,20 @@ function MapNodeView({ data, selected }: NodeProps<MapNode>) {
         borderRightColor: edgeColor,
         borderBottomColor: edgeColor,
         borderLeftColor: accent,
-        borderRadius: 10,
-        padding: "8px 11px",
+        borderRadius: RADIUS.nav,
+        padding: `${SPACING.sm}px ${SPACING.md}px`,
         boxShadow: selected
-          ? `0 0 0 2px color-mix(in srgb, ${accent} 45%, transparent), 0 8px 22px rgba(0,0,0,0.4)`
-          : "0 2px 8px rgba(0,0,0,0.25)",
+          ? `0 0 0 2px color-mix(in srgb, ${accent} 45%, transparent), 0 8px 22px var(--ct-overlay-dark-strong)`
+          : "0 2px 8px var(--ct-overlay-dark)",
         cursor: "pointer",
       }}
     >
       <Handle type="target" position={Position.Left} style={handleStyle} />
-      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: SPACING.xxs, marginBottom: SPACING.hair }}>
         <span
           style={{
-            width: 7,
-            height: 7,
+            width: SIZE.dot,
+            height: SIZE.dot,
             borderRadius: "50%",
             background: accent,
             flexShrink: 0,
@@ -98,8 +99,8 @@ function MapNodeView({ data, selected }: NodeProps<MapNode>) {
         />
         <span
           style={{
-            fontSize: 8,
-            letterSpacing: "0.12em",
+            fontSize: FONT.micro,
+            letterSpacing: LETTER_SPACING.mid,
             textTransform: "uppercase",
             color: "var(--ct-text-faint)",
           }}
@@ -109,26 +110,26 @@ function MapNodeView({ data, selected }: NodeProps<MapNode>) {
       </div>
       <div
         style={{
-          fontSize: 12,
-          fontWeight: 600,
+          fontSize: FONT.sm,
+          fontWeight: FONT_WEIGHT.semibold,
           color: "var(--ct-text-strong)",
-          lineHeight: 1.25,
+          lineHeight: LINE_HEIGHT.snug,
         }}
       >
         {data.label}
       </div>
       {data.sub ? (
-        <div style={{ fontSize: 10, color: "var(--ct-text-muted)", marginTop: 2 }}>
+        <div style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", marginTop: SPACING.hair }}>
           {data.sub}
         </div>
       ) : null}
       {data.desc ? (
         <div
           style={{
-            fontSize: 9.5,
+            fontSize: FONT.nano,
             color: "var(--ct-text-faint)",
-            marginTop: 3,
-            lineHeight: 1.3,
+            marginTop: SPACING.hair,
+            lineHeight: LINE_HEIGHT.cozy,
           }}
         >
           {data.desc}

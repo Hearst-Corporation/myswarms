@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 export default function HomeLoading() {
   return (
@@ -16,10 +16,10 @@ export default function HomeLoading() {
           <div
             style={{
               width: 120,
-              height: 10,
+              height: SIZE.skeletonBar,
               background: "var(--ct-surface-2)",
-              borderRadius: 4,
-              opacity: 0.4,
+              borderRadius: RADIUS.sm,
+              opacity: OPACITY.skeletonSoft,
               marginBottom: SPACING.sm,
             }}
           />
@@ -28,18 +28,18 @@ export default function HomeLoading() {
               width: 200,
               height: 28,
               background: "var(--ct-surface-2)",
-              borderRadius: 4,
-              opacity: 0.5,
+              borderRadius: RADIUS.sm,
+              opacity: OPACITY.skeletonStrong,
               marginBottom: SPACING.sm,
             }}
           />
           <div
             style={{
               width: 180,
-              height: 12,
+              height: SIZE.skeletonLine,
               background: "var(--ct-surface-2)",
-              borderRadius: 4,
-              opacity: 0.3,
+              borderRadius: RADIUS.sm,
+              opacity: OPACITY.skeletonFaint,
             }}
           />
         </div>
@@ -48,8 +48,8 @@ export default function HomeLoading() {
             width: 140,
             height: 36,
             background: "var(--ct-surface-2)",
-            borderRadius: 8,
-            opacity: 0.5,
+            borderRadius: RADIUS.md,
+            opacity: OPACITY.skeletonStrong,
           }}
         />
       </div>
@@ -67,7 +67,7 @@ export default function HomeLoading() {
           <div
             key={i}
             className="ct-card"
-            style={{ opacity: 0.45, minHeight: 96, marginBottom: 0 }}
+            style={{ opacity: OPACITY.skeleton, minHeight: SIZE.skeletonCardMinH, marginBottom: 0 }}
           />
         ))}
       </div>
@@ -77,16 +77,16 @@ export default function HomeLoading() {
         <div
           style={{
             width: 160,
-            height: 10,
+            height: SIZE.skeletonBar,
             background: "var(--ct-surface-2)",
-            borderRadius: 4,
-            opacity: 0.4,
+            borderRadius: RADIUS.sm,
+            opacity: OPACITY.skeletonSoft,
             marginBottom: SPACING.md,
           }}
         />
         <div
           className="ct-card"
-          style={{ opacity: 0.4, minHeight: 240, marginBottom: 0, padding: 0 }}
+          style={{ opacity: OPACITY.skeletonSoft, minHeight: SIZE.skeletonBlockMinH, marginBottom: 0, padding: 0 }}
         />
       </div>
     </div>

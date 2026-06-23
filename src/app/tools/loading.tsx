@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Skeleton de chargement du catalogue Tools — affiché pendant le fetch
@@ -27,8 +27,8 @@ export default function ToolsLoading() {
             className="ct-card"
             style={{
               marginBottom: 0,
-              opacity: 0.5,
-              minHeight: 96,
+              opacity: OPACITY.skeletonStrong,
+              minHeight: SIZE.skeletonCardMinH,
             }}
           />
         ))}

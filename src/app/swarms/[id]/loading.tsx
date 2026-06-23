@@ -1,4 +1,4 @@
-import { SPACING } from "@/lib/ui/tokens";
+import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 
 /**
  * Skeleton de chargement du détail swarm /swarms/[id] — affiché pendant
@@ -11,10 +11,10 @@ export default function SwarmDetailLoading() {
       <div
         style={{
           width: 80,
-          height: 14,
+          height: SIZE.skeletonTitle,
           background: "var(--ct-surface-2)",
-          borderRadius: 4,
-          opacity: 0.5,
+          borderRadius: RADIUS.sm,
+          opacity: OPACITY.skeletonStrong,
           marginBottom: SPACING.md,
         }}
       />
@@ -44,8 +44,8 @@ export default function SwarmDetailLoading() {
                 width: 220,
                 height: 28,
                 background: "var(--ct-surface-2)",
-                borderRadius: 4,
-                opacity: 0.5,
+                borderRadius: RADIUS.sm,
+                opacity: OPACITY.skeletonStrong,
               }}
             />
             {/* Badge skeleton */}
@@ -54,18 +54,18 @@ export default function SwarmDetailLoading() {
                 width: 64,
                 height: 20,
                 background: "var(--ct-surface-2)",
-                borderRadius: 9999,
-                opacity: 0.4,
+                borderRadius: RADIUS.full,
+                opacity: OPACITY.skeletonSoft,
               }}
             />
           </div>
           <div
             style={{
               width: 280,
-              height: 14,
+              height: SIZE.skeletonTitle,
               background: "var(--ct-surface-2)",
-              borderRadius: 4,
-              opacity: 0.35,
+              borderRadius: RADIUS.sm,
+              opacity: OPACITY.skeletonFaint,
             }}
           />
         </div>
@@ -76,8 +76,8 @@ export default function SwarmDetailLoading() {
               width: 72,
               height: 32,
               background: "var(--ct-surface-2)",
-              borderRadius: 8,
-              opacity: 0.4,
+              borderRadius: RADIUS.md,
+              opacity: OPACITY.skeletonSoft,
             }}
           />
           <div
@@ -85,8 +85,8 @@ export default function SwarmDetailLoading() {
               width: 120,
               height: 32,
               background: "var(--ct-surface-2)",
-              borderRadius: 8,
-              opacity: 0.35,
+              borderRadius: RADIUS.md,
+              opacity: OPACITY.skeletonFaint,
             }}
           />
         </div>
@@ -107,7 +107,7 @@ export default function SwarmDetailLoading() {
           <div
             key={i}
             className="ct-card"
-            style={{ marginBottom: 0, opacity: 0.5, minHeight: 72 }}
+            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 72 }}
           />
         ))}
       </div>
@@ -115,11 +115,11 @@ export default function SwarmDetailLoading() {
       {/* Composition card skeleton */}
       <div
         className="ct-card"
-        style={{ opacity: 0.5, minHeight: 140, marginBottom: SPACING.md }}
+        style={{ opacity: OPACITY.skeletonStrong, minHeight: 140, marginBottom: SPACING.md }}
       />
 
       {/* Runs récents card skeleton */}
-      <div className="ct-card" style={{ padding: 0, overflow: "hidden", opacity: 0.5 }}>
+      <div className="ct-card" style={{ padding: 0, overflow: "hidden", opacity: OPACITY.skeletonStrong }}>
         <div
           style={{
             height: 44,
@@ -133,7 +133,7 @@ export default function SwarmDetailLoading() {
             style={{
               height: 48,
               background: "var(--ct-surface-2)",
-              opacity: i % 2 === 0 ? 0.5 : 0.35,
+              opacity: i % 2 === 0 ? OPACITY.skeletonStrong : OPACITY.skeletonFaint,
               borderBottom: "1px solid var(--ct-border-soft)",
             }}
           />

@@ -49,7 +49,7 @@ interface Props {
 function triggerLabel(t: string): { label: string; color: string } {
   if (t === "on_demand") return { label: "Manuel", color: "var(--ct-text-muted)" };
   if (t === "webhook") return { label: "Webhook", color: "var(--ct-accent-strong)" };
-  return { label: "Planifié", color: "#f59e0b" };
+  return { label: "Planifié", color: "var(--ct-status-paused)" };
 }
 
 function formatDuration(started: string, finished: string | null | undefined): string {
