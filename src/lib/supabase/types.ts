@@ -178,59 +178,6 @@ export type Database = {
         }
         Relationships: []
       }
-      cockpit_chats: {
-        Row: {
-          created_at: string | null
-          id: string
-          title: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          title?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          title?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      cockpit_messages: {
-        Row: {
-          chat_id: string | null
-          content: string
-          created_at: string | null
-          id: string
-          role: string
-        }
-        Insert: {
-          chat_id?: string | null
-          content: string
-          created_at?: string | null
-          id?: string
-          role: string
-        }
-        Update: {
-          chat_id?: string | null
-          content?: string
-          created_at?: string | null
-          id?: string
-          role?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "cockpit_messages_chat_id_fkey"
-            columns: ["chat_id"]
-            isOneToOne: false
-            referencedRelation: "cockpit_chats"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       crew_run_steps: {
         Row: {
           agent_name: string

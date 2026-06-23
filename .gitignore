@@ -80,3 +80,6 @@ services/*/.venv/
 .claude/
 .playwright-mcp/
 login-with-nav.png
+
+# tri-adrien : venv de validation hedge (210MB, jamais commit)
+.venv-hedge-validation/

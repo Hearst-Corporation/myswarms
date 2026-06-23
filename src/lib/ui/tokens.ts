@@ -162,14 +162,4 @@ export const SIZE = {
   skeletonBlockMinH: 240,
 } as const;
 
-// Durées d'animation (ms ou string CSS). Aligné sur --ct-dur-base (180ms).
-export const DURATION = {
-  base: "180ms",
-  fast: "120ms",
-  hover: "150ms",
-  spin: "0.8s",
-  pulse: "1.5s",
-  pulseSlow: "1.8s",
-} as const;
-
 
