@@ -196,9 +196,9 @@ async def kickoff(
         "state": None,
     }
 
-    # Persist to Supabase — owner_id written to chief_run_log.owner_id (migration 0015).
-    # Fail-soft: in-memory _runs remains the primary store for this process.
-    run_store.save_run(kickoff_id, request.trigger, "running", started_at, owner_id=oid)
+    # Persist to Supabase — owner_id forcé = scope (couche write-side R2),
+    # écrit dans chief_run_log.owner_id. Fail-soft: _runs reste le store primaire.
+    _chief_scoped(identity).save_run(kickoff_id, request.trigger, "running", started_at)
 
     # Build initial state with allowlist override merge.
     # chief_run_id injected here so the flow can pass it to create_daily_chief_crew()

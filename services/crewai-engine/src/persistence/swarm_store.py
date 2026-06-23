@@ -131,6 +131,30 @@ def _assert_valid_uuid(value: str | None, field: str = "owner_id") -> None:
 # ── Swarms CRUD ──────────────────────────────────────────────────────────────
 
 
+def is_swarm_owned(swarm_id: str, owner_id: str, *, allow_template: bool = False) -> bool:
+    """Vérif LÉGÈRE (1 requête) qu'un swarm appartient à `owner_id`.
+
+    `allow_template=False` (défaut — ÉCRITURES) : owner STRICT — les templates
+    globaux (owner_id NULL) ne matchent jamais → immuables par un user.
+    `allow_template=True` (kickoff/lecture) : owner OU template global.
+    """
+    _assert_valid_uuid(owner_id)
+    client = _get_client()
+    if client is None:
+        return False
+    try:
+        query = client.table("swarms").select("id").eq("id", swarm_id)
+        if allow_template:
+            query = query.or_(f"owner_id.eq.{owner_id},and(owner_id.is.null,is_template.eq.true)")
+        else:
+            query = query.eq("owner_id", owner_id)
+        res = query.maybe_single().execute()
+        return bool(res and res.data)
+    except Exception as exc:  # noqa: BLE001
+        logger.error("is_swarm_owned failed for %s: %s", swarm_id, exc)
+        return False
+
+
 def get_swarm(
     swarm_id: str,
     owner_id: str | None = None,
