@@ -81,7 +81,12 @@ export const swarmsClient = {
     timeoutMs?: number,
   ): Promise<SwarmListItem[]> {
     const path = withOwnerId(`/v1/swarms`, ownerId);
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      timeoutMs,
+      ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmListSchema.parse(data);
   },
@@ -95,7 +100,12 @@ export const swarmsClient = {
       `/v1/swarms/${encodeURIComponent(swarmId)}`,
       ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      timeoutMs,
+      ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmRecordSchema.parse(data);
   },
@@ -111,6 +121,7 @@ export const swarmsClient = {
       path,
       { method: "POST", body: JSON.stringify(validated) },
       timeoutMs,
+      ownerId,
     );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmRecordSchema.parse(data);
@@ -133,6 +144,7 @@ export const swarmsClient = {
       path,
       { method: "PATCH", body: JSON.stringify(payload) },
       timeoutMs,
+      ownerId,
     );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmRecordSchema.parse(data);
@@ -147,7 +159,12 @@ export const swarmsClient = {
       `/v1/swarms/${encodeURIComponent(swarmId)}`,
       ownerId,
     );
-    const res = await authedFetch(path, { method: "DELETE" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "DELETE" },
+      timeoutMs,
+      ownerId,
+    );
     await handleResponseVoid(res, path, "[crewai/swarms]");
   },
 
@@ -166,6 +183,7 @@ export const swarmsClient = {
       path,
       { method: "POST", body: JSON.stringify(validated) },
       timeoutMs,
+      ownerId,
     );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmKickoffResponseSchema.parse(data);
@@ -181,7 +199,12 @@ export const swarmsClient = {
       `/v1/swarms/${encodeURIComponent(swarmId)}/status/${encodeURIComponent(runId)}`,
       ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      timeoutMs,
+      ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmRunSchema.parse(data);
   },
@@ -195,7 +218,12 @@ export const swarmsClient = {
       `/v1/runs/${encodeURIComponent(runId)}`,
       ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      timeoutMs,
+      ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmRunSchema.parse(data);
   },
@@ -210,7 +238,12 @@ export const swarmsClient = {
       `/v1/swarms/${encodeURIComponent(swarmId)}/runs?limit=${limit}`,
       ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      timeoutMs,
+      ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return SwarmRunSummaryListSchema.parse(data);
   },
@@ -231,6 +264,7 @@ export const swarmsClient = {
       path,
       { method: "POST", body: JSON.stringify({ prompt }) },
       timeoutMs,
+      ownerId,
     );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return ArchitectResponseSchema.parse(data);
@@ -241,7 +275,12 @@ export const swarmsClient = {
     timeoutMs?: number,
   ): Promise<Tool[]> {
     const path = withOwnerId(`/v1/tools`, ownerId);
-    const res = await authedFetch(path, { method: "GET" }, timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      timeoutMs,
+      ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/swarms]");
     return ToolListSchema.parse(data);
   },

@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..config import settings
@@ -14,17 +14,7 @@ from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
 from ..persistence import run_store
 from ..persistence.chief_step_store import list_chief_steps
 from ..persistence.chief_decision_store import record_decision
-
-
-def _require_owner_id(owner_id: str | None) -> str:
-    """Raise 400 if owner_id is absent or not a valid UUID."""
-    if not owner_id or not owner_id.strip():
-        raise HTTPException(status_code=400, detail="owner_id is required")
-    try:
-        UUID(owner_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
-    return owner_id
+from ..security.internal_auth import InternalIdentity, require_internal_identity
 
 logger = logging.getLogger(__name__)
 
@@ -170,18 +160,18 @@ async def _execute_flow_background(
 @router.post("/kickoff", response_model=KickoffResponse)
 async def kickoff(
     request: KickoffRequest,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> KickoffResponse:
     """Start a Chief of Staff flow run. Returns kickoff_id IMMEDIATELY.
 
     The flow executes in a background asyncio task — poll /status/{kickoff_id} for progress.
     Decoupling the response from flow completion avoids HTTP timeouts (Vercel 10s, browser 30s).
 
-    `owner_id` is required (must be a valid UUID). Propagated from Next.js session
-    and written to `chief_run_log.owner_id` (migration 0015). Explicit scoping is
-    required because the engine bypasses RLS via SUPABASE_SERVICE_ROLE_KEY.
+    Owner dérivé du JWT interne vérifié, écrit dans `chief_run_log.owner_id`
+    (migration 0015). Scoping explicite car l'engine bypasse la RLS via
+    SUPABASE_SERVICE_ROLE_KEY.
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
     logger.debug("chief-of-staff kickoff owner_id=%s", oid)
     _check_rate_limit()
 
@@ -232,14 +222,14 @@ async def kickoff(
 @router.get("/status/{kickoff_id}", response_model=StatusResponse)
 def status(
     kickoff_id: UUID,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> StatusResponse:
     """Return status and result for a given kickoff_id. FastAPI validates UUID format → 422 if malformed.
 
-    `owner_id` is required (valid UUID). Scopes the Supabase fallback lookup so only
-    runs belonging to this owner are returned — prevents cross-tenant data leakage.
+    Owner dérivé du JWT interne vérifié : scope la lecture Supabase de secours
+    pour ne renvoyer que les runs de cet owner (anti cross-tenant).
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
     logger.debug("chief-of-staff status owner_id=%s", oid)
     kid = str(kickoff_id)
     run = _runs.get(kid)
@@ -267,15 +257,14 @@ def status(
 @router.get("/runs")
 def list_runs_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> list[dict]:
     """List recent Chief of Staff runs from Supabase, scoped to owner_id.
 
-    `owner_id` is required (valid UUID) — prevents cross-tenant data leakage.
+    Owner dérivé du JWT interne vérifié (anti cross-tenant).
     Returns empty list if Supabase is not configured.
     """
-    oid = _require_owner_id(owner_id)
-    return run_store.list_runs(limit=limit, owner_id=oid)
+    return run_store.list_runs(limit=limit, owner_id=identity.owner_id)
 
 
 def _require_run_owner(kickoff_id: str, owner_id: str) -> None:
@@ -292,37 +281,37 @@ def _require_run_owner(kickoff_id: str, owner_id: str) -> None:
 @router.get("/runs/{kickoff_id}/steps")
 def get_run_steps(
     kickoff_id: str,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> list[dict]:
     """Return all completed task steps for a given run, ordered by step_index.
 
-    owner_id is required — gates access so only the run owner can read steps.
-    Returns 400 if owner_id is missing/invalid, 404 if run not found or not owned.
+    Owner dérivé du JWT interne vérifié — seul l'owner du run lit ses steps.
+    401 si JWT absent/invalide, 404 si run inexistant ou non possédé.
     """
-    oid = _require_owner_id(owner_id)
-    _require_run_owner(kickoff_id, oid)
+    _require_run_owner(kickoff_id, identity.owner_id)
     return list_chief_steps(chief_run_id=kickoff_id)
 
 
 @router.get("/runs/{kickoff_id}/decisions")
 def list_run_decisions_endpoint(
     kickoff_id: str,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> list[dict]:
     """Return all recorded user decisions for a given run, ordered by created_at desc.
 
-    owner_id is required — gates access so only the run owner can read decisions.
-    Returns 400 if owner_id is missing/invalid, 404 if run not found or not owned.
+    Owner dérivé du JWT interne vérifié — seul l'owner du run lit ses décisions.
+    401 si JWT absent/invalide, 404 si run inexistant ou non possédé.
     """
     from ..persistence.chief_decision_store import list_decisions
-    oid = _require_owner_id(owner_id)
-    _require_run_owner(kickoff_id, oid)
+    _require_run_owner(kickoff_id, identity.owner_id)
     return list_decisions(kickoff_id)
 
 
 class DecisionRequest(BaseModel):
     kickoff_id: str
-    owner_id: str
+    # owner_id legacy : conservé pour rétrocompat de payload mais IGNORÉ comme
+    # source de vérité — l'owner réel provient du JWT interne vérifié.
+    owner_id: str | None = None
     action: Literal["sent", "snoozed", "rejected"]
     snooze_hours: int | None = None
 
@@ -333,20 +322,23 @@ class DecisionResponse(BaseModel):
 
 
 @router.post("/decisions", response_model=DecisionResponse)
-def post_decision(request: DecisionRequest) -> DecisionResponse:
+def post_decision(
+    request: DecisionRequest,
+    identity: InternalIdentity = Depends(require_internal_identity),
+) -> DecisionResponse:
     """Record a user decision on a Chief run P0 item.
 
     Body:
         kickoff_id: the run's kickoff_id (text).
-        owner_id: the requesting owner UUID — run ownership verified before write.
         action: 'sent' | 'snoozed' | 'rejected'.
         snooze_hours: optional int — only meaningful when action='snoozed'.
 
+    Owner dérivé du JWT interne vérifié — ownership du run validé avant écriture.
     Returns 200 with {ok: true, record: {...}} on success.
-    Returns 400/404 if owner_id invalid or run not owned.
+    Returns 401 if JWT missing/invalid, 404 if run not owned.
     Returns 422 if action is invalid (Pydantic Literal validation).
     """
-    oid = _require_owner_id(request.owner_id)
+    oid = identity.owner_id
     _require_run_owner(request.kickoff_id, oid)
     try:
         created = record_decision(

@@ -1,11 +1,14 @@
-"""Test — owner_id enforcement on all sensitive endpoints.
+"""Test — enforcement de l'identité owner sur les endpoints sensibles.
 
-Security contract:
-  - owner_id absent → 400
-  - owner_id invalid (not a UUID) → 400
-  - owner_id valid UUID, no data → 200 / [] (scoped, no cross-tenant leak)
+Contrat (R3 — identité via JWT interne ; le query-param owner_id n'est qu'un
+fallback dev/test, activé via conftest) :
+  - identité absente (ni JWT ni query legacy) → 401
+  - owner non-UUID (query legacy) → 401
+  - owner UUID valide (JWT, ou query legacy en test) → 200 / [] (scopé, no leak)
 
 Uses FastAPI TestClient with the real app (bearer token from conftest env var).
+Le fallback legacy query-param est activé en test (conftest) pour exercer la
+logique métier ; le contrat JWT lui-même est prouvé dans test_internal_auth.py.
 Supabase calls are mocked via monkeypatching swarm_store / run_store _get_client.
 """
 from __future__ import annotations
@@ -60,23 +63,22 @@ OWNER_REQUIRED_GET = [
 
 
 class TestOwnerIdRequired:
-    """All sensitive GET endpoints must return 400 when owner_id is missing."""
+    """Endpoints owner-scopés sans identité (ni JWT ni query legacy) → 401."""
 
     @pytest.mark.parametrize("path", OWNER_REQUIRED_GET)
-    def test_missing_owner_id_returns_400(self, client, path):
+    def test_missing_identity_returns_401(self, client, path):
         resp = client.get(path)
-        assert resp.status_code == 400, (
-            f"Expected 400 for {path} without owner_id, got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 401, (
+            f"Expected 401 for {path} without identity, got {resp.status_code}: {resp.text}"
         )
-        assert "owner_id" in resp.json().get("detail", "").lower()
 
     @pytest.mark.parametrize("path", OWNER_REQUIRED_GET)
-    def test_invalid_uuid_owner_id_returns_400(self, client, path):
+    def test_invalid_uuid_owner_returns_401(self, client, path):
+        # Pas de JWT → fallback legacy (test) → owner non-UUID → 401.
         resp = client.get(path, params={"owner_id": INVALID_UUID})
-        assert resp.status_code == 400, (
-            f"Expected 400 for {path} with invalid UUID, got {resp.status_code}: {resp.text}"
+        assert resp.status_code == 401, (
+            f"Expected 401 for {path} with invalid UUID, got {resp.status_code}: {resp.text}"
         )
-        assert "uuid" in resp.json().get("detail", "").lower()
 
 
 class TestOwnerIdValidUuid:
@@ -108,40 +110,38 @@ class TestOwnerIdValidUuid:
 
 
 class TestPostOwnerIdRequired:
-    """POST endpoints must enforce owner_id too."""
+    """POST endpoints owner-scopés exigent une identité (JWT ou query legacy)."""
 
-    def test_kickoff_without_owner_id_returns_400(self, client):
+    def test_kickoff_without_identity_returns_401(self, client):
         resp = client.post(
             "/v1/crews/chief-of-staff/kickoff",
             json={"trigger": "on_demand"},
         )
-        assert resp.status_code == 400
-        assert "owner_id" in resp.json().get("detail", "").lower()
+        assert resp.status_code == 401
 
-    def test_kickoff_invalid_uuid_returns_400(self, client):
+    def test_kickoff_invalid_uuid_returns_401(self, client):
+        # Pas de JWT → fallback legacy → owner non-UUID → 401.
         resp = client.post(
             "/v1/crews/chief-of-staff/kickoff",
             json={"trigger": "on_demand"},
             params={"owner_id": "bad-uuid"},
         )
-        assert resp.status_code == 400
-        assert "uuid" in resp.json().get("detail", "").lower()
+        assert resp.status_code == 401
 
-    def test_create_swarm_without_owner_id_returns_400(self, client):
+    def test_create_swarm_without_identity_returns_401(self, client):
         resp = client.post(
             "/v1/swarms",
             json={"name": "test swarm"},
         )
-        assert resp.status_code == 400
-        assert "owner_id" in resp.json().get("detail", "").lower()
+        assert resp.status_code == 401
 
-    def test_create_swarm_owner_in_body_invalid_uuid_returns_400(self, client):
+    def test_create_swarm_body_owner_invalid_uuid_returns_401(self, client):
+        # owner_id en body n'est plus la source de vérité ; sans identité → 401.
         resp = client.post(
             "/v1/swarms",
             json={"name": "test swarm", "owner_id": "not-a-uuid"},
         )
-        assert resp.status_code == 400
-        assert "uuid" in resp.json().get("detail", "").lower()
+        assert resp.status_code == 401
 
 
 class TestCrossTenantIsolation:
@@ -228,9 +228,9 @@ class TestNonTemplateNullOwnerNotExposed:
         """
         from src.persistence import swarm_store  # noqa: PLC0415
 
-        # Without owner_id → 400, orphan_row never returned.
+        # Without identity → 401, orphan_row never returned.
         resp_no_owner = client.get("/v1/swarms")
-        assert resp_no_owner.status_code == 400
+        assert resp_no_owner.status_code == 401
 
         # With valid owner_id → or_() must be called with owner UUID in the filter string.
         stub = _empty_client()
