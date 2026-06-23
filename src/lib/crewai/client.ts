@@ -73,6 +73,7 @@ export const crewaiClient = {
         body: JSON.stringify(request),
       },
       opts.timeoutMs,
+      opts.ownerId,
     );
     const data = await handleResponse(res, path, "[crewai/client]");
     return CrewKickoffResponseSchema.parse(data);
@@ -87,7 +88,12 @@ export const crewaiClient = {
       `/v1/crews/${crewName}/status/${kickoffId}`,
       opts.ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      opts.timeoutMs,
+      opts.ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/client]");
     return CrewStatusResponseSchema.parse(data);
   },
@@ -101,7 +107,12 @@ export const crewaiClient = {
       `/v1/crews/${encodeURIComponent(crewName)}/runs?limit=${limit}`,
       opts.ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      opts.timeoutMs,
+      opts.ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/client]");
     return RunSummaryListSchema.parse(data);
   },
@@ -119,7 +130,12 @@ export const crewaiClient = {
       `/v1/crews/${encodeURIComponent(crewName)}/runs/${encodeURIComponent(kickoffId)}/steps`,
       opts.ownerId,
     );
-    const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+    const res = await authedFetch(
+      path,
+      { method: "GET" },
+      opts.timeoutMs,
+      opts.ownerId,
+    );
     const data = await handleResponse(res, path, "[crewai/client]");
     return z.array(RunStepSchema).parse(data);
   },
@@ -141,6 +157,7 @@ export const crewaiClient = {
       path,
       { method: "POST", body: JSON.stringify({ ...payload, owner_id: opts.ownerId }) },
       opts.timeoutMs,
+      opts.ownerId,
     );
     const data = await handleResponse(res, path, "[crewai/client]");
     return DecisionSchema.parse(data);
@@ -160,7 +177,12 @@ export const crewaiClient = {
         `/v1/crews/${encodeURIComponent(crewName)}/runs/${encodeURIComponent(kickoffId)}/decisions`,
         opts.ownerId,
       );
-      const res = await authedFetch(path, { method: "GET" }, opts.timeoutMs);
+      const res = await authedFetch(
+      path,
+      { method: "GET" },
+      opts.timeoutMs,
+      opts.ownerId,
+    );
       if (!res.ok) return [];
       const data = await handleResponse(res, path, "[crewai/client]");
       return z.array(DecisionSchema).parse(data);

@@ -49,6 +49,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         method: "POST",
         body: JSON.stringify(parsed.data),
       },
+      undefined,
+      ownerId,
     );
 
     if (!res.ok) {

@@ -1,3 +1,5 @@
+import { createEngineInternalToken } from "./internal-auth";
+
 /**
  * _internal.ts — helpers partagés entre client.ts et swarms.ts.
  *
@@ -77,9 +79,22 @@ export async function authedFetch(
   path: string,
   init: RequestInit = {},
   timeoutMs?: number,
+  ownerId?: string | null,
 ): Promise<Response> {
   const timeout =
     timeoutMs ?? Number(process.env.CREWAI_ENGINE_TIMEOUT_MS ?? "30000");
+
+  // Si un ownerId est fourni, on génère un JWT interne pour prouver l'identité.
+  let internalAuthHeader: Record<string, string> = {};
+  if (ownerId) {
+    try {
+      const token = await createEngineInternalToken({ ownerId });
+      internalAuthHeader = { "X-Internal-Auth": `Bearer ${token}` };
+    } catch (err) {
+      logWarning(`[crewai/_internal] Failed to sign internal token: ${err}`);
+      // On continue sans le header, l'engine rejettera si c'est une route protégée.
+    }
+  }
 
   const doFetch = () =>
     fetch(`${ENGINE_URL}${path}`, {
@@ -88,6 +103,7 @@ export async function authedFetch(
       headers: {
         Authorization: `Bearer ${ENGINE_TOKEN}`,
         "Content-Type": "application/json",
+        ...internalAuthHeader,
         ...(init.headers ?? {}),
       },
       cache: "no-store",

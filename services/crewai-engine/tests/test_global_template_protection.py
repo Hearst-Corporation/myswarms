@@ -198,18 +198,18 @@ class TestGlobalTemplateWriteForbidden:
         assert resp.status_code == 403, f"Expected 403, got {resp.status_code}: {resp.text}"
         assert "global template" in resp.json()["detail"].lower()
 
-    def test_patch_missing_owner_returns_400(self, client):
-        """PATCH without owner_id → 400 (existing gate, not 403)."""
+    def test_patch_missing_identity_returns_401(self, client):
+        """PATCH sans identité (ni JWT ni query legacy) → 401."""
         resp = client.patch(
             f"/v1/swarms/{TEMPLATE_ID}",
             json={"name": "No owner"},
         )
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
-    def test_delete_missing_owner_returns_400(self, client):
-        """DELETE without owner_id → 400."""
+    def test_delete_missing_identity_returns_401(self, client):
+        """DELETE sans identité → 401."""
         resp = client.delete(f"/v1/swarms/{TEMPLATE_ID}")
-        assert resp.status_code == 400
+        assert resp.status_code == 401
 
 
 # ── Tests: User-owned swarm — writes allowed by correct owner ─────────────────
@@ -284,15 +284,14 @@ class TestTemplateCreationLocked:
         )
         assert resp.status_code == 403
 
-    def test_create_without_owner_id_returns_400(self, client):
-        """owner_id missing → 400 (existing _require_owner_id gate, before is_template check)."""
+    def test_create_without_identity_returns_401(self, client):
+        """Identité absente → 401 (gate auth interne, avant le check is_template)."""
         resp = client.post(
             "/v1/swarms",
             json={"name": "No owner"},
         )
-        # owner_id absent → 400 (pre-existing gate — is_template check not reached)
-        assert resp.status_code in (400, 403), (
-            f"Expected 400 or 403 without owner_id, got {resp.status_code}"
+        assert resp.status_code == 401, (
+            f"Expected 401 without identity, got {resp.status_code}"
         )
 
     def test_create_normal_swarm_not_blocked(self, client):

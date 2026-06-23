@@ -29,28 +29,19 @@ from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Depends
 from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..crews.dynamic_crew import flush_run_steps
 from ..flows.dynamic_swarm_flow import DynamicSwarmFlow
 from ..persistence import swarm_store
+from ..security.internal_auth import require_internal_identity, InternalIdentity
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-def _require_owner_id(owner_id: str | None) -> str:
-    """Raise 400 if owner_id is absent or not a valid UUID."""
-    if not owner_id or not owner_id.strip():
-        raise HTTPException(status_code=400, detail="owner_id is required")
-    try:
-        UUID(owner_id)
-    except ValueError:
-        raise HTTPException(status_code=400, detail=f"owner_id must be a valid UUID, got {owner_id!r}")
-    return owner_id
 
 def _deny_if_global_template(loaded: dict | None, swarm_id: str) -> None:
     """Raise 403 if the loaded swarm is a global template (owner_id=None, is_template=True).
@@ -447,23 +438,21 @@ async def _execute_dynamic_flow_background(
 
 
 @router.get("/v1/swarms")
-def list_swarms_endpoint(owner_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
+def list_swarms_endpoint(identity: InternalIdentity = Depends(require_internal_identity)) -> list[dict[str, Any]]:
     """Liste tous les swarms actifs, filtrés optionnellement par owner_id."""
-    _require_owner_id(owner_id)
-    return swarm_store.list_swarms(owner_id=owner_id)
+    return swarm_store.list_swarms(owner_id=identity.owner_id)
 
 
 @router.get("/v1/swarms/{swarm_id}")
 def get_swarm_endpoint(
     swarm_id: str,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Renvoie un swarm complet (agents + tasks + tool_bindings).
 
     `owner_id` requis : scope la lecture sur ce propriétaire — 404 si mismatch.
     """
-    _require_owner_id(owner_id)
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=identity.owner_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
     return _shape_swarm_response(loaded)
@@ -472,25 +461,29 @@ def get_swarm_endpoint(
 @router.post("/v1/swarms", status_code=201)
 def create_swarm_endpoint(
     payload: SwarmCreate,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Crée un nouveau swarm + agents/tasks/bindings en un seul POST.
 
     En cas d'erreur partielle, rollback applicatif (hard delete du swarm).
 
-    F4 fix : `owner_id` peut arriver via query param (BFF) OU dans le body.
-    Priorité body > query (body explicite gagne sur le contexte d'appel).
+    F4 fix : `owner_id` est dérivé du JWT interne vérifié.
+    Priorité body > JWT (si le body contient un owner_id, on vérifie qu'il correspond au JWT).
     """
     swarm_payload = payload.model_dump(
         exclude={"agents", "tasks", "tool_bindings"},
         exclude_none=True,
     )
-    # F4 fix : si le body n'a pas posé owner_id, on prend celui du query param.
-    if not swarm_payload.get("owner_id") and owner_id:
-        swarm_payload["owner_id"] = owner_id
+    # Si le body contient un owner_id, il DOIT correspondre à l'identité JWT.
+    body_owner_id = swarm_payload.get("owner_id")
+    if body_owner_id and body_owner_id != identity.owner_id:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Cannot create swarm for owner {body_owner_id} with token for {identity.owner_id}"
+        )
 
-    # Guard: owner_id is mandatory to create a swarm.
-    _require_owner_id(swarm_payload.get("owner_id"))
+    # On force l'owner_id de l'identité vérifiée.
+    swarm_payload["owner_id"] = identity.owner_id
 
     # Security: creating global templates via the user API is forbidden.
     # Global templates (is_template=True, owner_id=NULL) must go through DB migrations.
@@ -566,7 +559,7 @@ def create_swarm_endpoint(
 def update_swarm_endpoint(
     swarm_id: str,
     payload: SwarmUpdate,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Patch les champs fournis (les non-envoyés sont ignorés).
 
@@ -581,15 +574,10 @@ def update_swarm_endpoint(
     est propagé pour résoudre les références cross-collections dans le même
     payload.
 
-    `owner_id` optionnel (propagé par le BFF) : si fourni, la lecture
-    pré-update et l'UPDATE scalaire sont scopés. Le swarm est validé via
-    `get_swarm(.., owner_id=)` avant tout replace_* — un mismatch renvoie 404.
+    `owner_id` requis : la lecture est scopée sur ce propriétaire.
     """
-    # Guard: owner_id is mandatory for writes.
-    _require_owner_id(owner_id)
-
-    # Pre-check : valide propriétaire si owner_id fourni (404 sinon).
-    guard = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    # Pre-check : valide propriétaire (404 sinon).
+    guard = swarm_store.get_swarm(swarm_id, owner_id=identity.owner_id)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
@@ -616,7 +604,7 @@ def update_swarm_endpoint(
         raise HTTPException(status_code=400, detail="No fields to update")
 
     if payload_set:
-        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=owner_id)
+        ok = swarm_store.update_swarm(swarm_id, payload_set, owner_id=identity.owner_id)
         if not ok:
             raise HTTPException(
                 status_code=500,
@@ -660,7 +648,7 @@ def update_swarm_endpoint(
             detail={"message": "Partial update failed", "errors": errors},
         )
 
-    loaded = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    loaded = swarm_store.get_swarm(swarm_id, owner_id=identity.owner_id)
     if loaded is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found after update")
     return _shape_swarm_response(loaded)
@@ -669,26 +657,25 @@ def update_swarm_endpoint(
 @router.delete("/v1/swarms/{swarm_id}", status_code=204)
 def delete_swarm_endpoint(
     swarm_id: str,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> None:
     """Soft delete : marque `is_active=false`.
 
-    `owner_id` requis : scope la suppression sur ce propriétaire.
+    Owner dérivé du JWT interne vérifié : scope la suppression sur ce propriétaire.
     """
-    # Guard: owner_id is mandatory for writes.
-    _require_owner_id(owner_id)
+    oid = identity.owner_id
 
     # I6 fix : DELETE non-idempotent — aligné sur GET/PATCH pour cohérence
-    # interne du projet. Même sans owner_id, on vérifie l'existence du swarm
-    # avant le soft delete (404 si inexistant). Reste valide REST : DELETE
-    # peut renvoyer 404 ou 204 selon la convention choisie.
-    guard = swarm_store.get_swarm(swarm_id, owner_id=owner_id)
+    # interne du projet. On vérifie l'existence du swarm (scopé owner) avant le
+    # soft delete (404 si inexistant). Reste valide REST : DELETE peut renvoyer
+    # 404 ou 204 selon la convention choisie.
+    guard = swarm_store.get_swarm(swarm_id, owner_id=oid)
     if guard is None:
         raise HTTPException(status_code=404, detail=f"Swarm {swarm_id!r} not found")
 
     # Guard: global templates (owner_id=NULL, is_template=True) are read/run-only.
     _deny_if_global_template(guard, swarm_id)
-    ok = swarm_store.delete_swarm(swarm_id, owner_id=owner_id)
+    ok = swarm_store.delete_swarm(swarm_id, owner_id=oid)
     if not ok:
         raise HTTPException(
             status_code=500,
@@ -703,7 +690,7 @@ def delete_swarm_endpoint(
 async def kickoff_swarm_endpoint(
     swarm_id: str,
     request: KickoffRequest,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Lance un run async. Retourne immédiatement `{run_id, swarm_id, status}`.
 
@@ -711,10 +698,10 @@ async def kickoff_swarm_endpoint(
     Le polling se fait via `/v1/swarms/{id}/status/{runId}` qui retourne la
     shape complète `SwarmRun` (avec `id`, pas `run_id`).
 
-    `owner_id` optionnel : si fourni, valide que le swarm appartient à
+    Owner dérivé du JWT interne vérifié : on valide que le swarm appartient à
     ce propriétaire avant de kicker quoi que ce soit (404 sinon).
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
 
     # Validation : le swarm doit exister (scopé propriétaire si owner_id fourni).
     loaded = swarm_store.get_swarm(swarm_id, owner_id=oid)
@@ -773,14 +760,14 @@ async def kickoff_swarm_endpoint(
 def status_swarm_run_endpoint(
     swarm_id: str,
     run_id: UUID,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Statut d'un run scope-checké (run.swarm_id == swarm_id).
 
-    `owner_id` optionnel : scope la lecture sur ce propriétaire (joint via
-    swarms.owner_id côté swarm_store).
+    Owner dérivé du JWT interne vérifié : scope la lecture sur ce propriétaire
+    (swarm_runs.owner_id côté swarm_store).
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
     run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
@@ -795,7 +782,7 @@ async def resume_swarm_run_endpoint(
     swarm_id: str,
     run_id: UUID,
     request: ResumeRequest,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Reprend un run en pause HITL après la réponse de l'humain.
 
@@ -808,8 +795,10 @@ async def resume_swarm_run_endpoint(
       failed (anti-boucle running↔paused_hitl).
     - Idempotence : CAS atomique `paused_hitl → running` ; si perdu (déjà repris /
       double POST concurrent), no-op 202.
+
+    Owner dérivé du JWT interne vérifié (anti-IDOR multi-tenant).
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
     rid = str(run_id)
 
     run = swarm_store.get_swarm_run(rid, owner_id=oid)
@@ -875,28 +864,27 @@ async def resume_swarm_run_endpoint(
 def list_swarm_runs_endpoint(
     swarm_id: str,
     limit: int = Query(default=20, ge=1, le=100),
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> list[dict[str, Any]]:
     """Runs récents d'un swarm donné, plus récents en premier.
 
-    `owner_id` requis : `list_swarm_runs` ne retourne que les runs appartenant à
-    cet owner (filtre direct `swarm_runs.owner_id`, R1 anti-IDOR). Sur un
-    template partagé, chaque tenant ne voit que ses propres runs.
+    Owner dérivé du JWT interne vérifié : `list_swarm_runs` ne retourne que les
+    runs appartenant à cet owner (filtre direct `swarm_runs.owner_id`, R1
+    anti-IDOR). Sur un template partagé, chaque tenant ne voit que ses propres runs.
     """
-    _require_owner_id(owner_id)
-    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=owner_id)
+    return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=identity.owner_id)
 
 
 @router.get("/v1/runs/{run_id}")
 def get_run_cross_swarm_endpoint(
     run_id: UUID,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Lookup direct par run_id (utile pour debug ou liens directs depuis Langfuse).
 
-    `owner_id` optionnel : si fourni, le run est filtré sur swarms.owner_id.
+    Owner dérivé du JWT interne vérifié : le run est filtré sur swarm_runs.owner_id.
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
     run = swarm_store.get_swarm_run(str(run_id), owner_id=oid)
     if run is None:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
@@ -909,7 +897,7 @@ def get_run_cross_swarm_endpoint(
 @router.post("/v1/swarms/architect/generate")
 async def architect_generate_endpoint(
     body: ArchitectGenerateRequest,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict[str, Any]:
     """Génère (preview) une spec de swarm depuis une description NL.
 
@@ -933,7 +921,9 @@ async def architect_generate_endpoint(
     # deps LLM tant que l'endpoint n'est pas appelé).
     from ..agents.architect import ArchitectGenerationError, generate_swarm_spec
 
-    effective_owner_id = body.owner_id or owner_id
+    # Owner dérivé du JWT vérifié — le champ body.owner_id (legacy) est ignoré
+    # comme source de vérité (anti-spoofing).
+    effective_owner_id = identity.owner_id
     available_tools = swarm_store.list_tools(owner_id=effective_owner_id)
 
     try:
@@ -975,10 +965,11 @@ async def architect_generate_endpoint(
 
 
 @router.get("/v1/tools")
-def list_tools_endpoint(owner_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
-    """Liste le catalogue de tools actifs (filtre par owner, requis)."""
-    _require_owner_id(owner_id)
-    return swarm_store.list_tools(owner_id=owner_id)
+def list_tools_endpoint(
+    identity: InternalIdentity = Depends(require_internal_identity),
+) -> list[dict[str, Any]]:
+    """Liste le catalogue de tools actifs (filtre par owner dérivé du JWT)."""
+    return swarm_store.list_tools(owner_id=identity.owner_id)
 
 
 # ── Composio OAuth ───────────────────────────────────────────────────────────
@@ -999,14 +990,14 @@ _TOOLKIT_AUTH_CONFIGS: dict[str, str] = {
 @router.post("/v1/composio/connect")
 def composio_connect_endpoint(
     request: ComposioConnectRequest,
-    owner_id: str | None = Query(default=None),
+    identity: InternalIdentity = Depends(require_internal_identity),
 ) -> dict:
     """Initie une connexion OAuth Composio pour un toolkit donné.
 
     Retourne {"redirect_url": "..."} que le front peut ouvrir dans un nouvel onglet.
-    owner_id est utilisé comme user_id Composio pour l'isolation multi-tenant.
+    Owner dérivé du JWT interne vérifié → user_id Composio (isolation multi-tenant).
     """
-    oid = _require_owner_id(owner_id)
+    oid = identity.owner_id
 
     if not settings.COMPOSIO_API_KEY:
         raise HTTPException(status_code=503, detail="Composio not configured")
