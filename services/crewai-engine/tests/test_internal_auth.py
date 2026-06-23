@@ -185,6 +185,18 @@ class TestPrecedence:
             require_internal_identity(req, x_internal_auth=None)
         assert exc.value.status_code == 401
 
+    def test_legacy_disabled_on_railway_production(self, monkeypatch):
+        """Sur Railway prod (RAILWAY_ENVIRONMENT=production, ni ENVIRONMENT ni
+        NODE_ENV posés), le fallback legacy reste désactivé même flag ON."""
+        monkeypatch.setenv("CREWAI_ENGINE_ALLOW_LEGACY_OWNER_QUERY_FOR_TESTS", "true")
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+        monkeypatch.delenv("NODE_ENV", raising=False)
+        monkeypatch.setenv("RAILWAY_ENVIRONMENT", "production")
+        req = _fake_request(query_string=f"owner_id={OWNER_A}".encode())
+        with pytest.raises(HTTPException) as exc:
+            require_internal_identity(req, x_internal_auth=None)
+        assert exc.value.status_code == 401
+
     def test_legacy_invalid_uuid_query_401(self, monkeypatch):
         monkeypatch.setenv("CREWAI_ENGINE_ALLOW_LEGACY_OWNER_QUERY_FOR_TESTS", "true")
         monkeypatch.delenv("ENVIRONMENT", raising=False)

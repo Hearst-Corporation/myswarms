@@ -41,9 +41,14 @@ def _get_secret() -> str:
 
 
 def _is_production() -> bool:
+    # Détection prod robuste, indépendante de la plateforme. Sur Railway, ni
+    # ENVIRONMENT ni NODE_ENV ne sont posés par défaut — seul RAILWAY_ENVIRONMENT
+    # l'est. Sans ce 3e check, le garde-fou « fail-closed en production » ne
+    # tiendrait que par l'absence du flag legacy, pas par la détection prod.
     return (
         os.environ.get("ENVIRONMENT") == "production"
         or os.environ.get("NODE_ENV") == "production"
+        or os.environ.get("RAILWAY_ENVIRONMENT") == "production"
     )
 
 
