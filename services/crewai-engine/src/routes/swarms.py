@@ -879,8 +879,9 @@ def list_swarm_runs_endpoint(
 ) -> list[dict[str, Any]]:
     """Runs récents d'un swarm donné, plus récents en premier.
 
-    `owner_id` requis : list_swarm_runs valide d'abord que le
-    swarm appartient à l'owner et retourne [] sinon.
+    `owner_id` requis : `list_swarm_runs` ne retourne que les runs appartenant à
+    cet owner (filtre direct `swarm_runs.owner_id`, R1 anti-IDOR). Sur un
+    template partagé, chaque tenant ne voit que ses propres runs.
     """
     _require_owner_id(owner_id)
     return swarm_store.list_swarm_runs(swarm_id, limit=limit, owner_id=owner_id)

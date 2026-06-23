@@ -1,8 +1,8 @@
-"""Tests — R07 IDOR : scoping owner_id sur swarm_runs.
+"""Tests — R1 IDOR : scoping STRICT owner_id sur swarm_runs.
 
-Vérifie que get_swarm_run retourne None quand le owner_id de la row
-ne correspond pas au owner_id demandé, et that a matching owner_id
-(ou un run legacy NULL) se comporte comme attendu.
+Vérifie que get_swarm_run retourne None quand le owner_id de la row ne
+correspond pas au owner_id demandé, et qu'un run legacy à owner_id NULL est
+désormais INACCESSIBLE (plus de fallback via le swarm parent / is_template).
 """
 from __future__ import annotations
 
@@ -63,33 +63,32 @@ class TestGetSwarmRunOwnership:
         assert result is not None
         assert result["id"] == RUN_ID
 
-    def test_legacy_run_null_owner_falls_back_to_swarm_check(self):
-        """R07 fallback : un run owner_id=NULL (legacy) passe par la vérification
-        swarm parent — ici swarm check retourne data → run accessible."""
+    def test_legacy_run_null_owner_is_inaccessible(self):
+        """R1 : un run owner_id=NULL (legacy/template/système) n'est JAMAIS lisible
+        via owner scope — plus de fallback swarm parent / is_template."""
         run_row = {
             "id": RUN_ID,
             "swarm_id": SWARM_ID,
             "owner_id": None,
             "status": "paused_hitl",
         }
-        swarm_check_res = _res({"id": SWARM_ID})
-        client = _make_client([_res(run_row), swarm_check_res])
+        client = _make_client([_res(run_row)])
         with patch.object(swarm_store, "_get_client", return_value=client):
             result = swarm_store.get_swarm_run(RUN_ID, owner_id=_OWNER_A)
-        assert result is not None
-        assert result["id"] == RUN_ID
+        assert result is None
+        # Plus aucune requête secondaire vers la table swarms (fallback supprimé).
+        table_names = [c.args[0] for c in client.table.call_args_list if c.args]
+        assert "swarms" not in table_names
 
-    def test_legacy_run_null_owner_blocked_when_swarm_mismatch(self):
-        """R07 fallback : un run owner_id=NULL dont le swarm n'appartient pas
-        à l'owner demandé renvoie None."""
+    def test_legacy_run_null_owner_blocked_for_other_owner(self):
+        """R1 : un run owner_id=NULL reste inaccessible quel que soit l'owner demandé."""
         run_row = {
             "id": RUN_ID,
             "swarm_id": SWARM_ID,
             "owner_id": None,
             "status": "paused_hitl",
         }
-        swarm_check_res = _res(None)  # swarm non trouvé pour cet owner
-        client = _make_client([_res(run_row), swarm_check_res])
+        client = _make_client([_res(run_row)])
         with patch.object(swarm_store, "_get_client", return_value=client):
             result = swarm_store.get_swarm_run(RUN_ID, owner_id=_OWNER_B)
         assert result is None
