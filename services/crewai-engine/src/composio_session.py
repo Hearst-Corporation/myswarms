@@ -50,6 +50,7 @@ import time
 from collections import deque
 
 from .config import settings
+from .tools.external_account_scope import resolve_composio_entity
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +248,18 @@ def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = 
     - ``[COMPOSIO_TOOLS_TRUNCATED]`` — when raw count exceeds _MAX_TOOLS_PER_AGENT;
       includes per-toolkit breakdown (e.g. "capped to 60: GMAIL=20 SLACK=20 TELEGRAM=20").
     """
-    cache_key = (owner_id or "", *sorted(toolkits))
+    # R5 — résolution owner-scopée de l'entity Composio (fail-closed). Owner
+    # inconnu/absent ⇒ AUCUN tool externe (jamais le fallback global 'adrien').
+    entity_id = resolve_composio_entity(owner_id)
+    if not entity_id:
+        logger.info(
+            "[COMPOSIO_SCOPE] no Composio entity mapped for owner=%s — external "
+            "tools disabled (fail-closed)",
+            owner_id,
+        )
+        return []
+
+    cache_key = (entity_id, *sorted(toolkits))
 
     # FIX C: atomic check-then-read under lock
     with _state_lock:
@@ -305,7 +317,7 @@ def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = 
             # from session.tools().  Without this, the SDK always returns 6
             # meta-router tools regardless of how many toolkits are specified.
             session = composio.create(
-                user_id=owner_id or settings.COMPOSIO_USER_ID,
+                user_id=entity_id,
                 toolkits=toolkits,
                 session_preset=SESSION_PRESET_DIRECT_TOOLS,
                 preload={"tools": "all"},
@@ -318,7 +330,7 @@ def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = 
                 raw_count,
                 attempt,
                 _RETRY_ATTEMPTS,
-                owner_id or settings.COMPOSIO_USER_ID,
+                entity_id,
             )
 
             # FIX A: round-robin cap — ensures no toolkit is fully silenced.

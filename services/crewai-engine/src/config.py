@@ -94,12 +94,18 @@ class Settings(BaseSettings):
 
     # Composio — multi-channel tools (Gmail, Slack, Telegram, Calendar, Notion)
     COMPOSIO_API_KEY: str = ""
-    COMPOSIO_USER_ID: str = "adrien"  # entity_id for multi-tenant support — TODO multi-tenant
+    # R5 — entity Composio par owner via mapping d'env (résolu dans
+    # tools/external_account_scope.py). En PRODUCTION l'entity DOIT venir de
+    # COMPOSIO_ENTITY_BY_OWNER_JSON='{"<owner_uuid>":"<entity>"}' ; COMPOSIO_USER_ID
+    # n'est plus qu'un fallback dev/test (gated par
+    # ALLOW_LEGACY_EXTERNAL_ACCOUNT_FALLBACK_FOR_TESTS, jamais en prod).
+    COMPOSIO_USER_ID: str = "adrien"  # dev/test legacy entity fallback ONLY
     COMPOSIO_CALLBACK_URL: str = ""  # e.g. https://myswarms.vercel.app/settings/integrations/callback
 
-    # Telegram
+    # Telegram — chat par owner via TELEGRAM_CHAT_BY_OWNER_JSON (R5). TELEGRAM_CHAT_ID
+    # n'est plus qu'un fallback dev/test gated ; en prod le chat est owner-scopé.
     TELEGRAM_BOT_TOKEN: str = ""
-    TELEGRAM_CHAT_ID: str = ""  # chat_id for Adrien's Telegram
+    TELEGRAM_CHAT_ID: str = ""  # dev/test legacy chat fallback ONLY
 
     # Daily Chief of Staff — User preferences
     USER_TIMEZONE: str = "Asia/Dubai"

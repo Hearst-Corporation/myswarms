@@ -145,7 +145,7 @@ def _tool_list(*tools) -> list:
     return [t for t in tools if t is not None]
 
 
-def _get_local_tools() -> dict:
+def _get_local_tools(owner_id: str | None = None) -> dict:
     """Instantiate local (non-Composio) tools. Called inside the factory."""
     priority_scorer = None
     telegram_sender = None
@@ -159,7 +159,7 @@ def _get_local_tools() -> dict:
 
     try:
         from ..tools.telegram_sender import TelegramSenderTool
-        telegram_sender = TelegramSenderTool()
+        telegram_sender = TelegramSenderTool(owner_id=owner_id)
     except ImportError:
         pass
 
@@ -182,7 +182,7 @@ def _get_all_tools(owner_id: str | None = None) -> dict:
     Composio calls happen here so boot is never blocked by network I/O.
     Caching is handled by composio_session._tools_cache.
     """
-    local = _get_local_tools()
+    local = _get_local_tools(owner_id=owner_id)
 
     # NOTE: Composio toolkit slugs — verified slug is "googlecalendar" (not "google_calendar").
     # Common mistake: "google_calendar" is invalid (Composio code 4305).

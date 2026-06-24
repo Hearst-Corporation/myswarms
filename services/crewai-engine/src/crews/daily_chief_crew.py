@@ -322,6 +322,7 @@ def create_daily_chief_crew(
     user_timezone: str = "Asia/Dubai",
     user_language: str = "fr",
     chief_run_id: str | None = None,
+    owner_id: str | None = None,
 ) -> Crew:
     """Create the Daily Chief of Staff crew with hierarchical process.
 
@@ -338,8 +339,12 @@ def create_daily_chief_crew(
         chief_run_id: kickoff_id (text) from chief_run_log — if provided, a
             task_callback is registered to persist each completed step to
             chief_run_steps via save_chief_step(). Omit in tests/mock mode.
+        owner_id: owner du run (JWT vérifié). Propagé à create_agents() pour
+            owner-scoper les tools externes (Composio entity / Telegram chat) —
+            R5. Si None, les tools externes sont fail-closed (aucun fallback
+            global vers les comptes d'Adrien).
     """
-    agents = create_agents()
+    agents = create_agents(owner_id=owner_id)
 
     tasks = create_tasks(
         agents=agents,

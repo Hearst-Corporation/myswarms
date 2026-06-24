@@ -36,6 +36,10 @@ class ChiefOfStaffState(BaseModel):
     # Injected into state via initial_state before flow.kickoff() is called.
     chief_run_id: str = ""
 
+    # R5 — owner_id (JWT vérifié) propagé depuis routes/crews.py / scheduler.
+    # Détermine l'entity Composio et le chat Telegram owner-scopés des agents.
+    owner_id: str = ""
+
     # Crew output
     crew_result: str = ""
     summary: str = ""
@@ -92,6 +96,8 @@ class ChiefOfStaffFlow(Flow[ChiefOfStaffState]):
                 # chief_run_id injected from routes/crews.py via initial state — enables
                 # task_callback to persist each completed step to chief_run_steps.
                 chief_run_id=self.state.chief_run_id or None,
+                # R5 — owner-scope les tools externes (Composio/Telegram).
+                owner_id=self.state.owner_id or None,
             )
             result = crew.kickoff(
                 inputs={
