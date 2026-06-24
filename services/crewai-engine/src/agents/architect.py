@@ -149,28 +149,26 @@ class ArchitectSwarmSpec(BaseModel):
 
 # ── Cortex pre-fetch ─────────────────────────────────────────────────────────
 
-_vault_tool: VaultSearchTool | None = None
 
-
-def _get_vault_tool() -> VaultSearchTool:
-    """Retourne une instance partagée de VaultSearchTool (lazy init)."""
-    global _vault_tool
-    if _vault_tool is None:
-        _vault_tool = VaultSearchTool()
-    return _vault_tool
-
-
-def _fetch_cortex_context(prompt: str) -> str:
+def _fetch_cortex_context(prompt: str, owner_id: str | None = None) -> str:
     """Interroge Cortex pour récupérer le contexte historique pertinent.
 
     Construit deux requêtes complémentaires :
     - swarms similaires passés (intent utilisateur)
     - décisions techniques et patterns d'échec
 
-    Fail-soft : en cas d'indisponibilité Cortex, retourne une chaîne vide
-    sans lever d'exception — la génération du swarm continue normalement.
+    R6 — owner-scopé : le Vault interrogé est résolu par `owner_id` (JWT
+    vérifié). Un owner sans namespace Vault autorisé est fail-closed à
+    l'intérieur du tool — aucune requête Cortex n'est émise et le contexte
+    reste vide. On construit une instance par appel (pas de singleton
+    module-level) pour éviter toute fuite d'état owner entre requêtes
+    concurrentes.
+
+    Fail-soft : en cas d'indisponibilité Cortex (ou d'owner non autorisé),
+    retourne une chaîne vide sans lever d'exception — la génération du swarm
+    continue normalement.
     """
-    tool = _get_vault_tool()
+    tool = VaultSearchTool(owner_id=owner_id)
 
     # Tronque le prompt pour garder les requêtes Cortex courtes et précises.
     prompt_short = prompt[:120].strip()
@@ -599,8 +597,10 @@ def generate_swarm_spec(
         prompt: description en langage naturel du swarm souhaité.
         available_tools: catalogue de tools (rows `tools` de Supabase) que le
             LLM PEUT référencer (id + name + description utilisés).
-        owner_id: propriétaire courant (non injecté dans le prompt — réservé
-            au scoping côté appelant ; conservé pour parité de signature).
+        owner_id: propriétaire courant (JWT vérifié). R6 — scope le pré-fetch
+            Cortex : seul un owner avec un namespace Vault autorisé interroge
+            le Vault ; tout autre owner est fail-closed (contexte vide). Non
+            injecté tel quel dans le prompt LLM.
 
     Returns:
         {"spec": <SwarmCreate-shaped dict>, "rationale": str,
@@ -611,8 +611,10 @@ def generate_swarm_spec(
             n'a pas produit une spec valide (JSON KO, Pydantic KO, ou
             validation métier impossible).
     """
-    # ── Étape 0 : pré-fetch Cortex (fail-soft) ───────────────────────────────
-    cortex_context = _fetch_cortex_context(prompt)
+    # ── Étape 0 : pré-fetch Cortex (fail-soft, owner-scopé R6) ───────────────
+    # owner_id vient du JWT vérifié (route → identity.owner_id). Le Vault est
+    # résolu par owner : un owner non mappé est fail-closed (contexte vide).
+    cortex_context = _fetch_cortex_context(prompt, owner_id=owner_id)
     if cortex_context:
         logger.info(
             "Architect: contexte Cortex récupéré (%d chars) pour prompt: %r",
