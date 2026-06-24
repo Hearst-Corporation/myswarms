@@ -24,17 +24,24 @@ _TELEGRAM_AUTO_SEND_WHITELIST = frozenset(
 class TelegramSenderTool(BaseTool):
     name: str = "telegram_sender"
     description: str = (
-        "Sends a message to Adrien's Telegram chat. "
+        "Sends a message to the OWNER's Telegram chat (owner-scoped — R5). "
         "Security level gated: at level < 4, only whitelisted simple messages are auto-sent; "
         "all other messages are saved as drafts pending human approval. "
-        "Input: message text, optional chat_id (defaults to TELEGRAM_CHAT_ID from config). "
-        "Output: JSON with status (sent/draft/blocked) and details."
+        "Input: message text. Output: JSON with status (sent/draft/blocked/skipped). "
+        "If no Telegram chat is mapped for the owner, the send is disabled (no-op)."
     )
+    # R5 — owner du run (JWT vérifié) ; détermine le chat Telegram cible.
+    owner_id: str | None = None
 
-    def _run(self, message: str, chat_id: str = "") -> str:
+    def _run(self, message: str, chat_id: str = "") -> str:  # noqa: ARG002 — chat_id LLM ignoré (anti-ciblage)
         import json
 
-        target_chat = chat_id or settings.TELEGRAM_CHAT_ID
+        from .external_account_scope import resolve_telegram_chat
+
+        # Owner-scopé (autoritaire) : le chat_id éventuel fourni par le LLM est
+        # IGNORÉ — un agent ne peut pas cibler un chat arbitraire. Fail-closed
+        # (None) si aucun chat n'est mappé pour cet owner.
+        target_chat = resolve_telegram_chat(self.owner_id)
         sec_level = settings.SECURITY_LEVEL
 
         # N1-N3: only whitelist messages may be auto-sent

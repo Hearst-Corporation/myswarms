@@ -50,6 +50,9 @@ async def _run_scheduled_kickoff(trigger: str) -> None:
                     "user_timezone": settings.USER_TIMEZONE,
                     "user_language": settings.USER_LANGUAGE,
                     "mock_mode": settings.AGENT_MOCK_MODE,
+                    # R5 — owner du scheduler propagé pour owner-scoper les tools
+                    # externes (Composio/Telegram) du Chief.
+                    "owner_id": settings.CHIEF_SCHEDULER_OWNER_ID or "",
                 },
             ),
             timeout=settings.FLOW_TIMEOUT_SECONDS,
@@ -220,10 +223,16 @@ async def _run_market_intel_scout() -> None:
 
 
 def _send_telegram_digest(result: str, trigger: str) -> None:
-    """Send the daily digest via Telegram. Fail-soft."""
-    if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHAT_ID:
+    """Send the daily digest via Telegram, owner-scopé (R5). Fail-soft/closed."""
+    from .tools.external_account_scope import resolve_telegram_chat
+
+    owner = settings.CHIEF_SCHEDULER_OWNER_ID or None
+    # R5 — chat résolu PAR owner du scheduler ; aucun fallback global. Fail-closed
+    # si aucun chat n'est mappé pour cet owner.
+    if not settings.TELEGRAM_BOT_TOKEN or not resolve_telegram_chat(owner):
         logger.debug(
-            "Telegram not configured — skipping digest for trigger=%s", trigger
+            "Telegram not configured/mapped for scheduler owner — skipping digest for trigger=%s",
+            trigger,
         )
         return
 
@@ -239,8 +248,8 @@ def _send_telegram_digest(result: str, trigger: str) -> None:
 
         formatted = formatter._run(json.dumps(data), trigger=trigger)
 
-        sender = TelegramSenderTool()
-        send_result = sender._run(formatted, chat_id=settings.TELEGRAM_CHAT_ID)
+        sender = TelegramSenderTool(owner_id=owner)
+        send_result = sender._run(formatted)  # chat résolu owner-scopé
         logger.info("Telegram digest sent — trigger=%s, result=%s", trigger, send_result)
     except Exception as exc:  # noqa: BLE001
         logger.error("Telegram digest failed for trigger=%s: %s", trigger, exc)

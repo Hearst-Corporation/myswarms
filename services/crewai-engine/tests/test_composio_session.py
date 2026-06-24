@@ -37,6 +37,16 @@ import pytest
 # Helpers to build fake tools
 # ---------------------------------------------------------------------------
 
+@pytest.fixture(autouse=True)
+def _bypass_owner_scope():
+    """Ces tests valident la MÉCANIQUE Composio (CB/retry/round-robin/cache), pas
+    le scoping owner R5 (couvert par tests/test_composio_chief_scope.py). On
+    neutralise la résolution owner-scopée pour atteindre le code mécanique
+    (sinon owner None → fail-closed [] avant la logique testée)."""
+    with patch("src.composio_session.resolve_composio_entity", return_value="test_entity"):
+        yield
+
+
 def _make_fake_tool(name: str) -> MagicMock:
     t = MagicMock()
     t.name = name
@@ -396,8 +406,10 @@ class TestFailSoft:
             tools = cs.get_composio_tools_for_toolkits(["gmail"])
 
         assert tools == [], "ImportError must return [] fail-soft"
-        # Must be cached as [] (package won't re-appear at runtime)
-        assert ("", "gmail") in cs._tools_cache, "ImportError result must be cached"
+        # Must be cached as [] (package won't re-appear at runtime).
+        # R5 : la clé de cache est désormais (entity_id, toolkit) — l'entity de
+        # test est fournie par la fixture _bypass_owner_scope.
+        assert ("test_entity", "gmail") in cs._tools_cache, "ImportError result must be cached"
 
 
 # ---------------------------------------------------------------------------

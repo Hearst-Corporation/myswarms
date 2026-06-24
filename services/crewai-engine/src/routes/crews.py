@@ -203,7 +203,11 @@ async def kickoff(
     # Build initial state with allowlist override merge.
     # chief_run_id injected here so the flow can pass it to create_daily_chief_crew()
     # which registers the task_callback for step persistence in chief_run_steps.
-    initial_state = ChiefOfStaffState(trigger=request.trigger, chief_run_id=kickoff_id)
+    # R5 — owner_id (JWT vérifié) propagé pour owner-scoper les tools externes
+    # (Composio entity / Telegram chat) des agents du Chief.
+    initial_state = ChiefOfStaffState(
+        trigger=request.trigger, chief_run_id=kickoff_id, owner_id=oid
+    )
     state_dict = initial_state.model_dump()
     extra_inputs = {
         k: v for k, v in (request.inputs or {}).items()
