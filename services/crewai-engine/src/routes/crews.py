@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..flows.chief_of_staff_flow import ChiefOfStaffFlow, ChiefOfStaffState
+from ..observability.trace_context import current_trace_id, log_event, safe_trace_context
 from ..persistence import run_store
 from ..persistence.chief_decision_store import record_decision
 from ..persistence.owner_scope import OwnerScope, ScopedChiefStore
@@ -112,10 +113,24 @@ async def _execute_flow_background(
     completion (typically a few seconds extra). Acceptable for Railway 15s grace
     period; the DB status is consistent regardless of when the thread finally exits.
     """
+    # Tenant-safe audit context (no private content — owner/run ids only).
+    owner_id = state_dict.get("owner_id") if isinstance(state_dict, dict) else None
+    log_event(
+        safe_trace_context(component="chief", owner_id=owner_id, run_id=kickoff_id),
+        "chief_run_started",
+        status="running",
+    )
     try:
         flow = ChiefOfStaffFlow()
-        result = await asyncio.wait_for(
-            asyncio.to_thread(flow.kickoff, inputs=state_dict),
+
+        def _kickoff_with_trace() -> tuple[object, str | None]:
+            # Capture the Langfuse trace id WHILE the OTel span is on the stack
+            # (inside this worker thread); fail-soft → None once it closes.
+            res = flow.kickoff(inputs=state_dict)
+            return res, current_trace_id()
+
+        result, trace_id = await asyncio.wait_for(
+            asyncio.to_thread(_kickoff_with_trace),
             timeout=settings.FLOW_TIMEOUT_SECONDS,
         )
         final_state = flow.state
@@ -135,6 +150,14 @@ async def _execute_flow_background(
             result=str(result),
             finished_at=finished_at,
             state_json=state_payload,
+            langfuse_trace_id=trace_id,
+        )
+        log_event(
+            safe_trace_context(
+                component="chief", owner_id=owner_id, run_id=kickoff_id, trace_id=trace_id
+            ),
+            "chief_run_finished",
+            status="completed",
         )
     except asyncio.TimeoutError:
         msg = f"Flow execution exceeded {settings.FLOW_TIMEOUT_SECONDS}s timeout"
@@ -145,6 +168,10 @@ async def _execute_flow_background(
             "finished_at": finished_at,
         })
         run_store.update_run(kickoff_id, status="failed", result=msg, finished_at=finished_at, error_text=msg)
+        log_event(
+            safe_trace_context(component="chief", owner_id=owner_id, run_id=kickoff_id),
+            "chief_run_finished", status="failed", error_class="TimeoutError",
+        )
     except asyncio.CancelledError:
         cancelled_msg = "Server shutdown or background task cancelled"
         finished_at = datetime.now(timezone.utc).isoformat()
@@ -154,6 +181,10 @@ async def _execute_flow_background(
             "finished_at": finished_at,
         })
         run_store.update_run(kickoff_id, status="cancelled", result=cancelled_msg, finished_at=finished_at, error_text="cancelled")
+        log_event(
+            safe_trace_context(component="chief", owner_id=owner_id, run_id=kickoff_id),
+            "chief_run_finished", status="cancelled", error_class="CancelledError",
+        )
         raise
     except Exception as exc:  # noqa: BLE001
         logger.error("Background kickoff %s failed: %s", kickoff_id, exc, exc_info=True)
@@ -164,6 +195,10 @@ async def _execute_flow_background(
             "finished_at": finished_at,
         })
         run_store.update_run(kickoff_id, status="failed", result=str(exc), finished_at=finished_at, error_text=str(exc))
+        log_event(
+            safe_trace_context(component="chief", owner_id=owner_id, run_id=kickoff_id),
+            "chief_run_finished", status="failed", error_class=type(exc).__name__,
+        )
 
 
 @router.post("/kickoff", response_model=KickoffResponse)
