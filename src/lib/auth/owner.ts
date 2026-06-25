@@ -16,6 +16,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { isDevBypassEnabled, devBypassOwnerId } from "@/lib/auth/devBypass";
 
 // Garde anti-spam : le warning dev-bypass ne s'affiche qu'une fois par process
 // (sinon il se répète à chaque appel getOwnerId, désormais aussi via le layout).
@@ -45,26 +46,20 @@ export async function getOwnerId(): Promise<string | null> {
   // Dev-only bypass : DEV_BYPASS_AUTH=true + NODE_ENV != "production"
   // retourne un UUID stub (overridable via DEV_BYPASS_OWNER_ID) pour skipper
   // toute la chaîne d'auth Supabase. Fermé automatiquement en prod.
-  if (
-    process.env.DEV_BYPASS_AUTH === "true" &&
-    process.env.NODE_ENV !== "production"
-  ) {
+  if (isDevBypassEnabled()) {
     // Warn loudly in dev so the bypass is never forgotten — mais une seule fois
-    // par process (anti-spam). Fail-closed en prod : le check NODE_ENV ci-dessus
-    // empêche cette branche de tourner.
+    // par process (anti-spam). Fail-closed en prod : isDevBypassEnabled() retourne
+    // false sur tout environnement Vercel (prod + preview) et tout NODE_ENV=production.
     if (!devBypassWarned && typeof console !== "undefined") {
       devBypassWarned = true;
       console.warn(
         "[auth] DEV_BYPASS_AUTH=true — authentication is DISABLED. " +
         "All requests treated as owner_id=" +
-        (process.env.DEV_BYPASS_OWNER_ID ?? "00000000-0000-0000-0000-000000000000") +
+        devBypassOwnerId() +
         ". Set DEV_BYPASS_AUTH=false to use real Supabase auth."
       );
     }
-    return (
-      process.env.DEV_BYPASS_OWNER_ID ??
-      "00000000-0000-0000-0000-000000000000"
-    );
+    return devBypassOwnerId();
   }
 
   const supabase = await createClient();

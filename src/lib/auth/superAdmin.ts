@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { isDevBypassEnabled, devBypassOwnerId } from "@/lib/auth/devBypass";
 
 export interface SuperAdmin {
   id: string;
@@ -29,12 +30,9 @@ function superAdminEmails(): string[] {
  * accordé — cohérent avec getOwnerId() qui court-circuite l'auth en dev.
  */
 export async function getSuperAdmin(): Promise<SuperAdmin | null> {
-  if (
-    process.env.DEV_BYPASS_AUTH === "true" &&
-    process.env.NODE_ENV !== "production"
-  ) {
+  if (isDevBypassEnabled()) {
     return {
-      id: process.env.DEV_BYPASS_OWNER_ID ?? "00000000-0000-0000-0000-000000000000",
+      id: devBypassOwnerId(),
       email: superAdminEmails()[0] ?? "dev@local",
     };
   }
