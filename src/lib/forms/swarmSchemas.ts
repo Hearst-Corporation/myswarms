@@ -278,7 +278,6 @@ const SwarmRunStepSchema = z.object({
   output_text: z.string().nullable().optional(),
   tokens_in: z.number().int().default(0),
   tokens_out: z.number().int().default(0),
-  cost_usd: z.number().default(0),
   latency_ms: z.number().nullable().optional(),
   status: z.string(),
   error_text: z.string().nullable().optional(),
@@ -300,7 +299,6 @@ export const SwarmRunSchema = z.object({
   error_text: z.string().nullable().optional(),
   total_tokens_in: z.number().int().default(0),
   total_tokens_out: z.number().int().default(0),
-  total_cost_usd: z.number().default(0),
   langfuse_trace_id: z.string().nullable().optional(),
   created_at: z.string(),
   steps: z.array(SwarmRunStepSchema).default([]),
@@ -316,7 +314,6 @@ const SwarmRunSummarySchema = z.object({
   finished_at: z.string().nullable().optional(),
   total_tokens_in: z.number().int().default(0),
   total_tokens_out: z.number().int().default(0),
-  total_cost_usd: z.number().default(0),
 });
 export type SwarmRunSummary = z.infer<typeof SwarmRunSummarySchema>;
 

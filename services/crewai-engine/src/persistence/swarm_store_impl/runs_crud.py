@@ -133,9 +133,6 @@ def list_swarm_runs(
     via le statut template du swarm parent. Sur un template partagé, chaque
     tenant ne voit donc que ses propres runs. `owner_id=None` (appel interne de
     confiance) liste tous les runs du swarm.
-
-    Les valeurs `total_cost_usd` sont castées en float — supabase-py peut les
-    livrer en Decimal/str selon la version client.
     """
     client = _facade._get_client()
     if client is None:
@@ -145,7 +142,7 @@ def list_swarm_runs(
             client.table("swarm_runs")
             .select(
                 "id,swarm_id,trigger,status,started_at,finished_at,"
-                "total_tokens_in,total_tokens_out,total_cost_usd,langfuse_trace_id"
+                "total_tokens_in,total_tokens_out,langfuse_trace_id"
             )
             .eq("swarm_id", swarm_id)
         )
@@ -158,13 +155,7 @@ def list_swarm_runs(
             .limit(limit)
             .execute()
         )
-        rows = result.data if result else []
-        for row in rows:
-            try:
-                row["total_cost_usd"] = float(row.get("total_cost_usd") or 0)
-            except (TypeError, ValueError):
-                row["total_cost_usd"] = 0.0
-        return rows
+        return result.data if result else []
     except Exception as exc:  # noqa: BLE001
         logger.error("list_swarm_runs failed for %s: %s", swarm_id, exc)
         return []
@@ -175,8 +166,7 @@ def list_run_steps(run_id: str) -> list[dict[str, Any]]:
 
     Enrichit chaque step avec `agent_name` et `task_name` via un load des
     `swarm_agents` / `swarm_tasks` du swarm parent (3 selects total, OK tant
-    que le nombre de steps reste modéré). `cost_usd` est casté en float pour
-    aligner la shape côté Zod (SwarmRunStepSchema).
+    que le nombre de steps reste modéré).
     """
     client = _facade._get_client()
     if client is None:
@@ -240,10 +230,6 @@ def list_run_steps(run_id: str) -> list[dict[str, Any]]:
             tid = step.get("task_id")
             step["agent_name"] = agent_name_map.get(aid) if aid else None
             step["task_name"] = task_name_map.get(tid) if tid else None
-            try:
-                step["cost_usd"] = float(step.get("cost_usd") or 0)
-            except (TypeError, ValueError):
-                step["cost_usd"] = 0.0
         return steps
     except Exception as exc:  # noqa: BLE001
         logger.error("list_run_steps failed for %s: %s", run_id, exc)
@@ -361,7 +347,6 @@ def append_run_step(
             "output_text",
             "tokens_in",
             "tokens_out",
-            "cost_usd",
             "latency_ms",
             "status",
         ):

@@ -128,7 +128,6 @@ export type Database = {
         Row: {
           agent_name: string
           chief_run_id: string
-          cost_usd: number
           created_at: string
           finished_at: string | null
           id: string
@@ -145,7 +144,6 @@ export type Database = {
         Insert: {
           agent_name: string
           chief_run_id: string
-          cost_usd?: number
           created_at?: string
           finished_at?: string | null
           id?: string
@@ -162,7 +160,6 @@ export type Database = {
         Update: {
           agent_name?: string
           chief_run_id?: string
-          cost_usd?: number
           created_at?: string
           finished_at?: string | null
           id?: string
@@ -181,7 +178,6 @@ export type Database = {
       crew_run_steps: {
         Row: {
           agent_name: string
-          cost_usd: number
           created_at: string
           id: string
           input_text: string | null
@@ -197,7 +193,6 @@ export type Database = {
         }
         Insert: {
           agent_name: string
-          cost_usd?: number
           created_at?: string
           id?: string
           input_text?: string | null
@@ -213,7 +208,6 @@ export type Database = {
         }
         Update: {
           agent_name?: string
-          cost_usd?: number
           created_at?: string
           id?: string
           input_text?: string | null
@@ -248,7 +242,6 @@ export type Database = {
           result_text: string | null
           started_at: string
           status: Database["public"]["Enums"]["crew_run_status"]
-          total_cost_usd: number
           total_tokens_in: number
           total_tokens_out: number
           trigger: Database["public"]["Enums"]["crew_trigger"]
@@ -263,7 +256,6 @@ export type Database = {
           result_text?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["crew_run_status"]
-          total_cost_usd?: number
           total_tokens_in?: number
           total_tokens_out?: number
           trigger: Database["public"]["Enums"]["crew_trigger"]
@@ -278,7 +270,6 @@ export type Database = {
           result_text?: string | null
           started_at?: string
           status?: Database["public"]["Enums"]["crew_run_status"]
-          total_cost_usd?: number
           total_tokens_in?: number
           total_tokens_out?: number
           trigger?: Database["public"]["Enums"]["crew_trigger"]
@@ -456,7 +447,6 @@ export type Database = {
       swarm_run_steps: {
         Row: {
           agent_id: string | null
-          cost_usd: number
           created_at: string
           error_text: string | null
           finished_at: string | null
@@ -474,7 +464,6 @@ export type Database = {
         }
         Insert: {
           agent_id?: string | null
-          cost_usd?: number
           created_at?: string
           error_text?: string | null
           finished_at?: string | null
@@ -492,7 +481,6 @@ export type Database = {
         }
         Update: {
           agent_id?: string | null
-          cost_usd?: number
           created_at?: string
           error_text?: string | null
           finished_at?: string | null
@@ -544,7 +532,6 @@ export type Database = {
           started_at: string
           status: Database["public"]["Enums"]["crew_run_status"]
           swarm_id: string
-          total_cost_usd: number
           total_tokens_in: number
           total_tokens_out: number
           trigger: Database["public"]["Enums"]["crew_trigger"]
@@ -560,7 +547,6 @@ export type Database = {
           started_at?: string
           status?: Database["public"]["Enums"]["crew_run_status"]
           swarm_id: string
-          total_cost_usd?: number
           total_tokens_in?: number
           total_tokens_out?: number
           trigger: Database["public"]["Enums"]["crew_trigger"]
@@ -576,7 +562,6 @@ export type Database = {
           started_at?: string
           status?: Database["public"]["Enums"]["crew_run_status"]
           swarm_id?: string
-          total_cost_usd?: number
           total_tokens_in?: number
           total_tokens_out?: number
           trigger?: Database["public"]["Enums"]["crew_trigger"]

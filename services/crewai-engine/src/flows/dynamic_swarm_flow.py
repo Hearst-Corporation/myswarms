@@ -44,8 +44,6 @@ def _extract_and_store_token_usage(
     La shape n'est pas garantie selon la version CrewAI → getattr partout,
     pas d'assert. Les valeurs extraites sont stockées dans state._tokens_in /
     state._tokens_out pour que finalize() les persiste.
-
-    NE PAS inventer de prix (total_cost_usd) — règle no-magic-number.
     """
     try:
         usage = getattr(crew, "usage_metrics", None)
@@ -88,8 +86,6 @@ def _persist_tokens_on_failure(state: Any, run_id: str, exc: Exception) -> None:
             update_kwargs["total_tokens_in"] = tokens_in
         if tokens_out is not None:
             update_kwargs["total_tokens_out"] = tokens_out
-        # TODO V2 : pricing Hypercli/Kimi non publié — pas de constante
-        # prix inventée (règle no-magic-number). total_cost_usd reste 0.0.
         swarm_store.update_swarm_run(run_id, **update_kwargs)
     except Exception as inner_exc:  # noqa: BLE001
         logger.warning(
@@ -261,8 +257,6 @@ class DynamicSwarmFlow(Flow[DynamicSwarmState]):
                 update_kwargs["total_tokens_in"] = tokens_in
             if tokens_out is not None:
                 update_kwargs["total_tokens_out"] = tokens_out
-            # TODO V2 : pricing Hypercli/Kimi non publié — pas de constante
-            # prix inventée (règle no-magic-number). total_cost_usd reste 0.0.
             swarm_store.update_swarm_run(self.state.run_id, **update_kwargs)
         logger.info(
             "DynamicSwarmFlow completed — swarm_id=%s run_id=%s",

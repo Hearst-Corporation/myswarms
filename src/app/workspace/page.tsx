@@ -148,7 +148,6 @@ interface RecentRun {
   swarm_name: string;
   status: string;
   started_at: string | null;
-  total_cost_usd: number;
 }
 
 function RecentRunsTable({ runs }: { runs: RecentRun[] }) {
@@ -167,7 +166,6 @@ function RecentRunsTable({ runs }: { runs: RecentRun[] }) {
           <th style={thStyle}>Swarm</th>
           <th style={thStyle}>Status</th>
           <th style={thStyle}>Started</th>
-          <th style={thStyle}>Cost</th>
           <th style={thStyle}></th>
         </tr>
       </thead>
@@ -187,9 +185,6 @@ function RecentRunsTable({ runs }: { runs: RecentRun[] }) {
             </td>
             <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
               {r.started_at ? formatDate(r.started_at) : "—"}
-            </td>
-            <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
-              {r.total_cost_usd > 0 ? `$${r.total_cost_usd.toFixed(4)}` : "—"}
             </td>
             <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, textAlign: "right" }}>
               <Link
@@ -243,7 +238,6 @@ export default async function WorkspacePage() {
               swarm_name: s.name,
               status: r.status,
               started_at: r.started_at ?? null,
-              total_cost_usd: r.total_cost_usd ?? 0,
             });
           }
         } catch {

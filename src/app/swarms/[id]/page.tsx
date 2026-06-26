@@ -121,7 +121,6 @@ export default async function SwarmDetailPage({ params }: PageProps) {
   const totalRuns = recentRuns.length;
   const activeRuns = recentRuns.filter((r) => r.status === "running").length;
   const succeededRuns = recentRuns.filter((r) => r.status === "completed").length;
-  const totalCost = recentRuns.reduce((acc, r) => acc + r.total_cost_usd, 0);
 
   // Parse input schema from config_json.inputs_schema.
   // required_inputs comes from config_json.required_inputs (set per-template in DB).
@@ -370,8 +369,7 @@ export default async function SwarmDetailPage({ params }: PageProps) {
               marginTop: SPACING.md,
             }}
           >
-            {succeededRuns}/{totalRuns} success · cumulative cost $
-            {totalCost.toFixed(4)}
+            {succeededRuns}/{totalRuns} success
           </p>
         ) : null}
       </div>

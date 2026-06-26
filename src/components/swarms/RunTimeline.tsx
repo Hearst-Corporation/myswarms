@@ -25,7 +25,6 @@ interface AgentGroup {
   steps: SwarmRunStep[];
   status: string;
   totalTokens: number;
-  totalCost: number;
 }
 
 function groupByAgent(steps: SwarmRunStep[]): AgentGroup[] {
@@ -41,7 +40,6 @@ function groupByAgent(steps: SwarmRunStep[]): AgentGroup[] {
         steps: [],
         status: "pending",
         totalTokens: 0,
-        totalCost: 0,
       };
       seen.set(name, g);
       groups.push(g);
@@ -49,7 +47,6 @@ function groupByAgent(steps: SwarmRunStep[]): AgentGroup[] {
     const g = seen.get(name)!;
     g.steps.push(step);
     g.totalTokens += step.tokens_in + step.tokens_out;
-    g.totalCost += step.cost_usd;
   }
 
   for (const g of groups) {
@@ -136,8 +133,7 @@ function AgentGroupRow({
           }}
         >
           <span style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}>
-            {group.totalTokens.toLocaleString("en-US")} tok · $
-            {group.totalCost.toFixed(4)}
+            {group.totalTokens.toLocaleString("en-US")} tok
           </span>
           <StatusBadge status={group.status} />
         </div>

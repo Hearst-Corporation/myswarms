@@ -62,7 +62,6 @@ export function StepCard({ step }: StepCardProps) {
         }}
       >
         <span>tokens: {totalTokens}</span>
-        <span>cost: ${step.cost_usd.toFixed(4)}</span>
         {step.latency_ms ? <span>latency: {step.latency_ms}ms</span> : null}
         <span>start: {formatDate(step.created_at, { withSeconds: true })}</span>
         {step.finished_at ? (
