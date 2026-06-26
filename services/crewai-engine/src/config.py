@@ -109,6 +109,13 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""  # dev/test legacy chat fallback ONLY
 
+    # Hugging Face — capacités périphériques (embeddings/rerank via TEI GPU1,
+    # OpenAI-compatible). Voir docs/HF_CAPABILITIES.md. JAMAIS hardcodé.
+    HUGGINGFACE_API_KEY: str = ""
+    TEI_EMBED_URL: str = "https://embed.hearst.app"
+    TEI_RERANK_URL: str = "https://rerank.hearst.app"
+    TEI_API_KEY: str = ""
+
     # Daily Chief of Staff — User preferences
     USER_TIMEZONE: str = "Asia/Dubai"
     USER_LANGUAGE: str = "fr"
