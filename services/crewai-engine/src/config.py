@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     HYPERCLI_ANTHROPIC_MODEL: str = "kimi-k2.6-anthropic"
 
     # Tiers LLM (Hypercli / Kimi K2.6 — endpoint OpenAI-compatible, base_url=HYPERCLI_BASE_URL)
+    # NOTE: tous les 3 tiers pointent sur le même modèle kimi-k2.6 (provider unique Hypercli).
+    # Les noms fast/balanced/smart permettent une future différentiation via env sans changer le code.
     CREWAI_DEFAULT_FAST_MODEL: str = "openai/kimi-k2.6"
     CREWAI_DEFAULT_BALANCED_MODEL: str = "openai/kimi-k2.6"
     CREWAI_DEFAULT_SMART_MODEL: str = "openai/kimi-k2.6"
@@ -99,7 +101,7 @@ class Settings(BaseSettings):
     # COMPOSIO_ENTITY_BY_OWNER_JSON='{"<owner_uuid>":"<entity>"}' ; COMPOSIO_USER_ID
     # n'est plus qu'un fallback dev/test (gated par
     # ALLOW_LEGACY_EXTERNAL_ACCOUNT_FALLBACK_FOR_TESTS, jamais en prod).
-    COMPOSIO_USER_ID: str = "adrien"  # dev/test legacy entity fallback ONLY
+    COMPOSIO_USER_ID: str = ""  # dev/test legacy entity fallback ONLY — vide par défaut, override via env
     COMPOSIO_CALLBACK_URL: str = ""  # e.g. https://myswarms.vercel.app/settings/integrations/callback
 
     # Telegram — chat par owner via TELEGRAM_CHAT_BY_OWNER_JSON (R5). TELEGRAM_CHAT_ID
@@ -143,9 +145,10 @@ class Settings(BaseSettings):
 
     # ── Scheduler — owner attribution ────────────────────────────────────
     # owner_id attribué aux runs Chief planifiés (cron).
-    # = UUID auth.users du propriétaire principal (valeur du backfill migration 0015).
-    # Override via env si autre destinataire. Identifiant d'identité (non secret).
-    CHIEF_SCHEDULER_OWNER_ID: str = "e0a983da-536f-4dad-a205-861acbae9468"
+    # DOIT être surchargé via CHIEF_SCHEDULER_OWNER_ID en prod/staging.
+    # Valeur par défaut vide — le scheduler lèvera une erreur explicite au
+    # démarrage si la variable est absente (voir check boot ci-dessous).
+    CHIEF_SCHEDULER_OWNER_ID: str = ""
 
     # ── APScheduler ─────────────────────────────────────────────────────
     SCHEDULER_ENABLED: bool = True
@@ -287,9 +290,17 @@ if settings.STALE_RUN_MAX_AGE_MINUTES * 60 <= settings.MAX_FLOW_TIMEOUT_SECONDS:
         settings.MAX_FLOW_TIMEOUT_SECONDS,
     )
 
-# COMPOSIO_USER_ID garde sa valeur par défaut en production → risque multi-tenant.
-if settings.COMPOSIO_USER_ID == "adrien" and _IS_PROD_ENV:
+# CHIEF_SCHEDULER_OWNER_ID vide → runs planifiés sans owner → pollution cross-tenant.
+if settings.SCHEDULER_ENABLED and not settings.CHIEF_SCHEDULER_OWNER_ID:
     _boot_logger.warning(
-        "Boot misconfiguration: COMPOSIO_USER_ID is still the default value 'adrien' in production — "
-        "set a proper user/entity_id for multi-tenant isolation."
+        "Boot misconfiguration: CHIEF_SCHEDULER_OWNER_ID is empty — scheduled Chief runs will have "
+        "no owner attribution. Set CHIEF_SCHEDULER_OWNER_ID to the UUID of the target auth.users row."
+    )
+
+# COMPOSIO_USER_ID vide en prod → tools Composio désactivés silencieusement.
+if not settings.COMPOSIO_USER_ID and _IS_PROD_ENV:
+    _boot_logger.warning(
+        "Boot misconfiguration: COMPOSIO_USER_ID is empty in production — Composio tools will be "
+        "disabled for any run without an explicit owner_id. Set COMPOSIO_USER_ID or provision "
+        "COMPOSIO_ENTITY_BY_OWNER_JSON for multi-tenant isolation."
     )
