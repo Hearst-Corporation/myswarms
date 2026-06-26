@@ -442,15 +442,15 @@ def _topological_sort_tasks(
                     queue.append(succ)
 
     if len(sorted_ids) != len(by_id):
-        # Cycle détecté : les tasks restantes ont in_degree > 0.
+        # Cycle détecté (P1.6) : les tasks restantes ont toujours in_degree > 0
+        # après l'algorithme de Kahn — il existe au moins un cycle dans le graphe.
+        # On lève une erreur explicite pour éviter une exécution silencieusement
+        # incohérente (au lieu du fallback silencieux précédent).
         leftover = [tid for tid in by_id if tid not in sorted_ids]
-        logger.warning(
-            "Cycle détecté dans depends_on_task_id — tasks %s ajoutées en fin "
-            "dans leur ordre (position_y, position_x) initial",
-            leftover,
+        raise ValueError(
+            f"Cycle détecté dans depends_on_task_id pour les tasks {leftover}. "
+            "Corriger les dépendances circulaires dans le swarm avant de relancer."
         )
-        leftover.sort(key=lambda t: order_idx[t])
-        sorted_ids.extend(leftover)
 
     return [by_id[tid] for tid in sorted_ids]
 
@@ -516,12 +516,14 @@ def instantiate_tasks(
         expected_output = (row.get("expected_output") or "Task output").strip()
 
         depends_on = row.get("depends_on_task_id")
-        # Injection du bloc uniquement dans les tasks racines (sans depends_on).
-        # Edge multi-racines : un DAG avec plusieurs entrées recevrait le bloc
-        # en double (une fois par task racine) — le template Automobile n'a
-        # qu'une seule racine (Data Collector), donc ce cas ne se produit pas
-        # en production. À documenter si un swarm multi-racines est introduit.
-        if inputs_block and not depends_on:
+        # P1.2 — injection dans TOUTES les racines du DAG (nodes sans prédécesseur).
+        # Un DAG multi-racines (tâches parallèles en entrée) doit recevoir le contexte
+        # utilisateur dans CHACUNE d'elles, pas seulement la première construite.
+        # Aucune déduplication nécessaire : chaque racine est un agent distinct qui
+        # analyse les inputs sous son angle propre.
+        dep_str = str(depends_on) if depends_on else ""
+        is_root = not dep_str or dep_str not in {str(r.get("id") or "") for r in ordered_rows}
+        if inputs_block and is_root:
             description = f"{description}{inputs_block}"
         context_tasks: list[Task] = []
         if depends_on:
