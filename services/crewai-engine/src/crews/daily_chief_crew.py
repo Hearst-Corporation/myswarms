@@ -132,7 +132,9 @@ Return as {"action_items": [...list of action objects...]}""",
     )
 
     plan_task = Task(
-        description=f"""Create today's executive schedule for Adrien.
+        description="""{memory_context}
+
+Create today's executive schedule for Adrien.
 
 STEPS:
 1. If Google Calendar tools are available: fetch today's calendar events using GOOGLECALENDAR_LIST_EVENTS
@@ -147,14 +149,14 @@ RULES:
 - Flag scheduling conflicts explicitly
 
 Return as:
-{{
+{
   "schedule": [
-    {{"time": "09:00-10:00", "type": "deep-work", "description": "..."}},
+    {"time": "09:00-10:00", "type": "deep-work", "description": "..."},
     ...
   ],
   "calendar_events": [...from Google Calendar, or [] if unavailable...],
   "conflicts": [...any detected conflicts...]
-}}
+}
 
 Language: {user_language}""",
         agent=agents["daily_planner"],

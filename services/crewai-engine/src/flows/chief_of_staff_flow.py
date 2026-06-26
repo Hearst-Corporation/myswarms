@@ -40,6 +40,11 @@ class ChiefOfStaffState(BaseModel):
     # Détermine l'entity Composio et le chat Telegram owner-scopés des agents.
     owner_id: str = ""
 
+    # Mémoire sémantique owner-scopée (RAG HF embeddings+rerank). Renseigné dans
+    # run_crew() avant le kickoff du crew ; vide si owner inconnu / HF indispo.
+    memory_context: str = ""
+    memory_metadata: dict[str, Any] = Field(default_factory=dict)
+
     # Crew output
     crew_result: str = ""
     summary: str = ""
@@ -88,6 +93,10 @@ class ChiefOfStaffFlow(Flow[ChiefOfStaffState]):
         if self.state.mock_mode:
             return self._mock_result(trigger)
 
+        # Mémoire sémantique owner-scopée : récupérée AVANT le kickoff, injectée
+        # comme contexte. Fail-safe — n'interrompt jamais le Chief.
+        self._load_memory()
+
         try:
             crew = create_daily_chief_crew(
                 trigger=self.state.trigger,
@@ -104,6 +113,9 @@ class ChiefOfStaffFlow(Flow[ChiefOfStaffState]):
                     "trigger": self.state.trigger,
                     "user_timezone": self.state.user_timezone,
                     "user_language": self.state.user_language,
+                    # Contexte mémoire (vide si aucune mémoire). Les tasks qui
+                    # référencent {memory_context} en bénéficient ; les autres l'ignorent.
+                    "memory_context": self.state.memory_context,
                 }
             )
             self.state.crew_result = str(result)
@@ -127,6 +139,61 @@ class ChiefOfStaffFlow(Flow[ChiefOfStaffState]):
         return self.state.summary
 
     # ── private ──────────────────────────────────────────────────────────────
+
+    def _load_memory(self) -> None:
+        """Récupère la mémoire owner-scopée et la place dans le state.
+
+        Fail-safe TOTAL : toute erreur (owner inconnu, HF indispo, store KO)
+        donne un état degraded no-memory — le Chief continue sans contexte.
+        Aucune exception ne remonte ; aucun contenu brut n'est loggé.
+        """
+        try:
+            from ..memory.chief_memory import build_memory_context, retrieve_chief_memory
+
+            query = self._build_memory_query()
+            result = retrieve_chief_memory(
+                owner_id=self.state.owner_id or "",
+                query=query,
+                trace_id=self.state.chief_run_id or None,
+            )
+            self.state.memory_context = build_memory_context(result)
+            self.state.memory_metadata = {
+                "memory_used": result.memory_used,
+                "degraded": result.degraded,
+                "reason": result.reason,
+                "candidate_count": result.candidate_count,
+                "reranked_count": result.reranked_count,
+            }
+            logger.info(
+                "ChiefOfStaffFlow memory — used=%s degraded=%s candidates=%d reranked=%d",
+                result.memory_used,
+                result.degraded,
+                result.candidate_count,
+                result.reranked_count,
+            )
+        except Exception as exc:  # noqa: BLE001 — la mémoire ne doit jamais casser le Chief
+            logger.warning("ChiefOfStaffFlow memory retrieval failed: %s", type(exc).__name__)
+            self.state.memory_context = ""
+            self.state.memory_metadata = {
+                "memory_used": False,
+                "degraded": True,
+                "reason": "memory_exception",
+                "candidate_count": 0,
+                "reranked_count": 0,
+            }
+
+    def _build_memory_query(self) -> str:
+        """Construit la query de récupération depuis le contexte courant du Chief."""
+        parts = [
+            "Daily Chief of Staff",
+            f"trigger {self.state.trigger}",
+            "prioritization scheduling drafts recurring topics VIP contacts",
+        ]
+        extra = self.state.additional_inputs or {}
+        focus = extra.get("focus") or extra.get("objective") or extra.get("query")
+        if isinstance(focus, str) and focus.strip():
+            parts.append(focus.strip())
+        return " — ".join(parts)
 
     def _mock_result(self, trigger: str) -> str:
         """Return structured mock data for testing without LLM API calls."""
