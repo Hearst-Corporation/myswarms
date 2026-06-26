@@ -442,15 +442,15 @@ def _topological_sort_tasks(
                     queue.append(succ)
 
     if len(sorted_ids) != len(by_id):
-        # Cycle détecté : les tasks restantes ont in_degree > 0.
+        # Cycle détecté (P1.6) : les tasks restantes ont toujours in_degree > 0
+        # après l'algorithme de Kahn — il existe au moins un cycle dans le graphe.
+        # On lève une erreur explicite pour éviter une exécution silencieusement
+        # incohérente (au lieu du fallback silencieux précédent).
         leftover = [tid for tid in by_id if tid not in sorted_ids]
-        logger.warning(
-            "Cycle détecté dans depends_on_task_id — tasks %s ajoutées en fin "
-            "dans leur ordre (position_y, position_x) initial",
-            leftover,
+        raise ValueError(
+            f"Cycle détecté dans depends_on_task_id pour les tasks {leftover}. "
+            "Corriger les dépendances circulaires dans le swarm avant de relancer."
         )
-        leftover.sort(key=lambda t: order_idx[t])
-        sorted_ids.extend(leftover)
 
     return [by_id[tid] for tid in sorted_ids]
 
@@ -516,12 +516,14 @@ def instantiate_tasks(
         expected_output = (row.get("expected_output") or "Task output").strip()
 
         depends_on = row.get("depends_on_task_id")
-        # Injection du bloc uniquement dans les tasks racines (sans depends_on).
-        # Edge multi-racines : un DAG avec plusieurs entrées recevrait le bloc
-        # en double (une fois par task racine) — le template Automobile n'a
-        # qu'une seule racine (Data Collector), donc ce cas ne se produit pas
-        # en production. À documenter si un swarm multi-racines est introduit.
-        if inputs_block and not depends_on:
+        # P1.2 — injection dans TOUTES les racines du DAG (nodes sans prédécesseur).
+        # Un DAG multi-racines (tâches parallèles en entrée) doit recevoir le contexte
+        # utilisateur dans CHACUNE d'elles, pas seulement la première construite.
+        # Aucune déduplication nécessaire : chaque racine est un agent distinct qui
+        # analyse les inputs sous son angle propre.
+        dep_str = str(depends_on) if depends_on else ""
+        is_root = not dep_str or dep_str not in {str(r.get("id") or "") for r in ordered_rows}
+        if inputs_block and is_root:
             description = f"{description}{inputs_block}"
         context_tasks: list[Task] = []
         if depends_on:
@@ -572,83 +574,89 @@ def _module_step_callback(run_id: str, payload: Any) -> None:
 
     P0-2 — writes non-bloquants : ne fait QUE enqueue() dans le _StepWriter
     (zéro appel HTTP dans le thread du crew).
+
+    Race-condition fix: _run_writers_lock is held for the entire read of
+    _run_ctx AND the enqueue() call. This prevents a KeyError/lost-write
+    when flush_run_steps() concurrently deletes the writer from _run_writers
+    while this callback is between the dict lookup and the enqueue. Queue.put_nowait
+    is non-blocking so holding the lock during enqueue is safe.
     """
-    with _run_writers_lock:
-        ctx = _run_ctx.get(run_id)
-    if ctx is None:
-        return
-
-    step_state: dict[str, Any] = ctx["step_state"]
-    agent_obj_to_id: dict[int, str] = ctx["agent_obj_to_id"]
-    agents_map: dict[str, Agent] = ctx["agents_map"]
-    task_meta_by_idx: list[dict[str, Any]] = ctx["tasks_meta"]
-    writer: "_StepWriter" = ctx["writer"]
-
     try:
-        step_state["step_number"] += 1
-        now = time.monotonic()
-        latency_ms = int((now - step_state["last_t"]) * 1000)
-        step_state["last_t"] = now
+        with _run_writers_lock:
+            ctx = _run_ctx.get(run_id)
+            if ctx is None:
+                return
 
-        agent_id: str | None = None
-        task_id: str | None = None
-        output_text: str | None = None
-        # Aligné sur l'enum DB `crew_run_status` (migration 0010 tâche E) :
-        # valeurs autorisées = pending / running / paused_hitl / completed /
-        # failed / cancelled. JAMAIS écrire "ok" ou "error" ici — rejected
-        # par le cast enum côté Postgres.
-        status = "completed"
+            step_state: dict[str, Any] = ctx["step_state"]
+            agent_obj_to_id: dict[int, str] = ctx["agent_obj_to_id"]
+            agents_map: dict[str, Agent] = ctx["agents_map"]
+            task_meta_by_idx: list[dict[str, Any]] = ctx["tasks_meta"]
+            writer: "_StepWriter" = ctx["writer"]
 
-        # Best-effort introspection : CrewAI 1.14 envoie un objet step
-        # interne (AgentAction / AgentFinish) — on extrait ce qu'on peut
-        # sans présumer la shape exacte.
-        agent_attr = getattr(payload, "agent", None)
-        if isinstance(agent_attr, Agent):
-            agent_id = agent_obj_to_id.get(id(agent_attr))
-        elif isinstance(agent_attr, str):
-            for db_id, agent in agents_map.items():
-                if getattr(agent, "role", "") == agent_attr:
-                    agent_id = db_id
+            step_state["step_number"] += 1
+            now = time.monotonic()
+            latency_ms = int((now - step_state["last_t"]) * 1000)
+            step_state["last_t"] = now
+
+            agent_id: str | None = None
+            task_id: str | None = None
+            output_text: str | None = None
+            # Aligné sur l'enum DB `crew_run_status` (migration 0010 tâche E) :
+            # valeurs autorisées = pending / running / paused_hitl / completed /
+            # failed / cancelled. JAMAIS écrire "ok" ou "error" ici — rejected
+            # par le cast enum côté Postgres.
+            status = "completed"
+
+            # Best-effort introspection : CrewAI 1.14 envoie un objet step
+            # interne (AgentAction / AgentFinish) — on extrait ce qu'on peut
+            # sans présumer la shape exacte.
+            agent_attr = getattr(payload, "agent", None)
+            if isinstance(agent_attr, Agent):
+                agent_id = agent_obj_to_id.get(id(agent_attr))
+            elif isinstance(agent_attr, str):
+                for db_id, agent in agents_map.items():
+                    if getattr(agent, "role", "") == agent_attr:
+                        agent_id = db_id
+                        break
+
+            for attr in ("output", "log", "raw", "result", "input"):
+                val = getattr(payload, attr, None)
+                if val:
+                    output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
                     break
 
-        for attr in ("output", "log", "raw", "result", "input"):
-            val = getattr(payload, attr, None)
-            if val:
-                output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
-                break
+            # Attribue ce step à la task courante (suivant current_task_idx).
+            idx = step_state["current_task_idx"]
+            if 0 <= idx < len(task_meta_by_idx):
+                meta = task_meta_by_idx[idx]
+                task_id = meta.get("task_id")
+                if agent_id is None:
+                    agent_id = meta.get("agent_id")
 
-        # Attribue ce step à la task courante (suivant current_task_idx).
-        idx = step_state["current_task_idx"]
-        if 0 <= idx < len(task_meta_by_idx):
-            meta = task_meta_by_idx[idx]
-            task_id = meta.get("task_id")
-            if agent_id is None:
-                agent_id = meta.get("agent_id")
+            if getattr(payload, "error", None):
+                status = "failed"
+                output_text = str(getattr(payload, "error"))[:_STEP_OUTPUT_PREVIEW_CHARS]
 
-        if getattr(payload, "error", None):
-            status = "failed"
-            output_text = str(getattr(payload, "error"))[:_STEP_OUTPUT_PREVIEW_CHARS]
-
-        # P0-2 : enqueue uniquement — zéro appel HTTP synchrone dans ce thread.
-        # H5 fix : `finished_at` n'est PAS posé ici — append_run_step ne
-        # gère que created_at, et nous n'avons pas l'id du step en retour
-        # (best-effort, pas atomique). TODO V2 : retourner le step_id
-        # depuis append_run_step et faire un update_run_step ultérieur
-        # quand le step suivant arrive (proxy de "fin du step précédent").
-        writer.enqueue(
-            run_id=run_id,
-            agent_id=agent_id,
-            task_id=task_id,
-            step_number=step_state["step_number"],
-            output_text=output_text,
-            latency_ms=latency_ms,
-            status=status,
-        )
+            # P0-2 : enqueue uniquement — zéro appel HTTP synchrone dans ce thread.
+            # H5 fix : `finished_at` n'est PAS posé ici — append_run_step ne
+            # gère que created_at, et nous n'avons pas l'id du step en retour
+            # (best-effort, pas atomique). TODO V2 : retourner le step_id
+            # depuis append_run_step et faire un update_run_step ultérieur
+            # quand le step suivant arrive (proxy de "fin du step précédent").
+            writer.enqueue(
+                run_id=run_id,
+                agent_id=agent_id,
+                task_id=task_id,
+                step_number=step_state["step_number"],
+                output_text=output_text,
+                latency_ms=latency_ms,
+                status=status,
+            )
     except Exception as exc:  # noqa: BLE001
         # Un callback qui crash ne doit JAMAIS faire tomber le Crew.
         logger.warning(
-            "step_callback failed for run=%s step=%s: %s",
-            run_id, step_state.get("step_number"), exc,
+            "step_callback failed for run=%s: %s",
+            run_id, exc,
         )
 
 
@@ -667,44 +675,48 @@ def _module_task_callback(run_id: str, task_output: Any) -> None:
 
     P0-2 : ne fait QUE enqueue() — zéro appel HTTP synchrone dans le thread
     du crew.
+
+    Race-condition fix: _run_writers_lock is held for the entire body,
+    consistent with _module_step_callback, preventing a lost-write or
+    KeyError when flush_run_steps() concurrently removes the writer.
     """
-    with _run_writers_lock:
-        ctx = _run_ctx.get(run_id)
-    if ctx is None:
-        return
-
-    step_state: dict[str, Any] = ctx["step_state"]
-    tasks_meta: list[dict[str, Any]] = ctx["tasks_meta"]
-    writer: "_StepWriter" = ctx["writer"]
-
     try:
-        # Persiste un step "task done" avec l'output final de la task.
-        current_idx = step_state["current_task_idx"]
-        if 0 <= current_idx < len(tasks_meta):
-            meta = tasks_meta[current_idx]
-            output_text: str | None = None
-            for attr in ("raw", "output", "result", "description"):
-                val = getattr(task_output, attr, None)
-                if val:
-                    output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
-                    break
-            step_state["step_number"] += 1
-            # P0-2 : enqueue uniquement — zéro appel HTTP synchrone.
-            writer.enqueue(
-                run_id=run_id,
-                agent_id=meta.get("agent_id"),
-                task_id=meta.get("task_id"),
-                step_number=step_state["step_number"],
-                output_text=output_text,
-                latency_ms=0,
-                status="completed",
-            )
-        # Avance vers la task suivante pour les prochains step_callback.
-        step_state["current_task_idx"] += 1
+        with _run_writers_lock:
+            ctx = _run_ctx.get(run_id)
+            if ctx is None:
+                return
+
+            step_state: dict[str, Any] = ctx["step_state"]
+            tasks_meta: list[dict[str, Any]] = ctx["tasks_meta"]
+            writer: "_StepWriter" = ctx["writer"]
+
+            # Persiste un step "task done" avec l'output final de la task.
+            current_idx = step_state["current_task_idx"]
+            if 0 <= current_idx < len(tasks_meta):
+                meta = tasks_meta[current_idx]
+                output_text: str | None = None
+                for attr in ("raw", "output", "result", "description"):
+                    val = getattr(task_output, attr, None)
+                    if val:
+                        output_text = str(val)[:_STEP_OUTPUT_PREVIEW_CHARS]
+                        break
+                step_state["step_number"] += 1
+                # P0-2 : enqueue uniquement — zéro appel HTTP synchrone.
+                writer.enqueue(
+                    run_id=run_id,
+                    agent_id=meta.get("agent_id"),
+                    task_id=meta.get("task_id"),
+                    step_number=step_state["step_number"],
+                    output_text=output_text,
+                    latency_ms=0,
+                    status="completed",
+                )
+            # Avance vers la task suivante pour les prochains step_callback.
+            step_state["current_task_idx"] += 1
     except Exception as exc:  # noqa: BLE001
         logger.warning(
-            "task_callback failed for run=%s task_idx=%s: %s",
-            run_id, step_state.get("current_task_idx"), exc,
+            "task_callback failed for run=%s: %s",
+            run_id, exc,
         )
 
 

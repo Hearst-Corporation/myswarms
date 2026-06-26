@@ -200,3 +200,38 @@ def list_runs(
     except Exception as exc:  # noqa: BLE001
         logger.error("list_runs failed: %s", exc)
         return []
+
+
+def get_active_run_for_trigger(
+    trigger: str,
+    owner_id: str | None,
+    window_minutes: int = 10,
+) -> str | None:
+    """Retourne le kickoff_id d'un run Chief déjà 'running' pour ce trigger+owner
+    dans la fenêtre de temps spécifiée, ou None s'il n'en existe pas.
+
+    Utilisé pour le check d'idempotency du scheduler (P1.5) : empêche une double
+    exécution en cas de misfire (crash-restart dans la grâce APScheduler).
+    Fail-soft : retourne None si Supabase non configuré ou erreur DB.
+    """
+    client = _get_client()
+    if client is None:
+        return None
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=window_minutes)).isoformat()
+        query = (
+            client.table("chief_run_log")
+            .select("kickoff_id")
+            .eq("trigger", trigger)
+            .eq("status", "running")
+            .gte("started_at", cutoff)
+            .limit(1)
+        )
+        if owner_id:
+            query = query.eq("owner_id", owner_id)
+        result = query.execute()
+        rows = result.data if result else []
+        return rows[0]["kickoff_id"] if rows else None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("get_active_run_for_trigger failed (non-blocking): %s", exc)
+        return None

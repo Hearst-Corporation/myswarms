@@ -35,6 +35,12 @@ router = APIRouter(prefix="/v1/crews/chief-of-staff")
 # Mitigation actuelle : Railway start avec --workers 1 (default uvicorn).
 _runs: dict[str, dict[str, Any]] = {}
 
+# FIFO cap to prevent unbounded growth of _runs (OOM risk on long-running pods).
+# When the dict exceeds _MAX_RUNS entries, the oldest entry is evicted.
+# Supabase is the durable store; _runs is a short-lived process cache only.
+_MAX_RUNS = 500
+_runs_order: deque[str] = deque()
+
 # Strong references to background asyncio tasks — prevents silent GC-driven cancellation.
 # Tasks are added at spawn and removed via done_callback when they finish.
 _running_tasks: set[asyncio.Task] = set()
@@ -195,6 +201,10 @@ async def kickoff(
         "finished_at": None,
         "state": None,
     }
+    _runs_order.append(kickoff_id)
+    while len(_runs) > _MAX_RUNS:
+        oldest = _runs_order.popleft()
+        _runs.pop(oldest, None)
 
     # Persist to Supabase — owner_id forcé = scope (couche write-side R2),
     # écrit dans chief_run_log.owner_id. Fail-soft: _runs reste le store primaire.

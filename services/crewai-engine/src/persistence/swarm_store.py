@@ -624,16 +624,31 @@ def _snapshot_rows(table: str, swarm_id: str) -> list[dict[str, Any]] | None:
     Les rows sont retournées telles quelles (avec leur id) pour permettre une
     ré-insertion fidèle en cas de rollback.
 
-    # TODO V2 : add pagination LIMIT 5000 + warning if exceeded (un swarm avec
-    # plus de 5000 rows par sous-table reste un cas dégénéré, mais la limite
-    # PostgREST par défaut est ~1000 — il faudra paginer explicitement).
+    Pagination: fetches in chunks of PAGE rows to avoid the PostgREST default
+    limit (~1000 rows), which would silently truncate the snapshot and cause
+    partial rollbacks on large swarms.
     """
     client = _get_client()
     if client is None:
         return None
     try:
-        res = client.table(table).select("*").eq("swarm_id", swarm_id).execute()
-        return res.data if res else []
+        PAGE = 1000
+        offset = 0
+        all_rows: list[dict[str, Any]] = []
+        while True:
+            res = (
+                client.table(table)
+                .select("*")
+                .eq("swarm_id", swarm_id)
+                .range(offset, offset + PAGE - 1)
+                .execute()
+            )
+            chunk = res.data if res else []
+            all_rows.extend(chunk)
+            if len(chunk) < PAGE:
+                break
+            offset += PAGE
+        return all_rows
     except Exception as exc:  # noqa: BLE001
         logger.error("_snapshot_rows: snapshot failed for %s/%s: %s", table, swarm_id, exc)
         return None
@@ -1693,3 +1708,33 @@ def append_run_step(
     except Exception as exc:  # noqa: BLE001
         logger.error("append_run_step failed for run=%s step=%s: %s", run_id, step_number, exc)
         return False
+
+
+def get_active_run_for_swarm(swarm_id: str, window_minutes: int = 10) -> str | None:
+    """Retourne l'id du premier run `running` pour ce swarm dans la fenêtre spécifiée,
+    ou None s'il n'en existe pas.
+
+    Utilisé pour le check d'idempotency du scheduler (P1.5) : empêche une double
+    exécution en cas de misfire (crash-restart dans la grâce APScheduler de 300s)
+    ou de run zombie pas encore nettoyé par le stale-run cleanup.
+    Fail-soft : retourne None si Supabase non configuré ou erreur DB.
+    """
+    client = _get_client()
+    if client is None:
+        return None
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=window_minutes)).isoformat()
+        result = (
+            client.table("swarm_runs")
+            .select("id")
+            .eq("swarm_id", swarm_id)
+            .eq("status", "running")
+            .gte("started_at", cutoff)
+            .limit(1)
+            .execute()
+        )
+        rows = result.data if result else []
+        return str(rows[0]["id"]) if rows else None
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("get_active_run_for_swarm failed (non-blocking): %s", exc)
+        return None
