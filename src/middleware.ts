@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isDevBypassEnabled } from "@/lib/auth/devBypass";
 
 /**
  * Middleware d'authentification — pattern officiel @supabase/ssr (App Router).
@@ -53,9 +54,7 @@ async function updateSession(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
   const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
   const isApi = pathname.startsWith("/api");
-  const devBypass =
-    process.env.DEV_BYPASS_AUTH === "true" &&
-    process.env.NODE_ENV !== "production";
+  const devBypass = isDevBypassEnabled();
 
   // Redirige uniquement les PAGES protégées. Les routes API conservent leur
   // 401 (requireOwnerId), le dev-bypass et les routes publiques passent.
