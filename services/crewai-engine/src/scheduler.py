@@ -157,6 +157,7 @@ async def _run_market_intel_scout() -> None:
             trigger=trigger,
             status="running",
             inputs_json=inputs,
+            owner_id=owner_id,
         )
 
         # Adaptive timeout: load task count for this swarm from swarm_store.
