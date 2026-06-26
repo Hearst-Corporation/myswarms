@@ -41,13 +41,49 @@ from __future__ import annotations
 
 import logging
 import secrets
+import time
+from collections.abc import Callable
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypeVar
 from uuid import UUID as _UUID
 
 from ..config import settings
 
 logger = logging.getLogger(__name__)
+
+# H9 — restore-rollback hardening.
+# Marker greppable + Sentry-capturable (CRITICAL) émis quand une restauration de
+# snapshot échoue après tous les retries : signal durable d'incohérence DB
+# potentielle, là où il n'y avait qu'un warning noyé dans les logs Railway.
+_RESTORE_FAILURE_MARKER = "SWARM_RESTORE_FAILURE"
+# Backoff exponentiel des opérations de restore (delete/insert). 3 tentatives.
+_RESTORE_RETRY_BACKOFF_S = (0.5, 1.5, 4.5)
+
+_T = TypeVar("_T")
+
+
+def _retry_db_op(op: Callable[[], _T], *, what: str, swarm_id: str) -> _T:
+    """Exécute `op` avec retry exponentiel (H9).
+
+    Réessaie sur exception jusqu'à épuisement de `_RESTORE_RETRY_BACKOFF_S`.
+    Relève la dernière exception si toutes les tentatives échouent — l'appelant
+    décide alors d'émettre le signal d'échec durable. Un échec transitoire
+    (réseau Supabase, 5xx PostgREST) ne corrompt donc plus la DB au 1er coup.
+    """
+    last_exc: Exception | None = None
+    for attempt, delay in enumerate((0.0, *_RESTORE_RETRY_BACKOFF_S)):
+        if delay:
+            time.sleep(delay)
+        try:
+            return op()
+        except Exception as exc:  # noqa: BLE001 — on retente toute erreur DB
+            last_exc = exc
+            logger.warning(
+                "_retry_db_op: %s failed (attempt %d/%d) for swarm %s: %s",
+                what, attempt + 1, len(_RESTORE_RETRY_BACKOFF_S) + 1, swarm_id, exc,
+            )
+    assert last_exc is not None
+    raise last_exc
 
 _supabase_client = None
 
@@ -683,15 +719,14 @@ def _restore_swarm_tree(
 
     Stratégie : delete les 3 tables en cascade-friendly order (bindings →
     tasks → agents) puis re-insert depuis le snapshot (agents → tasks →
-    bindings) pour respecter les FK. Best-effort : si la restauration
-    elle-même échoue, on log un warning explicit (état DB potentiellement
-    incohérent).
+    bindings) pour respecter les FK.
 
-    # TODO V2 [H9] : ajouter un retry exponential backoff (3 tentatives) +
-    # dead-letter queue (table `swarm_restore_failures` ou notification
-    # Slack/PagerDuty). Aujourd'hui un échec de restore laisse la DB
-    # potentiellement corrompue, et le seul signal est un warning dans les
-    # logs Railway — facile à manquer en prod.
+    H9 fix : chaque opération delete/insert passe par `_retry_db_op` (retry
+    exponentiel 3 tentatives) — un échec transitoire (réseau / 5xx PostgREST)
+    ne corrompt plus la DB au premier coup. Si la restauration échoue malgré
+    les retries, on émet un log CRITICAL marqué `SWARM_RESTORE_FAILURE`
+    (capturé par Sentry) au lieu d'un simple warning : signal durable
+    d'incohérence DP potentielle, alertable en prod.
     """
     client = _get_client()
     if client is None:
@@ -700,18 +735,36 @@ def _restore_swarm_tree(
         # Order matters : on delete d'abord les "feuilles" (bindings/tasks)
         # puis les "racines" (agents) pour ne pas déclencher de SET NULL
         # parasite intermédiaire.
-        client.table("swarm_tool_bindings").delete().eq("swarm_id", swarm_id).execute()
-        client.table("swarm_tasks").delete().eq("swarm_id", swarm_id).execute()
-        client.table("swarm_agents").delete().eq("swarm_id", swarm_id).execute()
+        _retry_db_op(
+            lambda: client.table("swarm_tool_bindings").delete().eq("swarm_id", swarm_id).execute(),
+            what="restore_tree.delete_bindings", swarm_id=swarm_id,
+        )
+        _retry_db_op(
+            lambda: client.table("swarm_tasks").delete().eq("swarm_id", swarm_id).execute(),
+            what="restore_tree.delete_tasks", swarm_id=swarm_id,
+        )
+        _retry_db_op(
+            lambda: client.table("swarm_agents").delete().eq("swarm_id", swarm_id).execute(),
+            what="restore_tree.delete_agents", swarm_id=swarm_id,
+        )
 
         # Re-insert : racines (agents) d'abord, puis tasks (FK agent_id), puis
         # bindings (FK agent_id + tool_id).
         if snapshot["agents"]:
-            client.table("swarm_agents").insert(snapshot["agents"]).execute()
+            _retry_db_op(
+                lambda: client.table("swarm_agents").insert(snapshot["agents"]).execute(),
+                what="restore_tree.insert_agents", swarm_id=swarm_id,
+            )
         if snapshot["tasks"]:
-            client.table("swarm_tasks").insert(snapshot["tasks"]).execute()
+            _retry_db_op(
+                lambda: client.table("swarm_tasks").insert(snapshot["tasks"]).execute(),
+                what="restore_tree.insert_tasks", swarm_id=swarm_id,
+            )
         if snapshot["bindings"]:
-            client.table("swarm_tool_bindings").insert(snapshot["bindings"]).execute()
+            _retry_db_op(
+                lambda: client.table("swarm_tool_bindings").insert(snapshot["bindings"]).execute(),
+                what="restore_tree.insert_bindings", swarm_id=swarm_id,
+            )
 
         logger.warning(
             "_restore_swarm_tree: restored %d agents / %d tasks / %d bindings for swarm %s",
@@ -720,9 +773,10 @@ def _restore_swarm_tree(
         )
         return True
     except Exception as exc:  # noqa: BLE001
-        logger.error(
-            "_restore_swarm_tree: FAILED to restore swarm %s — DB may be inconsistent: %s",
-            swarm_id, exc,
+        logger.critical(
+            "%s _restore_swarm_tree: FAILED to restore swarm %s after retries — "
+            "DB may be inconsistent (orphaned agents/tasks/bindings): %s",
+            _RESTORE_FAILURE_MARKER, swarm_id, exc,
         )
         return False
 
@@ -731,25 +785,35 @@ def _restore_snapshot(table: str, swarm_id: str, snapshot: list[dict[str, Any]])
     """Re-insert les rows snapshot après un échec de replace_*.
 
     Stratégie : delete tout (au cas où il reste des résidus) puis bulk insert
-    du snapshot. Logue un warning si la restauration échoue (état DB
-    potentiellement corrompu — alerter l'opérateur).
+    du snapshot.
+
+    H9 fix : delete + insert passent par `_retry_db_op` (retry exponentiel) ;
+    un échec définitif émet un log CRITICAL marqué `SWARM_RESTORE_FAILURE`
+    (capturé par Sentry) plutôt qu'un warning silencieux.
     """
     client = _get_client()
     if client is None:
         return False
     try:
-        client.table(table).delete().eq("swarm_id", swarm_id).execute()
+        _retry_db_op(
+            lambda: client.table(table).delete().eq("swarm_id", swarm_id).execute(),
+            what=f"restore_snapshot.delete_{table}", swarm_id=swarm_id,
+        )
         if snapshot:
-            client.table(table).insert(snapshot).execute()
+            _retry_db_op(
+                lambda: client.table(table).insert(snapshot).execute(),
+                what=f"restore_snapshot.insert_{table}", swarm_id=swarm_id,
+            )
         logger.warning(
             "_restore_snapshot: restored %d rows in %s for swarm %s",
             len(snapshot), table, swarm_id,
         )
         return True
     except Exception as exc:  # noqa: BLE001
-        logger.error(
-            "_restore_snapshot: FAILED to restore %s/%s — DB may be inconsistent: %s",
-            table, swarm_id, exc,
+        logger.critical(
+            "%s _restore_snapshot: FAILED to restore %s/%s after retries — "
+            "DB may be inconsistent: %s",
+            _RESTORE_FAILURE_MARKER, table, swarm_id, exc,
         )
         return False
 

@@ -7,7 +7,7 @@ résolution). Tout swarm_store mocké — on teste la logique de routing.
 from __future__ import annotations
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
