@@ -42,6 +42,8 @@ export async function embedTexts(
   const model = opts?.model ?? HF_MODELS.embedding;
   const raw = await hfCall<number[] | number[][] | number[][][]>(model, {
     inputs: texts,
+    // Le router HF exige le pipeline explicite pour la feature-extraction.
+    pipeline: "feature-extraction",
     signal: opts?.signal,
   });
   return normalizeEmbeddings(raw, texts.length);

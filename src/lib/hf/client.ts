@@ -72,6 +72,13 @@ interface CallOpts {
   /** Body binaire (image) — exclusif avec inputs JSON. */
   binary?: Uint8Array;
   contentType?: string;
+  /**
+   * Suffixe de pipeline explicite (ex. "feature-extraction"). Requis pour les
+   * embeddings via le router HF : l'URL devient
+   * `.../models/<model>/pipeline/feature-extraction`. Omis pour les tâches
+   * servies sur la racine du modèle (text-classification, token-classification…).
+   */
+  pipeline?: string;
   timeoutMs?: number;
   signal?: AbortSignal;
 }
@@ -85,7 +92,9 @@ function sleep(ms: number): Promise<void> {
  * Retourne le JSON parsé (ou texte si non-JSON). Lève HfError sinon.
  */
 export async function hfCall<T = unknown>(model: string, opts: CallOpts): Promise<T> {
-  const url = `${baseUrl()}/${model}`;
+  const url = opts.pipeline
+    ? `${baseUrl()}/${model}/pipeline/${opts.pipeline}`
+    : `${baseUrl()}/${model}`;
   const timeout = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
   let lastErr: HfError | null = null;
