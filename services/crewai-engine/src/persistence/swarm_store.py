@@ -624,16 +624,31 @@ def _snapshot_rows(table: str, swarm_id: str) -> list[dict[str, Any]] | None:
     Les rows sont retournées telles quelles (avec leur id) pour permettre une
     ré-insertion fidèle en cas de rollback.
 
-    # TODO V2 : add pagination LIMIT 5000 + warning if exceeded (un swarm avec
-    # plus de 5000 rows par sous-table reste un cas dégénéré, mais la limite
-    # PostgREST par défaut est ~1000 — il faudra paginer explicitement).
+    Pagination: fetches in chunks of PAGE rows to avoid the PostgREST default
+    limit (~1000 rows), which would silently truncate the snapshot and cause
+    partial rollbacks on large swarms.
     """
     client = _get_client()
     if client is None:
         return None
     try:
-        res = client.table(table).select("*").eq("swarm_id", swarm_id).execute()
-        return res.data if res else []
+        PAGE = 1000
+        offset = 0
+        all_rows: list[dict[str, Any]] = []
+        while True:
+            res = (
+                client.table(table)
+                .select("*")
+                .eq("swarm_id", swarm_id)
+                .range(offset, offset + PAGE - 1)
+                .execute()
+            )
+            chunk = res.data if res else []
+            all_rows.extend(chunk)
+            if len(chunk) < PAGE:
+                break
+            offset += PAGE
+        return all_rows
     except Exception as exc:  # noqa: BLE001
         logger.error("_snapshot_rows: snapshot failed for %s/%s: %s", table, swarm_id, exc)
         return None
