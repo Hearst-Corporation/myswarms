@@ -225,7 +225,6 @@ def _shape_run_response(run_row: dict[str, Any]) -> dict[str, Any]:
         "error_text": run_row.get("error_text"),
         "total_tokens_in": run_row.get("total_tokens_in") or 0,
         "total_tokens_out": run_row.get("total_tokens_out") or 0,
-        "total_cost_usd": float(run_row.get("total_cost_usd") or 0),
         "langfuse_trace_id": run_row.get("langfuse_trace_id"),
         "created_at": run_row.get("created_at"),
         "steps": steps,

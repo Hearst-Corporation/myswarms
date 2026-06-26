@@ -55,9 +55,9 @@ Contrat de colonnes (cf migration 0006_swarms_dynamic.sql) :
                       created_at)
 - swarm_runs(id, swarm_id, trigger, status, inputs_json, result_text, started_at,
              finished_at, error_text, total_tokens_in, total_tokens_out,
-             total_cost_usd, langfuse_trace_id, created_at)
+             langfuse_trace_id, created_at)
 - swarm_run_steps(id, run_id, agent_id, task_id, step_number, input_text,
-                  output_text, tokens_in, tokens_out, cost_usd, latency_ms,
+                  output_text, tokens_in, tokens_out, latency_ms,
                   status, error_text, langfuse_span_id, created_at, finished_at)
 """
 from __future__ import annotations

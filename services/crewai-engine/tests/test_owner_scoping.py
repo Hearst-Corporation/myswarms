@@ -164,8 +164,8 @@ class TestListSwarmRunsOwnerScoping:
         from src.persistence import swarm_store  # noqa: PLC0415
 
         runs = [
-            {"id": "run-1", "swarm_id": "s1", "status": "completed", "total_cost_usd": "1.5"},
-            {"id": "run-2", "swarm_id": "s1", "status": "running", "total_cost_usd": None},
+            {"id": "run-1", "swarm_id": "s1", "status": "completed"},
+            {"id": "run-2", "swarm_id": "s1", "status": "running"},
         ]
         result_runs = MagicMock()
         result_runs.data = runs
@@ -176,6 +176,5 @@ class TestListSwarmRunsOwnerScoping:
             result = swarm_store.list_swarm_runs("swarm-1")  # no owner_id
 
         assert len(result) == 2
-        # float cast applied by list_swarm_runs
-        assert result[0]["total_cost_usd"] == 1.5
-        assert result[1]["total_cost_usd"] == 0.0
+        assert result[0]["id"] == "run-1"
+        assert result[1]["id"] == "run-2"

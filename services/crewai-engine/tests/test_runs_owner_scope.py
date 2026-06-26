@@ -107,7 +107,7 @@ class TestGetSwarmRunOwnerScope:
 class TestListSwarmRunsOwnerScope:
     def test_owner_filter_applied(self):
         from src.persistence import swarm_store  # noqa: PLC0415
-        rows = [{"id": RUN_ID, "swarm_id": SWARM_ID, "owner_id": VALID_OWNER, "total_cost_usd": 0}]
+        rows = [{"id": RUN_ID, "swarm_id": SWARM_ID, "owner_id": VALID_OWNER}]
         mock = _client_returning(rows)
         with patch.object(swarm_store, "_get_client", return_value=mock):
             out = swarm_store.list_swarm_runs(SWARM_ID, owner_id=VALID_OWNER)
@@ -119,7 +119,7 @@ class TestListSwarmRunsOwnerScope:
     def test_no_owner_lists_all_no_owner_eq(self):
         """owner_id=None → liste tous les runs du swarm (appel interne), sans filtre owner."""
         from src.persistence import swarm_store  # noqa: PLC0415
-        rows = [{"id": RUN_ID, "swarm_id": SWARM_ID, "total_cost_usd": 0}]
+        rows = [{"id": RUN_ID, "swarm_id": SWARM_ID}]
         mock = _client_returning(rows)
         with patch.object(swarm_store, "_get_client", return_value=mock):
             swarm_store.list_swarm_runs(SWARM_ID, owner_id=None)
@@ -153,7 +153,7 @@ class TestRunReadEndpointsOwnerScope:
             "trigger": "on_demand", "status": "completed", "inputs_json": {},
             "result_text": "ok", "started_at": "2026-01-01T00:00:00+00:00",
             "finished_at": "2026-01-01T00:01:00+00:00", "error_text": None,
-            "total_tokens_in": 0, "total_tokens_out": 0, "total_cost_usd": 0,
+            "total_tokens_in": 0, "total_tokens_out": 0,
             "langfuse_trace_id": None, "created_at": "2026-01-01T00:00:00+00:00",
         }
         with (
