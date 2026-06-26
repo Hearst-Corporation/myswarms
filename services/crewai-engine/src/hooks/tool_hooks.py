@@ -85,5 +85,15 @@ def audit_sensitive_tool_result(context: ToolCallHookContext) -> str | None:
         tool_name_upper = _PASCAL_RE.sub("_", raw).upper()
         sensitive_tools = {"GMAIL_FETCH_EMAILS", "GMAIL_GET_MESSAGE", "SLACK_FETCH_MESSAGES"}
         if tool_name_upper in sensitive_tools:
-            logger.debug("Processed sensitive tool result from %s", tool_name_upper)
+            # Audit trail at INFO level for compliance — no PII (no subject/body/email content).
+            owner_id = getattr(context, "owner_id", None) or getattr(getattr(context, "metadata", None), "owner_id", None)
+            correlation_id = getattr(context, "correlation_id", None) or getattr(getattr(context, "metadata", None), "correlation_id", None)
+            outcome = "success" if context.tool_result else "empty"
+            logger.info(
+                "tool_audit owner=%s tool=%s outcome=%s correlation_id=%s",
+                owner_id,
+                tool_name_upper,
+                outcome,
+                correlation_id,
+            )
     return None  # don't modify result

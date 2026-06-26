@@ -5,9 +5,13 @@ All agents are created via create_agents() factory — NO module-level singleton
 Each kickoff receives fresh Agent instances → no shared state between concurrent runs.
 """
 
+import logging
+
 from crewai import Agent
 
 from ..llms import get_llm
+
+logger = logging.getLogger(__name__)
 
 # Guard: import Agent 2 dependencies gracefully so this module stays importable
 # even when Agent 2's files don't exist yet (parallel development).
@@ -155,19 +159,25 @@ def _get_local_tools(owner_id: str | None = None) -> dict:
         from ..tools.priority_scorer import PriorityScorer
         priority_scorer = PriorityScorer()
     except ImportError:
-        pass
+        logger.warning(
+            "Optional dependency 'priority_scorer' not available — PriorityScorer tool disabled"
+        )
 
     try:
         from ..tools.telegram_sender import TelegramSenderTool
         telegram_sender = TelegramSenderTool(owner_id=owner_id)
     except ImportError:
-        pass
+        logger.warning(
+            "Optional dependency 'telegram_sender' not available — TelegramSenderTool disabled"
+        )
 
     try:
         from ..tools.digest_formatter import DigestFormatterTool
         digest_formatter = DigestFormatterTool()
     except ImportError:
-        pass
+        logger.warning(
+            "Optional dependency 'digest_formatter' not available — DigestFormatterTool disabled"
+        )
 
     return {
         "priority_scorer": priority_scorer,

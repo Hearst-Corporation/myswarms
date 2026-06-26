@@ -17,6 +17,7 @@ from .routes.health import router as health_router
 from .routes.crews import router as crews_router
 from .routes.swarms import router as swarms_router
 from .routes.listings import router as listings_router
+from .routes.webhooks import router as webhooks_router
 from . import hooks  # registers LLM + tool hooks at startup (side-effect import)  # noqa: F401
 from .scheduler import create_scheduler
 
@@ -170,3 +171,4 @@ app.include_router(health_router)
 app.include_router(crews_router)
 app.include_router(swarms_router)
 app.include_router(listings_router)
+app.include_router(webhooks_router)

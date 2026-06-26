@@ -991,11 +991,39 @@ class ComposioConnectRequest(BaseModel):
     auth_config_id: str | None = None  # optionnel — si fourni, utilisé directement
 
 
-_TOOLKIT_AUTH_CONFIGS: dict[str, str] = {
-    "gmail": "ac_2imZgR-lg10v",
-    "trello": "ac_85ujVR9uSgHW",
-    # extensible
-}
+def _build_toolkit_auth_configs() -> dict[str, str]:
+    """Build toolkit→auth_config_id mapping from environment variables.
+
+    Set COMPOSIO_GMAIL_AUTH_CONFIG_ID and COMPOSIO_TRELLO_AUTH_CONFIG_ID in .env
+    or Railway environment. Absent variables are omitted from the map so the
+    caller raises a 400 with a clear message rather than using a hardcoded value.
+    """
+    import os
+
+    cfg: dict[str, str] = {}
+    gmail_id = os.environ.get("COMPOSIO_GMAIL_AUTH_CONFIG_ID", "")
+    if not gmail_id:
+        raise ValueError(
+            "COMPOSIO_GMAIL_AUTH_CONFIG_ID env var is required. "
+            "Set it in .env or your deployment environment."
+        )
+    trello_id = os.environ.get("COMPOSIO_TRELLO_AUTH_CONFIG_ID", "")
+    if not trello_id:
+        raise ValueError(
+            "COMPOSIO_TRELLO_AUTH_CONFIG_ID env var is required. "
+            "Set it in .env or your deployment environment."
+        )
+    cfg["gmail"] = gmail_id
+    cfg["trello"] = trello_id
+    return cfg
+
+
+def _get_toolkit_auth_configs() -> dict[str, str]:
+    """Lazily resolve toolkit auth configs from env (not at import time)."""
+    return _build_toolkit_auth_configs()
+
+
+_TOOLKIT_AUTH_CONFIGS: dict[str, str] | None = None  # resolved lazily via _get_toolkit_auth_configs()
 
 
 @router.post("/v1/composio/connect")
@@ -1013,7 +1041,11 @@ def composio_connect_endpoint(
     if not settings.COMPOSIO_API_KEY:
         raise HTTPException(status_code=503, detail="Composio not configured")
 
-    auth_config_id = request.auth_config_id or _TOOLKIT_AUTH_CONFIGS.get(request.toolkit)
+    try:
+        _toolkit_configs = _get_toolkit_auth_configs()
+    except ValueError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    auth_config_id = request.auth_config_id or _toolkit_configs.get(request.toolkit)
     if not auth_config_id:
         raise HTTPException(
             status_code=400,

@@ -140,7 +140,10 @@ def _is_auth_error(exc: Exception) -> bool:
         if isinstance(exc, HTTPError) and exc.status_code in (401, 403):
             return True
     except ImportError:
-        pass
+        logger.warning(
+            "Optional dependency 'composio.exceptions' not available — "
+            "falling back to string-based auth error detection"
+        )
 
     # String-based safety net for HTTP clients that raise generic exceptions
     msg = str(exc).lower()
