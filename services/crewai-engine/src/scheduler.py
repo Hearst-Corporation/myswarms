@@ -165,6 +165,23 @@ async def _run_market_intel_scout() -> None:
 
         swarm_id = swarm["id"]
         owner_id: str | None = swarm.get("owner_id") or swarm.get("config_json", {}).get("owner_id")
+
+        # P0.2 — fail-closed : un run market-intel SANS owner résoluble serait
+        # invisible de l'UI (owner-scopée) et polluerait le multi-tenant. On
+        # normalise None / "" / whitespace en invalide et on SKIP le run plutôt
+        # que d'écrire un run ownerless via save_swarm_run(owner_id=None).
+        # Aucun fallback global (ni CHIEF_SCHEDULER_OWNER_ID, ni owner hardcodé) :
+        # ce swarm est owner-scopé par sa propre row, pas par le scheduler.
+        if not (isinstance(owner_id, str) and owner_id.strip()):
+            logger.warning(
+                "Market Intel Scout skipped — swarm %s has no resolvable owner_id "
+                "(swarms.owner_id and config_json.owner_id both empty); refusing to "
+                "write an ownerless run.",
+                swarm_id,
+            )
+            return
+        owner_id = owner_id.strip()
+
         logger.info("Market Intel Scout swarm found — swarm_id=%s, kicking off", swarm_id)
 
         # Deferred import — ChiefOfStaffFlow pattern, avoid circularity at module load time.
