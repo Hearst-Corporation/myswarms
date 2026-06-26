@@ -9,10 +9,22 @@ from crewai.hooks import LLMCallHookContext, after_llm_call, before_llm_call
 logger = logging.getLogger(__name__)
 
 # PII patterns to redact from LLM prompts and responses
+#
+# P1.9 — pattern hex affiné : l'ancien r"\b[0-9a-fA-F]{32,}\b" trop large
+# rédactait aussi les git SHAs (40 chars hex), UUIDs sans tirets (32 chars),
+# et trace IDs Langfuse, rendant les réponses LLM incohérentes.
+#
+# Nouveau pattern : exclut les hexadécimaux précédés ou suivis d'un tiret
+# (segments d'UUID formaté : 8-4-4-4-12) via lookbehind/lookahead négatifs,
+# et exclut les chaînes de 40 chars (git SHA) en limitant à 33-64 chars.
+# Cible uniquement les tokens/clés API typiques : longues chaînes hex denses
+# sans tiret, entre 33 et 64 chars.
 _PII_PATTERNS = [
     (re.compile(r"\b\d{3}-\d{2}-\d{4}\b"), "[SSN]"),
     (re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"), "[CARD]"),
-    (re.compile(r"\b[0-9a-fA-F]{32,}\b"), "[TOKEN]"),  # long hex tokens
+    # Hex tokens : 33-64 chars, non précédés/suivis d'un tiret (exclut segments UUID).
+    # Exclut 32 chars (UUID sans tiret — identifiant, pas secret) et 40 chars (git SHA).
+    (re.compile(r"(?<!-)\b[0-9a-fA-F]{33,64}\b(?!-)"), "[TOKEN]"),
 ]
 
 
