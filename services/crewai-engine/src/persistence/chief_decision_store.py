@@ -74,6 +74,32 @@ def record_decision(
         payload["snooze_until"] = (
             datetime.now(timezone.utc) + timedelta(hours=hours)
         ).isoformat()
+
+    # P1.7 — guard applicatif : vérifier que chief_run_id référence un run existant
+    # avant d'insérer (pas de FK DB sur cette colonne — voir commentaire en tête de
+    # fichier). Évite les décisions orphelines si chief_run_log a été purgé.
+    try:
+        exists_check = (
+            client.table("chief_run_log")
+            .select("kickoff_id")
+            .eq("kickoff_id", chief_run_id)
+            .limit(1)
+            .execute()
+        )
+        if not (exists_check.data):
+            logger.warning(
+                "[chief_decision_store] record_decision: chief_run_id=%r not found in chief_run_log "
+                "— skipping insert to avoid orphan decision row.",
+                chief_run_id,
+            )
+            return None
+    except Exception as exc:  # noqa: BLE001
+        # Non-bloquant : si la vérification échoue (réseau, permissions), on
+        # log et on continue avec l'insert normal pour ne pas bloquer l'UI.
+        logger.warning(
+            "[chief_decision_store] chief_run_id existence check failed (non-blocking): %s", exc
+        )
+
     try:
         result = client.table("chief_decisions").insert(payload).execute()
         return (result.data or [None])[0]
