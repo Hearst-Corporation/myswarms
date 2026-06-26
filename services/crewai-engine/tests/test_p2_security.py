@@ -10,12 +10,8 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import importlib
 import logging
-import os
 import sys
-import types
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -172,7 +168,6 @@ class TestImportWarnings:
             except Exception:
                 pass  # allow import errors in test env; we only care about warning
 
-        warning_messages = [r.message for r in caplog.records if r.levelno == logging.WARNING]
         # At least one warning about optional dependency (or nothing if import succeeded)
         # The important thing is: no silent pass if import fails.
         # We verify by checking no bare "pass" pattern in source.

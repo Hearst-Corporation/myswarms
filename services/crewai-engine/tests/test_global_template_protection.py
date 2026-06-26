@@ -129,7 +129,9 @@ class TestGlobalTemplateReadAllowed:
         for method in ("table", "select", "eq", "or_", "in_", "order", "limit",
                        "maybe_single", "insert", "update", "delete"):
             getattr(mock_client, method).return_value = mock_client
-        r = MagicMock(); r.data = stub_rows; r.count = 1
+        r = MagicMock()
+        r.data = stub_rows
+        r.count = 1
         mock_client.execute.return_value = r
         with patch.object(swarm_store, "_get_client", return_value=mock_client):
             resp = client.get("/v1/swarms", params={"owner_id": VALID_OWNER})
