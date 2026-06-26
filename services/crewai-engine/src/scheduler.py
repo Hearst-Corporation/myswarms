@@ -30,6 +30,23 @@ async def _run_scheduled_kickoff(trigger: str) -> None:
         from .flows.chief_of_staff_flow import ChiefOfStaffFlow
         from .persistence import run_store
 
+        # P1.5 — idempotency check : skip si un run Chief est déjà running pour
+        # ce trigger+owner dans la fenêtre de 10 min. Protège contre la double
+        # exécution misfire (crash-restart dans la grâce de 300s) + zombie runs.
+        _CHIEF_IDEMPOTENCY_MINUTES = 10
+        try:
+            _active = run_store.get_active_run_for_trigger(
+                trigger, settings.CHIEF_SCHEDULER_OWNER_ID or None, _CHIEF_IDEMPOTENCY_MINUTES
+            )
+            if _active:
+                logger.warning(
+                    "Chief scheduled kickoff skipped — run %s already running for trigger=%s (within %d min)",
+                    _active, trigger, _CHIEF_IDEMPOTENCY_MINUTES,
+                )
+                return
+        except Exception as _idem_exc:  # noqa: BLE001
+            logger.warning("Chief idempotency check failed (non-blocking): %s", _idem_exc)
+
         kickoff_id = str(uuid4())
         started_at = datetime.now(timezone.utc).isoformat()
 
@@ -40,6 +57,15 @@ async def _run_scheduled_kickoff(trigger: str) -> None:
             started_at,
             owner_id=settings.CHIEF_SCHEDULER_OWNER_ID or None,
         )
+
+        # P1.10 — guard owner_id vide : log WARNING si absent, Composio sera désactivé.
+        _scheduler_owner_id = settings.CHIEF_SCHEDULER_OWNER_ID or ""
+        if not _scheduler_owner_id:
+            logger.warning(
+                "Scheduled kickoff trigger=%s: CHIEF_SCHEDULER_OWNER_ID is empty — "
+                "Composio tools will be skipped (resolve_composio_entity returns None for empty owner_id).",
+                trigger,
+            )
 
         flow = ChiefOfStaffFlow()
         result = await asyncio.wait_for(
@@ -52,7 +78,7 @@ async def _run_scheduled_kickoff(trigger: str) -> None:
                     "mock_mode": settings.AGENT_MOCK_MODE,
                     # R5 — owner du scheduler propagé pour owner-scoper les tools
                     # externes (Composio/Telegram) du Chief.
-                    "owner_id": settings.CHIEF_SCHEDULER_OWNER_ID or "",
+                    "owner_id": _scheduler_owner_id,
                 },
             ),
             timeout=settings.FLOW_TIMEOUT_SECONDS,
@@ -110,9 +136,13 @@ async def _run_market_intel_scout() -> None:
     logger.info("Market Intel Scout job starting — trigger=market_intel_morning")
 
     try:
-        from supabase import create_client
+        # P1.8 — réutilise le client partagé de swarm_store au lieu d'en créer un second.
+        from .persistence import swarm_store as _swarm_store_ref  # noqa: PLC0415
 
-        supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+        supabase = _swarm_store_ref._get_client()
+        if supabase is None:
+            logger.warning("Market Intel Scout: Supabase not configured, skipping")
+            return
 
         # Look up the swarm by name (template or user-owned copy)
         resp = (
@@ -141,6 +171,22 @@ async def _run_market_intel_scout() -> None:
         from .flows.dynamic_swarm_flow import DynamicSwarmFlow
         from .persistence import swarm_store
         from .routes.swarms import _adaptive_flow_timeout
+
+        # P1.5 — idempotency check : skip si un run est déjà running pour ce swarm.
+        # Protège contre la double exécution misfire (crash-restart dans la fenêtre
+        # de grâce de 300s) + run zombie pas encore nettoyé par le stale-run cleanup.
+        _IDEMPOTENCY_WINDOW_MINUTES = 10
+        _idempotency_cutoff = datetime.now(timezone.utc).replace(microsecond=0)
+        try:
+            _existing = swarm_store.get_active_run_for_swarm(swarm_id, _IDEMPOTENCY_WINDOW_MINUTES)
+            if _existing:
+                logger.warning(
+                    "Market Intel Scout skipped — run %s already running for swarm %s (started within %d min)",
+                    _existing, swarm_id, _IDEMPOTENCY_WINDOW_MINUTES,
+                )
+                return
+        except Exception as _idem_exc:  # noqa: BLE001
+            logger.warning("Market Intel Scout idempotency check failed (non-blocking): %s", _idem_exc)
 
         run_id = str(uuid4())
         trigger = "market_intel_morning"
