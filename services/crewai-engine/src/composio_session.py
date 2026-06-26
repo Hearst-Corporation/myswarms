@@ -62,10 +62,13 @@ logger = logging.getLogger(__name__)
 _MAX_TOOLS_PER_AGENT = 60
 
 # ---------------------------------------------------------------------------
-# Module-level cache: maps sorted tuple of toolkit slugs → fetched tools list.
+# Module-level cache: maps sorted tuple of toolkit slugs → (fetched tools list, timestamp).
 # Populated on first kickoff; subsequent calls hit the cache instantly.
+# TTL_SECONDS: cached entries older than this are considered stale and re-fetched.
+# This prevents a revoked Composio token from being served indefinitely until restart.
 # ---------------------------------------------------------------------------
-_tools_cache: dict[tuple[str, ...], list] = {}
+TTL_SECONDS = 300  # 5 minutes
+_tools_cache: dict[tuple[str, ...], tuple[list, float]] = {}
 
 # ---------------------------------------------------------------------------
 # Circuit-breaker state — armed only by *transient* (network/5xx) failures.
@@ -261,16 +264,28 @@ def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = 
 
     cache_key = (entity_id, *sorted(toolkits))
 
-    # FIX C: atomic check-then-read under lock
+    # FIX C: atomic check-then-read under lock, with TTL eviction.
     with _state_lock:
-        cached = _tools_cache.get(cache_key)
-    if cached is not None:
+        cached_entry = _tools_cache.get(cache_key)
+        if cached_entry is not None:
+            cached_tools, cached_ts = cached_entry
+            if time.time() - cached_ts > TTL_SECONDS:
+                # Entry is stale (e.g. revoked token) — evict and re-fetch.
+                logger.debug(
+                    "Composio cache stale for toolkits=%s (age >%ds) — evicting",
+                    list(cache_key),
+                    TTL_SECONDS,
+                )
+                del _tools_cache[cache_key]
+                cached_entry = None
+    if cached_entry is not None:
+        cached_tools, _ = cached_entry
         logger.debug(
             "Composio cache hit for toolkits=%s (%d tools)",
             list(cache_key),
-            len(cached),
+            len(cached_tools),
         )
-        return cached
+        return cached_tools
 
     if not settings.COMPOSIO_API_KEY:
         logger.warning(
@@ -301,7 +316,7 @@ def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = 
         )
         # Cache permanently: a missing package won't fix itself at runtime.
         with _state_lock:
-            _tools_cache[cache_key] = []
+            _tools_cache[cache_key] = ([], time.time())
         return []
 
     # --- Retry loop with exponential backoff (transient errors only) ----------
@@ -337,9 +352,9 @@ def get_composio_tools_for_toolkits(toolkits: list[str], owner_id: str | None = 
             if raw_count > _MAX_TOOLS_PER_AGENT:
                 tools = _round_robin_cap(tools, _MAX_TOOLS_PER_AGENT)
 
-            # FIX C: atomic write under lock
+            # FIX C: atomic write under lock, storing (tools, timestamp) for TTL support.
             with _state_lock:
-                _tools_cache[cache_key] = tools
+                _tools_cache[cache_key] = (tools, time.time())
             return tools
 
         except Exception as exc:  # noqa: BLE001
