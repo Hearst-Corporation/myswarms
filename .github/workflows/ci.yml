@@ -22,7 +22,22 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # WHY remove the lockfile before install (npm bug #4828): the committed
+        # package-lock.json is generated on macOS, so npm only materializes the
+        # host platform's optional native bindings as installable tree entries
+        # (only @rolldown/binding-darwin-arm64, @unrs/resolver-binding-darwin-arm64,
+        # lightningcss-darwin-arm64). Both `npm ci` and a plain `npm install`
+        # honor that partial lock and install ZERO linux-x64-gnu bindings on the
+        # runner — vitest 4 (rolldown) then crashes at startup with
+        # "Cannot find module '@rolldown/binding-linux-x64-gnu'". npm's own error
+        # says the fix is to remove the lockfile + node_modules and reinstall, so
+        # we let npm resolve fresh on the Linux runner, which materializes the
+        # Linux bindings. A macOS host cannot produce a multi-platform lockfile,
+        # so this runner-side regen is the minimal reliable fix. @next/swc is
+        # already multi-platform in the lock and is unaffected.
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund
 
       - name: ESLint
         run: npm run lint
