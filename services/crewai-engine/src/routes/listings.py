@@ -18,10 +18,11 @@ import asyncio
 import logging
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from ..providers.listings_browserbase import ListingQuery, scrape_listings
+from ..security.internal_auth import InternalIdentity, require_internal_identity
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +62,19 @@ class ListingsResponse(BaseModel):
 
 
 @router.post("/v1/listings", response_model=ListingsResponse)
-async def post_listings(body: ListingsRequest) -> ListingsResponse:
-    """Scrape synchrone d'annonces de vente. Fail-soft : renvoie toujours 200."""
+async def post_listings(
+    body: ListingsRequest,
+    identity: InternalIdentity = Depends(require_internal_identity),
+) -> ListingsResponse:
+    """Scrape synchrone d'annonces de vente. Fail-soft : renvoie toujours 200.
+
+    Owner-scopé (R-listings) : l'identité owner est dérivée du JWT interne vérifié
+    (X-Internal-Auth), comme toutes les routes swarm/chief. Sans JWT valide → 401.
+    Le bearer partagé seul (machine-to-machine) ne suffit plus : un scrape
+    Browserbase coûteux ne doit être déclenchable que par un owner authentifié,
+    et chaque appel est tracé par owner (anti-abus quota + audit).
+    """
+    logger.info("POST /v1/listings owner_id=%s", identity.owner_id)
     query = ListingQuery(
         ville=body.ville,
         code_postal=body.codePostal,
