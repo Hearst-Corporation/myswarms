@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     # Internal auth between Next.js and crewai-engine — REQUIRED, no default
     CREWAI_ENGINE_AUTH_TOKEN: str = Field(..., min_length=32, description="Shared bearer token between Next.js and engine. Generate via `openssl rand -hex 32`.")
 
-    # LLM providers
+    # LLM providers — OpenAI officiel (provider unique). Anthropic/Hypercli
+    # gardés vides par défaut (compat legacy, aucun chemin de prod ne les appelle).
     ANTHROPIC_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     HYPERCLI_API_KEY: str = ""
@@ -44,25 +45,24 @@ class Settings(BaseSettings):
     HYPERCLI_DEFAULT_MODEL: str = "kimi-k2.6"
     HYPERCLI_ANTHROPIC_MODEL: str = "kimi-k2.6-anthropic"
 
-    # Tiers LLM (Hypercli / Kimi K2.6 — endpoint OpenAI-compatible, base_url=HYPERCLI_BASE_URL)
-    # NOTE: tous les 3 tiers pointent sur le même modèle kimi-k2.6 (provider unique Hypercli).
-    # Les noms fast/balanced/smart permettent une future différentiation via env sans changer le code.
-    CREWAI_DEFAULT_FAST_MODEL: str = "openai/kimi-k2.6"
-    CREWAI_DEFAULT_BALANCED_MODEL: str = "openai/kimi-k2.6"
-    CREWAI_DEFAULT_SMART_MODEL: str = "openai/kimi-k2.6"
+    # Tiers LLM — OpenAI officiel. fast/balanced = GPT-4o (conversationnel,
+    # rapide/économique) ; smart = GPT-5.1 (agentique — orchestration,
+    # tool-use, génération de specs par l'Architecte).
+    CREWAI_DEFAULT_FAST_MODEL: str = "gpt-4o"
+    CREWAI_DEFAULT_BALANCED_MODEL: str = "gpt-4o"
+    CREWAI_DEFAULT_SMART_MODEL: str = "gpt-5.1"
 
-    # Résilience appels LLM Hypercli (litellm via crewai.LLM). Hypercli avait
-    # été écarté en N-1 pour empty-responses/timeouts — retry exponentiel +
-    # timeout explicite pour fiabiliser le crew Chief of Staff (8 agents).
+    # Résilience appels LLM (litellm via crewai.LLM) — retry exponentiel +
+    # timeout explicite pour fiabiliser les crews multi-agents.
     LLM_REQUEST_TIMEOUT_SECONDS: int = Field(
         default=120,
         gt=0,
-        description="Timeout (s) par appel LLM Hypercli avant abandon.",
+        description="Timeout (s) par appel LLM OpenAI avant abandon.",
     )
     LLM_MAX_RETRIES: int = Field(
         default=3,
         ge=0,
-        description="Nombre de retries (429/5xx) par appel LLM Hypercli (litellm num_retries).",
+        description="Nombre de retries (429/5xx) par appel LLM OpenAI (litellm num_retries).",
     )
 
     # Supabase
@@ -259,12 +259,12 @@ warnings.filterwarnings(
 # Ne cassent PAS le boot — logging uniquement. Permet d'identifier les
 # configurations partielles avant que les agents tombent en erreur à l'exécution.
 #
-# Politique Hypercli-only : HYPERCLI_API_KEY est désormais la seule clé LLM
-# critique. ANTHROPIC_API_KEY et OPENAI_API_KEY sont optionnelles (abaissées
+# Politique OpenAI officiel : OPENAI_API_KEY est désormais la seule clé LLM
+# critique. ANTHROPIC_API_KEY et HYPERCLI_API_KEY sont optionnelles (abaissées
 # en info) — aucun chemin de production ne devrait les appeler directement.
 # COMPOSIO_API_KEY reste critique (tools Composio indépendants du provider LLM).
 _CRITICAL_API_KEYS = {
-    "HYPERCLI_API_KEY": settings.HYPERCLI_API_KEY,
+    "OPENAI_API_KEY": settings.OPENAI_API_KEY,
     "COMPOSIO_API_KEY": settings.COMPOSIO_API_KEY,
 }
 for _key, _val in _CRITICAL_API_KEYS.items():
@@ -274,15 +274,15 @@ for _key, _val in _CRITICAL_API_KEYS.items():
             _key,
         )
 
-# Clés optionnelles (plus utilisées en production — Hypercli-only) : simple info.
+# Clés optionnelles (plus utilisées en production — OpenAI officiel) : simple info.
 _OPTIONAL_API_KEYS = {
     "ANTHROPIC_API_KEY": settings.ANTHROPIC_API_KEY,
-    "OPENAI_API_KEY": settings.OPENAI_API_KEY,
+    "HYPERCLI_API_KEY": settings.HYPERCLI_API_KEY,
 }
 for _key, _val in _OPTIONAL_API_KEYS.items():
     if not _val:
         _boot_logger.info(
-            "Boot info: %s is empty (optional — Hypercli-only policy, no LLM call expected on this provider).",
+            "Boot info: %s is empty (optional — OpenAI-only policy, no LLM call expected on this provider).",
             _key,
         )
 

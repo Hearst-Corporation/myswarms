@@ -490,7 +490,7 @@ function stepsForAgent(steps: Step[], agent: Agent): Step[] {
   );
 }
 
-/** "kimi-k2.6" → "Kimi K2.6". Title-case par segment, sans table de mapping. */
+/** "gpt-4o" → "Gpt 4o". Title-case par segment, sans table de mapping. */
 function prettyModel(model: string): string {
   if (!model) return "—";
   return model

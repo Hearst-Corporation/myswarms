@@ -16,14 +16,13 @@ interface SwarmAgentFormProps {
   onCancel?: () => void;
 }
 
-// Default to openai/kimi-k2.6 — runtime enforces Hypercli on all providers.
-// "openai" prefix is required by LiteLLM for the Hypercli OpenAI-compatible endpoint.
+// Default to gpt-4o — runtime enforces OpenAI officiel sur tous les providers DB.
 const DEFAULT_AGENT: AgentInput = {
   name: "",
   role: "executor",
   system_prompt: "",
   model_provider: "openai",
-  model_name: "kimi-k2.6",
+  model_name: "gpt-4o",
   temperature: 0.7,
   max_tokens: 4096,
   parent_agent_id: null,

@@ -104,9 +104,10 @@ function TabProfil({ email, ownerId }: { email: string | null; ownerId: string }
           <CardTitle>Modèle LLM</CardTitle>
         </CardHeader>
         <CardBody className="flex flex-col gap-4">
-          <FieldRow label="Provider" value="Hypercli" />
-          <FieldRow label="Modèle" value="Kimi K2.6" />
-          <FieldRow label="Endpoint" value="https://api.hypercli.com/v1" mono />
+          <FieldRow label="Provider" value="OpenAI" />
+          <FieldRow label="Modèle conversationnel" value="GPT-4o" />
+          <FieldRow label="Modèle agentique" value="GPT-5.1" />
+          <FieldRow label="Endpoint" value="https://api.openai.com/v1" mono />
           <p className="text-xs text-content-faint">
             Le provider LLM est géré globalement. Pour changer de modèle, contactez l&apos;administrateur.
           </p>

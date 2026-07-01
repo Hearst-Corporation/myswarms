@@ -1,8 +1,9 @@
 """Construction des objets CrewAI (extrait de dynamic_crew, H7 split).
 
-Module FEUILLE : résolution LLM (Hypercli-only), résolution des tools Composio,
-instanciation Agent/Task, tri topologique des tasks, rendu des blocs d'inputs /
-d'outputs antérieurs, agrégation best-effort des tokens.
+Module FEUILLE : résolution LLM (provider unique — OpenAI officiel via
+`get_llm()`), résolution des tools Composio, instanciation Agent/Task, tri
+topologique des tasks, rendu des blocs d'inputs / d'outputs antérieurs,
+agrégation best-effort des tokens.
 
 Ne dépend ni de `step_writer` ni de `callbacks` → aucun cycle d'import.
 """
@@ -72,10 +73,15 @@ def _render_inputs_block(inputs: dict[str, Any] | None) -> str:
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-# Modèles Hypercli connus (LiteLLM les préfixe "openai/" car l'endpoint est
-# OpenAI-compatible). Défini au niveau module pour éviter une réallocation
-# frozenset à chaque appel de _resolve_llm.
-_HYPERCLI_KNOWN_MODELS: frozenset[str] = frozenset({
+# Modèles OpenAI officiels connus, exposés à l'Architecte et aux formulaires.
+# Défini au niveau module pour éviter une réallocation frozenset à chaque
+# appel de _resolve_llm.
+_OPENAI_KNOWN_MODELS: frozenset[str] = frozenset({"gpt-4o", "gpt-5.1"})
+
+# Anciens modèles Hypercli (legacy DB — rows créées avant la migration OpenAI).
+# Une row avec un de ces model_name est automatiquement remappée vers le tier
+# "balanced" (get_llm) plutôt que de tenter un appel Hypercli mort.
+_LEGACY_HYPERCLI_MODELS: frozenset[str] = frozenset({
     "kimi-k2.6", "kimi-k2.5", "glm-5", "minimax-m2.5",
     "qwen3-embedding-4b", "kimi-k2.6-anthropic", "kimi-k2.5-anthropic",
 })
@@ -93,20 +99,15 @@ _COMPOSIO_TOOLKITS: set[str] = {
 def _resolve_llm(agent_row: dict[str, Any]) -> LLM:
     """Résout l'instance LLM à partir des colonnes DB.
 
-    Politique Hypercli-only (directive provider unique) :
-    - Si le provider DB est "kimi" ou "hypercli", OU si model_name est un
-      modèle Hypercli connu : on instancie LLM avec base_url+api_key Hypercli.
-    - Dans TOUS les autres cas (provider "anthropic", "openai", vide, ou model
-      claude-*/gpt-*) : on IGNORE le provider d'origine et on route vers
-      get_llm("balanced") qui est 100 % Hypercli. Aucun chemin n'instancie
-      LLM(model="anthropic/...") ni un LLM OpenAI réel.
-
-    Justification : la table swarm_agents contient actuellement model_provider
-    ="anthropic" pour 100 % des agents (défaut Builder V1). La migration de
-    réécriture des lignes est prévue en V2 ; en attendant cette politique de
-    routage runtime garantit la conformité à la directive Hypercli-only sans
-    modifier la DB. Le fallback final reste get_llm("balanced") — même provider
-    (Hypercli), jamais Claude.
+    Politique OpenAI officiel (provider unique) :
+    - Si model_name est un modèle OpenAI connu (`gpt-4o`, `gpt-5.1`) : on
+      instancie LLM directement sur ce modèle via l'API OpenAI officielle
+      (`OPENAI_API_KEY`, pas de base_url custom).
+    - Si model_name est un ancien modèle Hypercli legacy (rows créées avant la
+      migration) : on route vers get_llm("balanced") (GPT-4o) — pas d'appel
+      Hypercli mort.
+    - Dans tous les autres cas (provider "anthropic"/vide, model claude-*,
+      model_name absent) : fallback get_llm("balanced").
 
     NB : la colonne `llm_tier` N'EXISTE PAS dans `swarm_agents` (migration 0006)
     — on se base uniquement sur `model_provider` + `model_name`.
@@ -116,23 +117,16 @@ def _resolve_llm(agent_row: dict[str, Any]) -> LLM:
     agent_name_or_id = agent_row.get("name") or agent_row.get("id") or "<unknown>"
 
     if model_name:
-        # Détermine si c'est un modèle Hypercli explicite.
-        _is_hypercli = (
-            provider in {"kimi", "hypercli"}
-            or model_name in _HYPERCLI_KNOWN_MODELS
-            or model_name.removeprefix("openai/") in _HYPERCLI_KNOWN_MODELS
-        )
+        bare_name = model_name.removeprefix("openai/")
 
-        if _is_hypercli:
-            # Chemin Hypercli explicite : préfixe "openai/" pour LiteLLM et
-            # injecte base_url + api_key Hypercli.
-            bare_name = model_name.removeprefix("openai/")
-            resolved_model = f"openai/{bare_name}"
+        if provider == "openai" or bare_name in _OPENAI_KNOWN_MODELS:
+            # Chemin OpenAI explicite : appel direct API officielle.
             try:
                 return LLM(
-                    model=resolved_model,
-                    base_url=settings.HYPERCLI_BASE_URL,
-                    api_key=settings.HYPERCLI_API_KEY,
+                    model=bare_name,
+                    api_key=settings.OPENAI_API_KEY,
+                    timeout=settings.LLM_REQUEST_TIMEOUT_SECONDS,
+                    max_retries=settings.LLM_MAX_RETRIES,
                 )
             except Exception as exc:  # noqa: BLE001
                 # Préfixe stable `[LLM_FALLBACK]` pour grep côté observabilité.
@@ -141,24 +135,20 @@ def _resolve_llm(agent_row: dict[str, Any]) -> LLM:
                     "LLM() instanciation failed (%s) — falling back to balanced tier",
                     agent_name_or_id, provider, model_name, exc,
                 )
+        elif bare_name in _LEGACY_HYPERCLI_MODELS:
+            logger.info(
+                "[LLM_LEGACY_REMAP] agent=%s provider=%s model=%s → "
+                "remappé vers tier balanced (OpenAI) — modèle Hypercli legacy",
+                agent_name_or_id, provider, model_name,
+            )
         else:
-            # Politique Hypercli-only : provider anthropic/openai/vide ou
-            # model claude-*/gpt-* → route vers Hypercli sans tenter le
-            # provider d'origine. Préfixe grep-able [LLM_HYPERCLI_ONLY].
             logger.warning(
-                "[LLM_HYPERCLI_ONLY] agent=%s provider=%s model=%s → "
-                "routé Hypercli (politique provider unique — migration V2 "
-                "réécrira les lignes DB)",
+                "[LLM_FALLBACK] agent=%s provider=%s model=%s inconnu → "
+                "routé vers tier balanced (OpenAI)",
                 agent_name_or_id, provider, model_name,
             )
 
-    # Fallback final : get_llm("balanced") — 100 % Hypercli via llms.py,
-    # conforme à la directive. Jamais Claude ni OpenAI réel.
-    logger.warning(
-        "[LLM_FALLBACK] agent=%s requested provider=%s model=%s — "
-        "falling back to balanced tier (Hypercli)",
-        agent_name_or_id, provider, model_name,
-    )
+    # Fallback final : get_llm("balanced") — OpenAI (GPT-4o) via llms.py.
     return get_llm("balanced")
 
 

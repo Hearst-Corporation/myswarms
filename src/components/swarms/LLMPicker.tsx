@@ -14,26 +14,20 @@ interface LLMPickerProps {
   onMaxTokensChange: (tokens: number) => void;
 }
 
-// Runtime enforcement: all providers are routed to Hypercli (Kimi K2.6) at runtime
-// by _resolve_llm() in services/crewai-engine/src/crews/dynamic_crew.py.
-// Anthropic and OpenAI (real) options are removed from the UI to avoid confusion —
-// any value stored in DB will be silently overridden by the engine anyway.
-const HYPERCLI_MODELS = [
-  "kimi-k2.6",
-  "kimi-k2.6-anthropic",
-  "kimi-k2.5",
-  "kimi-k2.5-anthropic",
-  "glm-5",
-  "minimax-m2.5",
-];
+// Runtime enforcement: tous les providers sont routés vers l'API OpenAI officielle
+// par _resolve_llm() dans services/crewai-engine/src/crews/dynamic_crew.py.
+// gpt-4o = conversationnel/rapide, gpt-5.1 = agentique (orchestration, tool-use).
+// kimi/hypercli restent acceptés en DB (legacy) mais routés vers OpenAI au runtime.
+const OPENAI_MODELS = ["gpt-4o", "gpt-5.1"];
 
-// Only Hypercli/Kimi providers exposed — runtime-enforced.
-// anthropic and openai keys kept for type-compat but intentionally identical content.
+// Seuls les modèles OpenAI sont proposés — runtime-enforced.
+// kimi/hypercli/anthropic gardés pour type-compat (rows DB legacy) mais
+// pointent vers la même liste OpenAI.
 const PROVIDER_MODELS: Record<ModelProvider, string[]> = {
-  anthropic: HYPERCLI_MODELS, // DB legacy — engine routes to Hypercli
-  openai: HYPERCLI_MODELS, // DB value — engine routes to Hypercli
-  kimi: HYPERCLI_MODELS,
-  hypercli: HYPERCLI_MODELS,
+  anthropic: OPENAI_MODELS, // DB legacy — engine routes to OpenAI
+  openai: OPENAI_MODELS,
+  kimi: OPENAI_MODELS, // DB legacy — engine routes to OpenAI
+  hypercli: OPENAI_MODELS, // DB legacy — engine routes to OpenAI
 };
 
 const TEMP_MIN = 0;
@@ -57,8 +51,8 @@ export function LLMPicker({
       {/* Runtime enforcement notice */}
       <div className="rounded-[var(--radius-md)] bg-surface-2 px-3 py-2 text-xs text-content-muted ring-1 ring-inset ring-line">
         Provider enforced at runtime :{" "}
-        <strong className="text-content-strong">Hypercli · Kimi K2.6</strong>. Any
-        provider stored in DB is routed to Hypercli by the engine.
+        <strong className="text-content-strong">OpenAI · gpt-4o / gpt-5.1</strong>. Any
+        provider stored in DB is routed to OpenAI by the engine.
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -72,10 +66,10 @@ export function LLMPicker({
               if (firstModel) onModelChange(firstModel);
             }}
           >
-            <option value="openai">openai (→ Hypercli)</option>
-            <option value="hypercli">hypercli (→ Hypercli)</option>
-            <option value="kimi">kimi (→ Hypercli, legacy)</option>
-            <option value="anthropic">anthropic (→ Hypercli, legacy)</option>
+            <option value="openai">openai (→ OpenAI officiel)</option>
+            <option value="hypercli">hypercli (→ OpenAI, legacy)</option>
+            <option value="kimi">kimi (→ OpenAI, legacy)</option>
+            <option value="anthropic">anthropic (→ OpenAI, legacy)</option>
           </Select>
         </Field>
 

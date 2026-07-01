@@ -22,9 +22,9 @@ export const AgentRoleSchema = z.enum([
 ]);
 export type AgentRole = z.infer<typeof AgentRoleSchema>;
 
-// C8 fix : "hypercli" est accepté côté engine — l'ajouter ici pour ne plus
-// rejeter les configs valides. On garde "kimi" pour la backward compat des
-// swarms existants en DB (alias historique de "hypercli").
+// Provider canonique = "openai" (GPT-4o/GPT-5.1, engine officiel). "kimi" et
+// "hypercli" restent acceptés pour la backward compat des swarms existants en
+// DB (l'engine les route vers OpenAI au runtime, cf crew_helpers._resolve_llm).
 const ModelProviderSchema = z.enum([
   "anthropic",
   "openai",

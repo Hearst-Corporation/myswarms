@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Suspense, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
+import { Suspense, useState, useSyncExternalStore, type ComponentType, type ReactNode, type SVGProps } from "react";
 import {
   HomeIcon,
   Squares2X2Icon,
@@ -15,10 +15,12 @@ import {
   Cog6ToothIcon,
   Bars3Icon,
   XMarkIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 import { MODULES } from "@/lib/tenant/modules";
 import { useTenantConfig } from "@/components/cockpit/TenantConfigProvider";
 import { LaunchButton } from "@/components/cockpit/LaunchButton";
+import { ChatPanel } from "@/components/cockpit/ChatPanel";
 import { cn } from "@/lib/ui/cn";
 
 type Icon = ComponentType<SVGProps<SVGSVGElement>>;
@@ -58,6 +60,22 @@ const AUTOMOBILE_MODULES = [
 ];
 
 type NavItem = { id: string; label: string; href: string };
+
+// Store réactif « écran ≥ lg » — via useSyncExternalStore pour un rendu SSR
+// cohérent (serveur = false) sans warning d'hydratation ni setState-in-effect.
+const DESKTOP_QUERY = "(min-width: 1024px)";
+function subscribeDesktop(cb: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  const mql = window.matchMedia(DESKTOP_QUERY);
+  mql.addEventListener("change", cb);
+  return () => mql.removeEventListener("change", cb);
+}
+function getDesktopSnapshot(): boolean {
+  return typeof window !== "undefined" && window.matchMedia(DESKTOP_QUERY).matches;
+}
+function useIsDesktop(): boolean {
+  return useSyncExternalStore(subscribeDesktop, getDesktopSnapshot, () => false);
+}
 
 function isActive(pathname: string, href: string): boolean {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -160,6 +178,12 @@ function SidebarContent() {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isDesktop = useIsDesktop();
+  // Chat rail droit : override utilisateur (null = pas de choix → défaut = desktop).
+  const [chatOverride, setChatOverride] = useState<boolean | null>(null);
+  const chatOpen = chatOverride ?? isDesktop;
+  const toggleChat = () => setChatOverride(!chatOpen);
+  const closeChat = () => setChatOverride(false);
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -190,8 +214,41 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
 
-      {/* Zone principale */}
-      <div className="lg:pl-64">
+      {/* Chat rail droit (desktop) — fixe, largeur 380px, togglable */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 right-0 z-40 hidden w-[380px] border-l border-line transition-transform duration-200 lg:block",
+          chatOpen ? "translate-x-0" : "translate-x-full",
+        )}
+        aria-hidden={!chatOpen}
+      >
+        <ChatPanel />
+      </aside>
+
+      {/* Chat drawer mobile */}
+      {chatOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={closeChat}
+            aria-hidden="true"
+          />
+          <div className="fixed inset-y-0 right-0 w-full max-w-sm border-l border-line-strong">
+            <button
+              type="button"
+              onClick={closeChat}
+              aria-label="Fermer le chat"
+              className="absolute left-3 top-4 z-10 rounded-md p-1 text-content-muted hover:bg-surface-2 hover:text-content"
+            >
+              <XMarkIcon className="size-5" />
+            </button>
+            <ChatPanel />
+          </div>
+        </div>
+      ) : null}
+
+      {/* Zone principale — se rétrécit quand le chat est ouvert (desktop) */}
+      <div className={cn("lg:pl-64", chatOpen && "lg:pr-[380px]")}>
         {/* Topbar */}
         <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-line bg-surface/80 px-4 backdrop-blur-md sm:px-6">
           <button
@@ -206,6 +263,21 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Suspense fallback={null}>
               <LaunchButton />
             </Suspense>
+            <button
+              type="button"
+              onClick={toggleChat}
+              aria-label={chatOpen ? "Masquer le chat" : "Afficher le chat"}
+              aria-pressed={chatOpen}
+              title="Chat Kimi"
+              className={cn(
+                "inline-flex size-9 items-center justify-center rounded-[var(--radius-md)] ring-1 ring-inset ring-line transition-colors",
+                chatOpen
+                  ? "bg-accent/12 text-accent-strong ring-accent/25"
+                  : "bg-surface-3 text-content-muted hover:bg-elevated hover:text-content",
+              )}
+            >
+              <ChatBubbleLeftRightIcon className="size-5" />
+            </button>
           </div>
         </header>
 

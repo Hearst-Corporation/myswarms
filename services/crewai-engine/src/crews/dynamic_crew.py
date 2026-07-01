@@ -11,7 +11,8 @@ Charge un swarm (agents + tasks + tool_bindings) via `swarm_store.get_swarm`
 puis instancie des objets CrewAI natifs (`Agent`, `Task`, `Crew`).
 
 Contrat (aligné avec la migration 0006_swarms_dynamic.sql) :
-- `model_provider` ∈ {"anthropic", "openai", "kimi", "hypercli"} — fallback "anthropic"
+- `model_provider` ∈ {"anthropic", "openai", "kimi", "hypercli"} — fallback "anthropic".
+  Provider effectif d'exécution : OpenAI officiel (GPT-4o/GPT-5.1) — voir `_resolve_llm`.
 - `model_name` : string LiteLLM (ex: "claude-sonnet-4-6"). Si fourni, override
   toute factory. La colonne `llm_tier` N'EXISTE PAS en DB.
 - Les tool_bindings de category "api_call" et tool.name ∈ {gmail, slack, telegram,
@@ -30,7 +31,7 @@ from ..persistence import swarm_store
 from ..tools.ask_human import AskHumanTool
 from .callbacks import _module_step_callback, _module_task_callback
 from .crew_helpers import (
-    _HYPERCLI_KNOWN_MODELS,
+    _OPENAI_KNOWN_MODELS,
     _COMPOSIO_TOOLKITS,
     _INPUT_MAX_LINES,
     _INPUT_META_KEYS,
@@ -77,7 +78,7 @@ __all__ = [
     "_WRITER_STOP_SENTINEL",
     "_module_step_callback",
     "_module_task_callback",
-    "_HYPERCLI_KNOWN_MODELS",
+    "_OPENAI_KNOWN_MODELS",
     "_COMPOSIO_TOOLKITS",
     "_INPUT_MAX_LINES",
     "_INPUT_META_KEYS",

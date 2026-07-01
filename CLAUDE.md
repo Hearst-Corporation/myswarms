@@ -106,35 +106,44 @@ Doc complète : [docs/api-config/SERVICES.md](docs/api-config/SERVICES.md) secti
 
 ## 🤖 Stack LLM — règle absolue
 
-MySwarms utilise **Hypercli (Kimi K2.6) comme unique provider LLM** pour le chat, l'orchestration et les agents. Tout agent LLM DOIT utiliser ces credentials.
+MySwarms utilise **l'API OpenAI officielle comme unique provider LLM** pour le chat, l'orchestration et les agents, avec deux tiers de modèles. Tout agent LLM DOIT utiliser ces credentials.
 
-| Provider | Variable env | Usage | SDK |
+| Tier | Modèle | Usage | Variable env |
 |---|---|---|---|
-| **Hypercli (Kimi K2.6)** | `HYPERCLI_API_KEY` + `HYPERCLI_BASE_URL` + `HYPERCLI_DEFAULT_MODEL` | **Unique provider LLM** — chat, orchestration, agents, embeddings | `openai` (endpoint OpenAI-compatible) |
+| **Conversationnel / fast / balanced** | `gpt-4o` | Chat, réponses rapides, agents peu complexes | `OPENAI_CHAT_MODEL` (Next.js), `CREWAI_DEFAULT_FAST_MODEL`/`CREWAI_DEFAULT_BALANCED_MODEL` (engine) |
+| **Agentique / smart** | `gpt-5.1` | Orchestration, tool-use, Agent Architecte, agents complexes | `OPENAI_AGENT_MODEL` (Next.js), `CREWAI_DEFAULT_SMART_MODEL` (engine) |
 
-> `ANTHROPIC_API_KEY` et `OPENAI_API_KEY` peuvent rester vides. Les SDK Anthropic et OpenAI ne sont **pas utilisés** pour le chat ou les agents dans ce projet.
+Clé unique : `OPENAI_API_KEY` (API officielle, pas d'endpoint custom). SDK : `openai` (Next.js), `litellm` via `crewai.LLM` (moteur Python).
+
+> Hypercli/Kimi reste câblé en **legacy/rollback uniquement**, gated par `CREWAI_LLM_PROVIDER=hypercli` (défaut `openai`). Ne jamais y revenir sans directive explicite d'Adrien. `ANTHROPIC_API_KEY` peut rester vide — le SDK Anthropic n'est pas utilisé pour le chat/les agents dans ce projet.
 
 ### Variables d'environnement
 
 ```
-HYPERCLI_API_KEY=<secret>
-HYPERCLI_BASE_URL=https://api.hypercli.com/v1
-HYPERCLI_DEFAULT_MODEL=kimi-k2.6
+OPENAI_API_KEY=<secret>
+OPENAI_CHAT_MODEL=gpt-4o
+OPENAI_AGENT_MODEL=gpt-5.1
+
+# crewai-engine (services/crewai-engine/.env)
+CREWAI_LLM_PROVIDER=openai
+CREWAI_DEFAULT_FAST_MODEL=gpt-4o
+CREWAI_DEFAULT_BALANCED_MODEL=gpt-4o
+CREWAI_DEFAULT_SMART_MODEL=gpt-5.1
 ```
 
-### Côté Next.js — client OpenAI-compatible
+### Côté Next.js — client OpenAI officiel
 
 ```typescript
-// src/lib/llm/kimi.ts
+// src/lib/llm/openai.ts
 import OpenAI from "openai";
 
-export const kimi = new OpenAI({
-  apiKey: process.env.HYPERCLI_API_KEY!,
-  baseURL: process.env.HYPERCLI_BASE_URL!, // https://api.hypercli.com/v1
-});
+export const openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-const response = await kimi.chat.completions.create({
-  model: process.env.HYPERCLI_DEFAULT_MODEL!, // kimi-k2.6
+export const OPENAI_CHAT_MODEL = process.env.OPENAI_CHAT_MODEL || "gpt-4o";
+export const OPENAI_AGENT_MODEL = process.env.OPENAI_AGENT_MODEL || "gpt-5.1";
+
+const response = await openaiClient.chat.completions.create({
+  model: OPENAI_CHAT_MODEL, // gpt-4o pour du chat, OPENAI_AGENT_MODEL pour de l'agentique
   messages: [{ role: "user", content: "..." }],
 });
 ```
@@ -142,28 +151,26 @@ const response = await kimi.chat.completions.create({
 ### Côté moteur CrewAI Python — litellm via crewai.LLM
 
 ```python
-# services/crewai-engine/src/
-import os
+# services/crewai-engine/src/llms.py — get_llm(tier) fait déjà ce routage
 from crewai import LLM
 
 llm = LLM(
-    model="openai/kimi-k2.6",          # préfixe openai/ car endpoint OpenAI-compatible (litellm)
-    base_url=os.getenv("HYPERCLI_BASE_URL"),
-    api_key=os.getenv("HYPERCLI_API_KEY"),
+    model="gpt-4o",  # ou "gpt-5.1" pour le tier smart/agentique
+    api_key=os.getenv("OPENAI_API_KEY"),
 )
 ```
 
 ### Embeddings
 
-Embeddings via Hypercli modèle `qwen3-embedding-4b` (endpoint OpenAI-compatible, champ `model`). Plus de dépendance `text-embedding-3-small` OpenAI pour le chemin nominal. Si Hypercli est indisponible et qu'un embedding est requis, marquer en TODO — ne pas réintroduire OpenAI par défaut.
+Embeddings via Hypercli modèle `qwen3-embedding-4b` (endpoint OpenAI-compatible, champ `model`) — **hors scope de cette migration**, non concerné par le passage à OpenAI officiel pour le chat/agentique. Si Hypercli est indisponible et qu'un embedding est requis, marquer en TODO — ne pas réintroduire OpenAI par défaut pour les embeddings sans confirmation explicite d'Adrien.
 
-### Modèles Hypercli disponibles
+### Modèles OpenAI disponibles
 
-`kimi-k2.6` · `kimi-k2.6-anthropic` · `kimi-k2.5` · `kimi-k2.5-anthropic` · `glm-5` · `minimax-m2.5` · `qwen3-embedding-4b`
+`gpt-4o` (conversationnel) · `gpt-5.1` (agentique)
 
 ### Historique
 
-Hypercli avait été écarté en N-1 (empty-responses / 404 / timeouts observés sur le crew 8 agents séquentiels du Chief of Staff). Ré-adopté sur directive explicite — **surveiller la fiabilité du crew Chief of Staff** en production et consigner tout incident dans Langfuse.
+Hypercli/Kimi K2.6 a été le provider unique de N-1 à ce changement (2026-07). Migré vers l'API OpenAI officielle sur directive explicite d'Adrien — GPT-4o pour le conversationnel, GPT-5.1 pour l'agentique. Le routage runtime `_resolve_llm()` (`services/crewai-engine/src/crews/crew_helpers.py`) redirige automatiquement tout agent DB legacy (provider/model Hypercli/Kimi/Claude) vers OpenAI — aucune migration DB requise. **Surveiller la fiabilité** en production et consigner tout incident dans Langfuse.
 
 ### Règles strictes
 
