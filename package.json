@@ -12,7 +12,9 @@
     "build": "next build",
     "start": "next start -p 3333",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:security": "bash scripts/security-regression.sh",
     "electron:dev": "concurrently -k \"npm run dev\" \"wait-on http://localhost:3333 && npm run electron:start\"",
     "electron:assets": "mkdir -p dist-electron && cp electron/splash.html dist-electron/splash.html",
     "electron:start": "tsc -p electron && npm run electron:assets && electron .",
@@ -91,5 +93,11 @@
       ]
     },
     "publish": null
+  },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "1.0.1",
+    "@rolldown/binding-darwin-arm64": "1.0.1",
+    "@rolldown/binding-darwin-x64": "1.0.1",
+    "@rolldown/binding-win32-x64-msvc": "1.0.1"
   }
 }
