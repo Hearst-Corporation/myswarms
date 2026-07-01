@@ -1,13 +1,112 @@
 @import "tailwindcss";
 
-:root {
-  --background: var(--ct-bg-deep);
-  --foreground: var(--ct-text-primary);
+/* ============================================================
+   MySwarms — Design System (dark premium, accent cyan).
+   Token layer CSS-first (Tailwind v4 @theme). Source de vérité
+   du look du produit. Éditable librement — voir DESIGN-SYSTEM.md.
+   ============================================================ */
+
+@theme {
+  /* ── Fonts ── */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* ── Accent MySwarms (cyan) ── */
+  --color-accent-50: #eef9ff;
+  --color-accent-100: #d9f1ff;
+  --color-accent-200: #bce7ff;
+  --color-accent-300: #8ed8ff;
+  --color-accent-400: #60bae8;
+  --color-accent-500: #3fa7e0;
+  --color-accent-600: #2b87bd;
+  --color-accent-700: #256d99;
+  --color-accent-800: #245a7d;
+  --color-accent-900: #234c69;
+  --color-accent: #3fa7e0;
+  --color-accent-strong: #60bae8;
+
+  /* ── Surfaces (dark slate) ── */
+  --color-canvas: #060b12;
+  --color-surface: #0c141d;
+  --color-surface-2: #111c27;
+  --color-surface-3: #17232f;
+  --color-elevated: #1b2833;
+
+  /* ── Text ── */
+  --color-content-strong: #ffffff;
+  --color-content: #e6edf3;
+  --color-content-muted: #9aa9b6;
+  --color-content-faint: #6b7c8a;
+
+  /* ── Borders ── */
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+
+  /* ── Status ── */
+  --color-ok: #22c55e;
+  --color-running: #3b82f6;
+  --color-warn: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* ── Radius ── */
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* ── Motion ── */
+  --ease-swift: cubic-bezier(0.2, 0.7, 0.2, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  color-scheme: dark;
+  --background: var(--color-canvas);
+  --foreground: var(--color-content);
+}
+
+html,
+body {
+  background: var(--color-canvas);
+  color: var(--color-content);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* Scrollbar discrète, cohérente avec le dark slate. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-line-strong);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: content-box;
+}
+
+/* Focus ring accessible, teinté accent. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Accent par espace produit (piloté par DashboardSwitcher → [data-product]). */
+[data-product="automobile"] {
+  --color-accent: #f59e0b;
+  --color-accent-strong: #fbbf24;
 }

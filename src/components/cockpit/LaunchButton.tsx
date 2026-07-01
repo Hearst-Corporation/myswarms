@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
+import { cn } from "@/lib/ui/cn";
 
 type EngineStatus = "up" | "down" | "starting" | "unknown";
 
@@ -20,7 +20,7 @@ export function LaunchButton() {
       const data = await res.json();
       if (data.engine === "ok") {
         setStatus("up");
-        setError(null);  // clear error sur recovery automatique
+        setError(null); // clear error sur recovery automatique
       } else {
         setStatus("down");
       }
@@ -59,7 +59,7 @@ export function LaunchButton() {
       }
       let started = false;
       for (let i = 0; i < ENGINE_START_MAX_ATTEMPTS; i++) {
-        await new Promise(r => setTimeout(r, ENGINE_START_POLL_DELAY_MS));
+        await new Promise((r) => setTimeout(r, ENGINE_START_POLL_DELAY_MS));
         const res = await fetch("/api/system/status");
         const data = await res.json();
         if (data.engine === "ok") {
@@ -81,18 +81,23 @@ export function LaunchButton() {
     }
   };
 
-  // Utilise les variables CSS du design system cockpit (--ct-status-*)
   const dotColor =
-    status === "up" ? "var(--ct-status-completed)" :
-    status === "starting" ? "var(--ct-status-paused)" :
-    status === "down" ? "var(--ct-status-failed)" :
-    "var(--ct-text-muted)";
+    status === "up"
+      ? "var(--color-ok)"
+      : status === "starting"
+        ? "var(--color-warn)"
+        : status === "down"
+          ? "var(--color-danger)"
+          : "var(--color-content-faint)";
 
   const label =
-    status === "up" ? "Engine ●" :
-    status === "starting" ? "Starting…" :
-    status === "down" ? "▶ Launch" :
-    "Engine";
+    status === "up"
+      ? "Engine"
+      : status === "starting"
+        ? "Starting…"
+        : status === "down"
+          ? "Launch"
+          : "Engine";
 
   const isDisabled = status === "up" || status === "starting";
   const titleText = error
@@ -102,34 +107,31 @@ export function LaunchButton() {
       : "Click to start the engine";
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
+    <div className="flex items-center gap-2">
       <button
         type="button"
         onClick={handleLaunch}
         disabled={isDisabled}
         aria-disabled={isDisabled}
-        className="ct-seg-btn"
+        className={cn(
+          "inline-flex h-8 items-center gap-2 rounded-[var(--radius-md)] px-3 text-xs font-semibold",
+          "ring-1 ring-inset ring-line transition-colors",
+          isDisabled ? "cursor-default bg-surface-2" : "cursor-pointer bg-surface-3 hover:bg-elevated",
+        )}
         title={titleText}
         aria-label={`CrewAI engine — ${label}${status === "down" ? ". Click to start." : ""}`}
-        style={{
-          color: dotColor,
-          fontWeight: status === "down" ? FONT_WEIGHT.bold : undefined,
-          cursor: status === "up" ? "default" : "pointer",
-          gap: SPACING.xs,
-          minWidth: "var(--ct-launch-btn-min-w)",
-        }}
       >
-        <span aria-live="polite">{label}</span>
+        <span
+          className="size-2 rounded-full"
+          style={{ background: dotColor }}
+          aria-hidden="true"
+        />
+        <span aria-live="polite" className="text-content-muted">
+          {label}
+        </span>
       </button>
       {error && (
-        <span
-          role="alert"
-          aria-live="polite"
-          style={{
-            fontSize: FONT.xs,
-            color: "var(--ct-accent-strong)",
-          }}
-        >
+        <span role="alert" aria-live="polite" className="text-xs text-danger">
           {error}
         </span>
       )}

@@ -1,21 +1,16 @@
-import { SIZE } from "@/lib/ui/tokens";
-
+/** Chevron directionnel inline. API historique préservée (direction). */
 export function Chevron({ direction }: { direction: "left" | "right" }) {
-  const style =
-    direction === "left"
-      ? { display: "inline-block", verticalAlign: "middle", marginRight: 6 }
-      : { display: "inline-block", verticalAlign: "middle", marginLeft: 6 };
   return (
     <svg
-      width={SIZE.iconSm}
-      height={SIZE.iconSm}
+      width={14}
+      height={14}
       viewBox="0 0 14 14"
       fill="none"
       stroke="currentColor"
       strokeWidth={1.5}
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={style}
+      className={direction === "left" ? "mr-1.5 inline-block align-middle" : "ml-1.5 inline-block align-middle"}
       aria-hidden="true"
     >
       {direction === "left" ? (

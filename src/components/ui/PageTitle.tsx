@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { cn } from "@/lib/ui/cn";
 
 interface PageTitleProps {
   variant?: "default" | "mono";
@@ -7,11 +8,14 @@ interface PageTitleProps {
 }
 
 export function PageTitle({ variant, children, style }: PageTitleProps) {
-  const className =
-    variant === "mono" ? "ct-title ct-title--mono" : "ct-title";
-
   return (
-    <h1 className={className} style={style}>
+    <h1
+      className={cn(
+        "text-xl font-semibold tracking-tight text-content-strong",
+        variant === "mono" && "font-mono",
+      )}
+      style={style}
+    >
       {children}
     </h1>
   );

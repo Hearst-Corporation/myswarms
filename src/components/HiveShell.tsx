@@ -1,18 +1,16 @@
 "use client";
 
-import { CockpitShell } from "@hearst/cockpit-shell";
-import { Suspense, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import { COLOR } from "@/lib/ui/tokens";
-import { AppBottomBar } from "@/components/cockpit/AppBottomBar";
+import { AppShell } from "@/components/cockpit/AppShell";
 
-const HIVE_PRODUCTS = [
-  { id: "hive" as const, name: "Hearst Hive", short: "HV", color: COLOR.brandHive },
-];
-
-// Routes rendues hors du shell Cockpit (plein écran, sans rails ni bottom bar).
+// Routes rendues hors du shell (plein écran, sans sidebar ni topbar).
 const BARE_ROUTES = ["/login"];
 
+/**
+ * Enveloppe applicative MySwarms. Rend le shell neuf (AppShell) sauf sur les
+ * routes « bare » (login) rendues en plein écran.
+ */
 export function HiveShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isBare = BARE_ROUTES.some(
@@ -23,12 +21,5 @@ export function HiveShell({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  return (
-    <CockpitShell products={HIVE_PRODUCTS} appId="hive">
-      {children}
-      <Suspense fallback={null}>
-        <AppBottomBar />
-      </Suspense>
-    </CockpitShell>
-  );
+  return <AppShell>{children}</AppShell>;
 }

@@ -1,0 +1,186 @@
+/* ============================================================
+   COMPAT — pont temporaire entre l'ancien vocabulaire `ct-*`
+   (classes + variables) et le nouveau DS MySwarms (globals.css).
+
+   Objectif : garder le repo cohérent visuellement pendant que les
+   pages migrent vers les utilities Tailwind + primitives src/components/ui.
+   Chaque `ct-*` retiré du markup peut à terme disparaître d'ici.
+   Ce fichier est ÉDITABLE librement — ce n'est pas une source figée.
+   ============================================================ */
+
+:root {
+  /* ── Alias variables --ct-* → tokens neufs --color-* ── */
+  --ct-bg-deep: var(--color-canvas);
+  --ct-surface-0: var(--color-canvas);
+  --ct-surface-1: var(--color-surface);
+  --ct-surface-2: var(--color-surface-2);
+  --ct-surface-3: var(--color-surface-3);
+
+  --ct-text-strong: var(--color-content-strong);
+  --ct-text-primary: var(--color-content);
+  --ct-text-body: var(--color-content);
+  --ct-text-muted: var(--color-content-muted);
+  --ct-text-faint: var(--color-content-faint);
+  --ct-text-on-accent: #ffffff;
+
+  --ct-accent: var(--color-accent);
+  --ct-accent-strong: var(--color-accent-strong);
+  --ct-accent-soft: color-mix(in oklab, var(--color-accent) 15%, transparent);
+  --ct-brand-hive: var(--color-accent);
+
+  --ct-border-soft: var(--color-line);
+  --ct-border: var(--color-line);
+  --ct-border-strong: var(--color-line-strong);
+  --ct-border-accent: color-mix(in oklab, var(--color-accent) 40%, transparent);
+
+  --ct-overlay-modal: rgba(0, 0, 0, 0.7);
+  --ct-overlay-dark: rgba(0, 0, 0, 0.6);
+  --ct-overlay-dark-strong: rgba(0, 0, 0, 0.8);
+
+  --ct-state-ok: var(--color-ok);
+  --ct-status-completed: var(--color-ok);
+  --ct-status-running: var(--color-running);
+  --ct-status-paused: var(--color-warn);
+  --ct-status-failed: var(--color-danger);
+  --ct-status-cancelled: var(--color-content-faint);
+  --ct-status-completed-bg: color-mix(in oklab, var(--color-ok) 12%, transparent);
+  --ct-status-completed-border: color-mix(in oklab, var(--color-ok) 25%, transparent);
+  --ct-status-running-bg: color-mix(in oklab, var(--color-running) 12%, transparent);
+  --ct-status-running-border: color-mix(in oklab, var(--color-running) 25%, transparent);
+  --ct-status-paused-bg: color-mix(in oklab, var(--color-warn) 12%, transparent);
+  --ct-status-paused-border: color-mix(in oklab, var(--color-warn) 25%, transparent);
+  --ct-status-failed-bg: color-mix(in oklab, var(--color-danger) 12%, transparent);
+  --ct-status-failed-border: color-mix(in oklab, var(--color-danger) 25%, transparent);
+  --ct-status-cancelled-bg: color-mix(in oklab, var(--color-content-faint) 12%, transparent);
+  --ct-status-cancelled-border: color-mix(in oklab, var(--color-content-faint) 25%, transparent);
+
+  --ct-alert-error-text: #fca5a5;
+  --ct-alert-error-bg: color-mix(in oklab, var(--color-danger) 10%, transparent);
+  --ct-alert-error-border: color-mix(in oklab, var(--color-danger) 25%, transparent);
+
+  --cos-accent: #7cf2c4;
+  --cos-accent-soft: rgba(124, 242, 196, 0.1);
+  --cos-accent-border: rgba(124, 242, 196, 0.25);
+
+  --ct-launch-btn-min-w: 90px;
+  --ct-card-min-w: 240px;
+}
+
+/* ── Classes de compat (mappées sur les tokens neufs) ── */
+
+.ct-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-content-strong);
+}
+.ct-title--mono { font-family: var(--font-mono); }
+
+.ct-sub {
+  font-size: 0.875rem;
+  color: var(--color-content-muted);
+}
+
+.ct-eyebrow {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+}
+
+.ct-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+}
+
+.ct-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-content-strong);
+}
+
+.ct-card-body {
+  font-size: 0.875rem;
+  color: var(--color-content);
+  line-height: 1.6;
+}
+
+.ct-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  transition: color 150ms var(--ease-swift);
+}
+.ct-link:hover { color: var(--color-accent-strong); }
+
+.ct-breadcrumb-link {
+  color: var(--color-content-muted);
+  text-decoration: none;
+}
+.ct-breadcrumb-link:hover { color: var(--color-content); }
+
+.ct-placeholder { color: var(--color-content-faint); }
+.ct-url {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-content-muted);
+  word-break: break-all;
+}
+
+.ct-seg-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+}
+
+.ct-seg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  height: 2rem;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-content-muted);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms var(--ease-swift), color 150ms var(--ease-swift);
+  text-decoration: none;
+}
+.ct-seg-btn:hover { background: var(--color-surface-3); color: var(--color-content); }
+.ct-seg-btn.active { background: var(--color-surface-3); color: var(--color-content-strong); }
+.ct-seg-btn.primary { background: var(--color-accent); color: #fff; }
+.ct-seg-btn.primary:hover { background: var(--color-accent-strong); }
+.ct-seg-btn:disabled { opacity: 0.5; pointer-events: none; }
+
+.ct-th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-content-muted);
+}
+.ct-td {
+  padding: 0.75rem 1rem;
+  color: var(--color-content);
+  border-top: 1px solid var(--color-line);
+}
+
+@keyframes ct-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.ct-pulse { animation: ct-pulse 1.6s ease-in-out infinite; }

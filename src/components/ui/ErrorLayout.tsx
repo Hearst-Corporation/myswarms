@@ -8,14 +8,10 @@ interface ErrorLayoutProps {
 
 export function ErrorLayout({ title, message, children }: ErrorLayoutProps) {
   return (
-    <section role="alert">
-      <h1 className="ct-title">{title}</h1>
-      {message ? (
-        <p className="ct-card-body" style={{ color: "var(--ct-text-muted)" }}>
-          {message}
-        </p>
-      ) : null}
-      {children}
+    <section role="alert" className="mx-auto max-w-lg py-16 text-center">
+      <h1 className="text-xl font-semibold tracking-tight text-content-strong">{title}</h1>
+      {message ? <p className="mt-2 text-sm text-content-muted">{message}</p> : null}
+      {children ? <div className="mt-6">{children}</div> : null}
     </section>
   );
 }

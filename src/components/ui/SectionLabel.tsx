@@ -1,19 +1,15 @@
-import { FONT, FONT_WEIGHT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
-import type { CSSProperties } from "react";
+import { cn } from "@/lib/ui/cn";
 
-const style: CSSProperties = {
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.wide,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-  display: "block",
-  marginBottom: SPACING.sm,
-};
-
+/** Petit label de section en capitales. API historique préservée (text, mb). */
 export function SectionLabel({ text, mb }: { text: string; mb?: number }) {
   return (
-    <span style={mb !== undefined ? { ...style, marginBottom: mb } : style}>
+    <span
+      className={cn(
+        "block text-[10px] font-bold uppercase tracking-wider text-content-muted",
+        mb === undefined && "mb-2",
+      )}
+      style={mb !== undefined ? { marginBottom: mb } : undefined}
+    >
       {text}
     </span>
   );
