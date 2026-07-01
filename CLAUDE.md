@@ -2,6 +2,20 @@
 
 > Projet créé via `/setup-adrien`. Stack : Next.js 16 (App Router) + TypeScript + Tailwind 4. Région Supabase : `eu-west-1`.
 
+## Dev Agent Rules — socle global + adapter local
+
+**Socle commun (obligatoire, lire d'abord) : [`~/.claude/dev-agent-rules.md`](~/.claude/dev-agent-rules.md)**
+— startup check, git (jamais `add -A/-u/.`, staging chirurgical), worktree si parallèle,
+Catalyst/DS first, serveurs propres, validation par type, rapport final, STOP conditions.
+
+Adapter local **MySwarms** :
+- **Ports** : frontend `3333` · **backend `8000`** (FastAPI/uvicorn). Fallback front `3001`.
+- **Dev / kill / restart** : `npm run dev` = `concurrently` front (`3333`) + back (`uvicorn … --port 8000`). **Double serveur** : vérifier `lsof -ti tcp:3333` ET `lsof -ti tcp:8000` avant lancer ; tuer uniquement ces PID. Clean restart avant QA. URLs : `http://localhost:3333` (front), `http://localhost:8000` (API).
+- **DS source** : Tailwind 4 — **refonte en cours** (branche `refonte-tailwind-*`). DS produit à clarifier : si Cockpit visé, **Catalyst/DS first** ; sinon signaler + proposer plan d'alignement, ne pas inventer un système parallèle.
+- **Git mode** : agent seul → branche courante ; parallèle → worktree. Confirmation avant push si `main` auto-deploy (Vercel/Railway).
+- **No-touch** : `supabase db push` interdit (interactif) · `CREWAI_ENGINE_AUTH_TOKEN` (bearer partagé front/back) · secrets `.env.local`.
+- **Validations** : typecheck front + tests back Python + smoke API (`:8000`).
+
 ## Langue & mode
 - Toutes les réponses en **français**.
 - Mode **autonomie totale** : tu exécutes, tu ne demandes pas confirmation pour chaque étape.
