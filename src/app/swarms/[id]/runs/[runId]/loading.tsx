@@ -1,4 +1,4 @@
-import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
+import { Skeleton } from "@/components/ui";
 
 /**
  * Skeleton de chargement de la page détail d'un run Swarm.
@@ -6,108 +6,34 @@ import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
  */
 export default function SwarmRunLoading() {
   return (
-    <>
+    <div className="flex flex-col gap-6" aria-busy="true" aria-live="polite">
       {/* Breadcrumb skeleton */}
-      <div
-        className="ct-eyebrow"
-        style={{
-          width: 80,
-          height: SIZE.skeletonTitle,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.md,
-        }}
-      />
+      <Skeleton className="h-3 w-20" />
 
-      {/* Titre skeleton */}
-      <div
-        style={{
-          width: 200,
-          height: 28,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.md,
-        }}
-      />
-
-      {/* StatusBadge + trigger skeleton */}
-      <div
-        style={{
-          display: "flex",
-          gap: SPACING.md,
-          alignItems: "center",
-          marginBottom: SPACING.xl,
-        }}
-      >
-        <div
-          style={{
-            width: 72,
-            height: 22,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.full,
-            opacity: OPACITY.skeletonStrong,
-          }}
-        />
-        <div
-          style={{
-            width: 120,
-            height: SIZE.skeletonTitle,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            opacity: OPACITY.skeletonSoft,
-          }}
-        />
+      {/* Titre + StatusBadge + trigger skeleton */}
+      <div className="border-b border-line pb-5">
+        <Skeleton className="h-7 w-52" />
+        <div className="mt-3 flex items-center gap-3">
+          <Skeleton className="h-5 w-[72px] rounded-full" />
+          <Skeleton className="h-4 w-28" />
+        </div>
       </div>
 
-      {/* KPIs skeleton — 4 cards */}
-      <div
-        aria-busy="true"
-        aria-live="polite"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-          gap: SPACING.md,
-          marginBottom: SPACING.xl,
-        }}
-      >
+      {/* KPIs skeleton — cards */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="ct-card"
-            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 72 }}
-          />
+          <Skeleton key={i} className="h-[72px] rounded-[var(--radius-lg)]" />
         ))}
       </div>
 
       {/* Métadonnées card skeleton */}
-      <div
-        className="ct-card"
-        style={{ opacity: OPACITY.skeletonStrong, minHeight: 80, marginBottom: SPACING.md }}
-      />
+      <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
 
       {/* Timeline skeleton */}
-      <div
-        className="ct-eyebrow"
-        style={{
-          width: 120,
-          height: SIZE.skeletonTitle,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          margin: `${SPACING.xl}px 0 ${SPACING.md}px`,
-        }}
-      />
+      <Skeleton className="h-3 w-32" />
       {Array.from({ length: 3 }).map((_, i) => (
-        <div
-          key={i}
-          className="ct-card"
-          style={{ marginBottom: SPACING.sm, opacity: OPACITY.skeleton, minHeight: 48 }}
-        />
+        <Skeleton key={i} className="h-12 rounded-[var(--radius-lg)]" />
       ))}
-
-      <p className="ct-sub">Loading run…</p>
-    </>
+    </div>
   );
 }

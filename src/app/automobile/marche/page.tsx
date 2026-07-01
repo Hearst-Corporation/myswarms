@@ -4,8 +4,7 @@ import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { getMarketIndex } from "@/lib/market/apmClient";
 import { MarketSearchForm } from "@/components/automobile/MarketSearchForm";
 import { BrandLogo } from "@/components/automobile/BrandLogo";
-import { Chevron } from "@/components/ui/Chevron";
-import { FONT, FONT_WEIGHT, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
+import { Chevron, Card, CardBody, PageHeader } from "@/components/ui";
 import { fmtPrice } from "@/lib/utils/format";
 
 const TITLE_LOGO_SIZE = 48;
@@ -33,86 +32,67 @@ export default async function CoteMarchePage({ searchParams }: PageProps) {
 
   return (
     <>
-      <div className="ct-eyebrow">
-        <Link href="/automobile" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-          <Chevron direction="left" />Automobile
-        </Link>
+      <Link
+        href="/automobile"
+        className="mb-4 inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content"
+      >
+        <Chevron direction="left" />Automobile
+      </Link>
+
+      <div className="mb-8">
+        <PageHeader
+          title="Cote marché"
+          subtitle="Prix médian, fourchette et liquidité d'un modèle — données marché live."
+        />
       </div>
 
-      <div style={{ marginBottom: SPACING.xl }}>
-        <h1 className="ct-title">Cote marché</h1>
-        <p className="ct-sub">
-          Prix médian, fourchette et liquidité d&apos;un modèle — données marché live.
-        </p>
-      </div>
-
-      <div className="ct-card" style={{ padding: `${SPACING.lx}px`, marginBottom: SPACING.xl }}>
-        <MarketSearchForm defaultMake={make} defaultModel={model} defaultFuel={fuel} />
-      </div>
+      <Card className="mb-8">
+        <CardBody>
+          <MarketSearchForm defaultMake={make} defaultModel={model} defaultFuel={fuel} />
+        </CardBody>
+      </Card>
 
       {hasQuery && !market && (
-        <div className="ct-card">
-          <div className="ct-card-title">Pas de données</div>
-          <p className="ct-card-body">
-            Aucune cote marché exploitable pour {make} {model}
-            {fuel ? ` (${fuel})` : ""}. Le modèle est peut-être trop rare, ou
-            orthographié différemment dans la base marché.
-          </p>
-        </div>
+        <Card>
+          <CardBody>
+            <h3 className="mb-2 text-sm font-semibold text-content-strong">Pas de données</h3>
+            <p className="text-sm text-content-muted">
+              Aucune cote marché exploitable pour {make} {model}
+              {fuel ? ` (${fuel})` : ""}. Le modèle est peut-être trop rare, ou
+              orthographié différemment dans la base marché.
+            </p>
+          </CardBody>
+        </Card>
       )}
 
       {market && (
-        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg, width: "100%" }}>
+        <div className="flex w-full flex-col gap-6">
           {/* Cote principale */}
-          <div className="ct-card" style={{ borderColor: "var(--ct-accent-strong)" }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: SPACING.md,
-                marginBottom: SPACING.md,
-              }}
-            >
-              <BrandLogo brand={market.make} size={TITLE_LOGO_SIZE} />
-              <div className="ct-card-title" style={{ marginBottom: 0 }}>
-                Cote médiane — {market.make} {market.model}
-                {market.fuel ? ` · ${market.fuel}` : ""}
+          <Card className="ring-accent/60">
+            <CardBody>
+              <div className="mb-4 flex items-center gap-4">
+                <BrandLogo brand={market.make} size={TITLE_LOGO_SIZE} />
+                <h3 className="text-sm font-semibold text-content-strong">
+                  Cote médiane — {market.make} {market.model}
+                  {market.fuel ? ` · ${market.fuel}` : ""}
+                </h3>
               </div>
-            </div>
-            <div
-              style={{
-                fontSize: FONT.xxl,
-                fontWeight: FONT_WEIGHT.extrabold,
-                color: "var(--ct-accent-strong)",
-                lineHeight: 1.1,
-              }}
-            >
-              {fmtPrice(market.medianPrice)}
-            </div>
-            <div style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginTop: SPACING.sm }}>
-              Fourchette {fmtPrice(market.p15Price)} – {fmtPrice(market.p85Price)} (P15–P85)
-            </div>
-            {fuelMismatch && (
-              <div
-                style={{
-                  marginTop: SPACING.md,
-                  fontSize: FONT.xs,
-                  color: "var(--ct-alert-error-text)",
-                }}
-              >
-                ⚠️ Carburant demandé «&nbsp;{fuel}&nbsp;» indisponible — cote affichée pour «&nbsp;{market.fuel}&nbsp;».
+              <div className="text-3xl font-extrabold leading-tight text-accent-strong">
+                {fmtPrice(market.medianPrice)}
               </div>
-            )}
-          </div>
+              <div className="mt-2 text-sm text-content-muted">
+                Fourchette {fmtPrice(market.p15Price)} – {fmtPrice(market.p85Price)} (P15–P85)
+              </div>
+              {fuelMismatch && (
+                <div className="mt-4 text-xs text-danger">
+                  ⚠️ Carburant demandé «&nbsp;{fuel}&nbsp;» indisponible — cote affichée pour «&nbsp;{market.fuel}&nbsp;».
+                </div>
+              )}
+            </CardBody>
+          </Card>
 
           {/* Signaux marché */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-              gap: SPACING.lg,
-            }}
-          >
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-6">
             <Metric label="Liquidité" value={market.liquidityScore != null ? market.liquidityScore.toFixed(1) : "—"} />
             <Metric
               label="Vélocité (jours)"
@@ -123,7 +103,7 @@ export default async function CoteMarchePage({ searchParams }: PageProps) {
             <Metric label="Échantillon" value={Math.round(market.nEffective).toString()} />
           </div>
 
-          <p style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)" }}>
+          <p className="text-xs text-content-faint">
             Données marché APM · cluster mis à jour{" "}
             {market.asOf ? new Date(market.asOf).toLocaleString("fr-FR") : "—"}
           </p>
@@ -135,22 +115,15 @@ export default async function CoteMarchePage({ searchParams }: PageProps) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="ct-card" style={{ padding: `${SPACING.lg}px` }}>
-      <div
-        style={{
-          fontSize: FONT.xs,
-          fontWeight: FONT_WEIGHT.bold,
-          letterSpacing: LETTER_SPACING.wide,
-          textTransform: "uppercase",
-          color: "var(--ct-text-muted)",
-          marginBottom: SPACING.sm,
-        }}
-      >
-        {label}
-      </div>
-      <div style={{ fontSize: FONT.xl, fontWeight: FONT_WEIGHT.extrabold, color: "var(--ct-text-primary)", lineHeight: 1 }}>
-        {value}
-      </div>
-    </div>
+    <Card>
+      <CardBody>
+        <div className="mb-2 text-xs font-bold uppercase tracking-wider text-content-muted">
+          {label}
+        </div>
+        <div className="text-2xl font-extrabold leading-none text-content-strong">
+          {value}
+        </div>
+      </CardBody>
+    </Card>
   );
 }

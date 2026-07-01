@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/auth/superAdmin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminUsersClient } from "@/components/admin/AdminUsersClient";
-import { Chevron } from "@/components/ui/Chevron";
-import Link from "next/link";
+import { PageHeader, Chevron } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Admin — Utilisateurs" };
@@ -29,22 +29,24 @@ export default async function AdminUsersPage() {
   }));
 
   return (
-    <>
-      <div className="ct-eyebrow">
-        <Link href="/workspace" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-          <Chevron direction="left" />Workspace
-        </Link>
-      </div>
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/workspace"
+        className="inline-flex w-fit items-center text-xs font-semibold uppercase tracking-wider text-content-muted transition-colors hover:text-content"
+      >
+        <Chevron direction="left" />
+        Workspace
+      </Link>
 
-      <div style={{ marginBottom: 24 }}>
-        <h1 className="ct-title">Utilisateurs</h1>
-        <p className="ct-sub">Gestion des comptes et accès à la plateforme.</p>
-      </div>
+      <PageHeader
+        title="Utilisateurs"
+        subtitle="Gestion des comptes et accès à la plateforme."
+      />
 
       <AdminUsersClient
         initialUsers={users}
         superAdminEmail={superAdmin.email ?? ""}
       />
-    </>
+    </div>
   );
 }

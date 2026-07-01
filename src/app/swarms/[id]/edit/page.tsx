@@ -4,14 +4,21 @@ import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { SwarmBuilder } from "@/components/swarms/SwarmBuilder";
 import type { SwarmRecord, Tool } from "@/lib/forms/swarmSchemas";
-import { RADIUS, SPACING } from "@/lib/ui/tokens";
-import { Chevron } from "@/components/ui/Chevron";
-import { PageTitle } from "@/components/ui/PageTitle";
-import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import {
+  Chevron,
+  PageTitle,
+  ErrorLayout,
+  Card,
+  CardBody,
+  Skeleton,
+} from "@/components/ui";
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
+
+const BREADCRUMB =
+  "inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content";
 
 export default function EditSwarmPage({ params }: PageProps) {
   const { id } = use(params);
@@ -57,54 +64,24 @@ export default function EditSwarmPage({ params }: PageProps) {
 
   if (loading) {
     return (
-      <div style={{ padding: SPACING.xl }}>
-        <style>{`
-          @keyframes ct-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.4; }
-          }
-        `}</style>
-        <div className="ct-card" style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
-          <div style={{
-            height: "var(--ct-skeleton-title-h)",
-            background: "var(--ct-surface-3)",
-            borderRadius: RADIUS.md,
-            animation: "ct-pulse 1.5s ease-in-out infinite",
-          }} />
-          <div style={{
-            height: "var(--ct-skeleton-line-h)",
-            width: "60%",
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            animation: "ct-pulse 1.5s ease-in-out infinite 0.1s",
-          }} />
-          <div style={{
-            height: "var(--ct-skeleton-body-h)",
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            animation: "ct-pulse 1.5s ease-in-out infinite 0.2s",
-          }} />
-        </div>
-      </div>
+      <Card>
+        <CardBody className="flex flex-col gap-3">
+          <Skeleton className="h-7 w-1/2" />
+          <Skeleton className="h-4 w-3/5" />
+          <Skeleton className="h-24 w-full" />
+        </CardBody>
+      </Card>
     );
   }
 
   if (error || !swarm) {
     return (
-      <>
-        <div className="ct-eyebrow">
-          <Link
-            href="/swarms"
-            className="ct-breadcrumb-link"
-          >
-            <Chevron direction="left" />Swarms
-          </Link>
-        </div>
-        <ErrorLayout
-          title="Edit failed"
-          message={error ?? "Swarm not found."}
-        />
-      </>
+      <div className="flex flex-col gap-6">
+        <Link href="/swarms" className={BREADCRUMB}>
+          <Chevron direction="left" />Swarms
+        </Link>
+        <ErrorLayout title="Edit failed" message={error ?? "Swarm not found."} />
+      </div>
     );
   }
 
@@ -133,17 +110,17 @@ export default function EditSwarmPage({ params }: PageProps) {
   };
 
   return (
-    <>
-      <div className="ct-eyebrow">
-        <Link
-          href={`/swarms/${id}`}
-          style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
-        >
-          <Chevron direction="left" />{swarm.name}
-        </Link>
+    <div className="flex flex-col gap-6">
+      <Link href={`/swarms/${id}`} className={BREADCRUMB}>
+        <Chevron direction="left" />
+        {swarm.name}
+      </Link>
+      <div className="border-b border-line pb-5">
+        <PageTitle>Edit swarm</PageTitle>
+        <p className="mt-1 text-sm text-content-muted">
+          Edit name, agents, tasks and linked tools.
+        </p>
       </div>
-      <PageTitle>Edit swarm</PageTitle>
-      <p className="ct-sub">Edit name, agents, tasks and linked tools.</p>
 
       <SwarmBuilder
         mode="edit"
@@ -151,6 +128,6 @@ export default function EditSwarmPage({ params }: PageProps) {
         initialSwarm={initialSwarm}
         availableTools={tools}
       />
-    </>
+    </div>
   );
 }

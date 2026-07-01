@@ -1,3 +1,4 @@
+import { StatCard, KpiGrid } from "@/components/ui";
 
 interface KPI {
   label: string;
@@ -10,7 +11,7 @@ interface KPIDashboardProps {
 }
 
 /**
- * 4 KPI cards alignées sur le shell cockpit (.ct-kpi-grid / .ct-kpi-card).
+ * Grille de KPI cards du DS MySwarms (StatCard + KpiGrid).
  * Si aucune valeur passée → placeholders "—".
  */
 export function KPIDashboard({ kpis }: KPIDashboardProps) {
@@ -22,16 +23,15 @@ export function KPIDashboard({ kpis }: KPIDashboardProps) {
   ];
 
   return (
-    <div className="ct-kpi-grid">
+    <KpiGrid className="my-6">
       {items.map((kpi, i) => (
-        <div
+        <StatCard
           key={`${kpi.label}-${i}`}
-          className={kpi.accent ? "ct-kpi-card accent" : "ct-kpi-card"}
-        >
-          <div className="ct-kpi-label">{kpi.label}</div>
-          <div className="ct-kpi-value">{kpi.value}</div>
-        </div>
+          label={kpi.label}
+          value={kpi.value}
+          className={kpi.accent ? "ring-accent/30" : undefined}
+        />
       ))}
-    </div>
+    </KpiGrid>
   );
 }

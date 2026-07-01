@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
+import { XMarkIcon } from "@heroicons/react/24/outline";
+import { Table, THead, TBody, TR, TH, TD, Badge } from "@/components/ui";
+import { cn } from "@/lib/ui/cn";
 
 export interface RunRow {
   id: string;
@@ -46,10 +47,10 @@ interface Props {
   initialEngine: "ok" | "unreachable";
 }
 
-function triggerLabel(t: string): { label: string; color: string } {
-  if (t === "on_demand") return { label: "Manuel", color: "var(--ct-text-muted)" };
-  if (t === "webhook") return { label: "Webhook", color: "var(--ct-accent-strong)" };
-  return { label: "Planifié", color: "var(--ct-status-paused)" };
+function triggerLabel(t: string): { label: string; className: string } {
+  if (t === "on_demand") return { label: "Manuel", className: "text-content-muted" };
+  if (t === "webhook") return { label: "Webhook", className: "text-accent" };
+  return { label: "Planifié", className: "text-[var(--color-warn)]" };
 }
 
 function formatDuration(started: string, finished: string | null | undefined): string {
@@ -67,63 +68,24 @@ function EngineDot({ status }: { status: "ok" | "unreachable" }) {
   const ok = status === "ok";
   return (
     <span
-      style={{
-        display: "inline-block",
-        width: 7,
-        height: 7,
-        borderRadius: RADIUS.full,
-        background: ok ? "var(--ct-status-completed)" : "var(--ct-status-failed)",
-        flexShrink: 0,
-      }}
+      className={cn(
+        "inline-block size-[7px] shrink-0 rounded-full",
+        ok ? "bg-[var(--color-ok)]" : "bg-danger",
+      )}
     />
-  );
-}
-
-function PulseDot() {
-  return (
-    <>
-      <style>{`
-        @keyframes ct-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(0.75); }
-        }
-        .ct-pulse-dot {
-          display: inline-block;
-          width: 6px;
-          height: 6px;
-          border-radius: 9999px;
-          background: var(--ct-status-running);
-          animation: ct-pulse 1.8s ease-in-out infinite;
-          flex-shrink: 0;
-        }
-      `}</style>
-      <span className="ct-pulse-dot" aria-label="Live" />
-    </>
   );
 }
 
 function StepStatusDot({ status }: { status: string }) {
   const color =
     status === "completed"
-      ? "var(--ct-status-completed)"
+      ? "bg-[var(--color-ok)]"
       : status === "running"
-        ? "var(--ct-status-running)"
+        ? "bg-[var(--color-running)]"
         : status === "failed"
-          ? "var(--ct-status-failed)"
-          : "var(--ct-text-muted)";
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        width: 6,
-        height: 6,
-        borderRadius: RADIUS.full,
-        background: color,
-        flexShrink: 0,
-        marginRight: SPACING.xxs,
-      }}
-    />
-  );
+          ? "bg-danger"
+          : "bg-content-muted";
+  return <span className={cn("mr-1 inline-block size-1.5 shrink-0 rounded-full", color)} />;
 }
 
 function DetailPanel({ runId, onClose }: { runId: string; onClose: () => void }) {
@@ -156,100 +118,68 @@ function DetailPanel({ runId, onClose }: { runId: string; onClose: () => void })
 
   return (
     <tr>
-      <td
-        colSpan={6}
-        style={{
-          ...tdStyle,
-          padding: SPACING.lg,
-          background: "var(--ct-surface-2)",
-          borderBottom: "1px solid var(--ct-border)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.sm }}>
-          <span style={{ fontSize: FONT.sm, fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-body)" }}>
-            Détail du run
-          </span>
+      <td colSpan={6} className="border-b border-line bg-surface-2 p-4">
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-sm font-semibold text-content">Détail du run</span>
           <button
             onClick={onClose}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--ct-text-muted)",
-              fontSize: FONT.md,
-              padding: 0,
-              lineHeight: 1,
-            }}
             aria-label="Fermer le détail"
+            className="rounded-md p-1 text-content-muted hover:bg-surface-3 hover:text-content"
           >
-            ✕
+            <XMarkIcon className="size-4" />
           </button>
         </div>
 
-        {loading && (
-          <span style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}>Chargement…</span>
-        )}
+        {loading && <span className="text-sm text-content-muted">Chargement…</span>}
 
-        {error && (
-          <span style={{ fontSize: FONT.sm, color: "var(--ct-status-failed)" }}>{error}</span>
-        )}
+        {error && <span className="text-sm text-danger">{error}</span>}
 
         {!loading && !error && detail && (
           <>
             {detail.error_text && (
-              <div
-                style={{
-                  fontSize: FONT.sm,
-                  color: "var(--ct-status-failed)",
-                  marginBottom: SPACING.sm,
-                  padding: `${SPACING.sm}px ${SPACING.md}px`,
-                  background: "var(--ct-status-failed-bg)",
-                  borderRadius: RADIUS.sm,
-                  border: "1px solid var(--ct-status-failed-border)",
-                }}
-              >
+              <div className="mb-2 rounded-[var(--radius-md)] border border-[color-mix(in_oklab,var(--color-danger)_25%,transparent)] bg-[color-mix(in_oklab,var(--color-danger)_12%,transparent)] px-3 py-2 text-sm text-danger">
                 {detail.error_text}
               </div>
             )}
 
             {detail.steps.length === 0 ? (
-              <span style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}>Aucune étape enregistrée.</span>
+              <span className="text-sm text-content-muted">Aucune étape enregistrée.</span>
             ) : (
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>
-                    <th style={thStyle}>Agent</th>
-                    <th style={thStyle}>Statut</th>
-                    <th style={thStyle}>Tokens</th>
-                    <th style={thStyle}>Latence</th>
-                    <th style={thStyle}>Terminé</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Agent</TH>
+                    <TH>Statut</TH>
+                    <TH>Tokens</TH>
+                    <TH>Latence</TH>
+                    <TH>Terminé</TH>
+                  </TR>
+                </THead>
+                <TBody>
                   {detail.steps.map((step, i) => (
-                    <tr key={i}>
-                      <td style={tdStyle}>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: SPACING.xxs }}>
+                    <TR key={i}>
+                      <TD>
+                        <span className="inline-flex items-center">
                           <StepStatusDot status={step.status} />
                           {step.agent_name ?? "—"}
                         </span>
-                      </td>
-                      <td style={tdStyle}>
+                      </TD>
+                      <TD>
                         <StatusBadge status={step.status} />
-                      </td>
-                      <td style={{ ...tdStyle, color: "var(--ct-text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                      </TD>
+                      <TD className="tabular-nums text-content-muted">
                         {(step.tokens_in + step.tokens_out).toLocaleString("fr-FR")}
-                      </td>
-                      <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
+                      </TD>
+                      <TD className="text-content-muted">
                         {step.latency_ms != null ? `${step.latency_ms}ms` : "—"}
-                      </td>
-                      <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
+                      </TD>
+                      <TD className="text-content-muted">
                         {formatDate(step.finished_at)}
-                      </td>
-                    </tr>
+                      </TD>
+                    </TR>
                   ))}
-                </tbody>
-              </table>
+                </TBody>
+              </Table>
             )}
           </>
         )}
@@ -270,81 +200,59 @@ function RunsTable({
   emptyLabel: string;
 }) {
   if (runs.length === 0) {
-    return (
-      <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", padding: `${SPACING.lg}px 0` }}>
-        {emptyLabel}
-      </p>
-    );
+    return <p className="py-4 text-sm text-content-muted">{emptyLabel}</p>;
   }
 
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={thStyle}>Swarm</th>
-            <th style={thStyle}>Trigger</th>
-            <th style={thStyle}>Statut</th>
-            <th style={thStyle}>Tokens</th>
-            <th style={thStyle}>Durée</th>
-            <th style={thStyle}>Démarré</th>
-          </tr>
-        </thead>
-        <tbody>
-          {runs.map((run) => {
-            const trig = triggerLabel(run.trigger);
-            const isExpanded = expandedRunId === run.id;
-            return (
-              <>
-                <tr
-                  key={run.id}
-                  onClick={() => onToggle(run.id)}
-                  style={{
-                    cursor: "pointer",
-                    background: isExpanded ? "var(--ct-surface-2)" : undefined,
-                    transition: "background 0.12s",
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isExpanded) (e.currentTarget as HTMLTableRowElement).style.background = "var(--ct-surface-hover, var(--ct-surface-2))";
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isExpanded) (e.currentTarget as HTMLTableRowElement).style.background = "";
-                  }}
-                >
-                  <td style={{ ...tdStyle, fontWeight: FONT_WEIGHT.medium }}>
-                    {run.swarm_name}
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{ fontSize: FONT.xxs, color: trig.color }}>
-                      {trig.label}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    <StatusBadge status={run.status} />
-                  </td>
-                  <td style={{ ...tdStyle, color: "var(--ct-text-muted)", fontVariantNumeric: "tabular-nums" }}>
-                    {(run.total_tokens_in + run.total_tokens_out).toLocaleString("fr-FR")}
-                  </td>
-                  <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                    {formatDuration(run.started_at, run.finished_at)}
-                  </td>
-                  <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                    {formatDate(run.started_at)}
-                  </td>
-                </tr>
-                {isExpanded && (
-                  <DetailPanel
-                    key={`detail-${run.id}`}
-                    runId={run.id}
-                    onClose={() => onToggle(run.id)}
-                  />
-                )}
-              </>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+    <Table>
+      <THead>
+        <TR>
+          <TH>Swarm</TH>
+          <TH>Trigger</TH>
+          <TH>Statut</TH>
+          <TH>Tokens</TH>
+          <TH>Durée</TH>
+          <TH>Démarré</TH>
+        </TR>
+      </THead>
+      <TBody>
+        {runs.map((run) => {
+          const trig = triggerLabel(run.trigger);
+          const isExpanded = expandedRunId === run.id;
+          return (
+            <>
+              <TR
+                key={run.id}
+                onClick={() => onToggle(run.id)}
+                className={cn("cursor-pointer", isExpanded && "bg-surface-2 hover:bg-surface-2")}
+              >
+                <TD className="font-medium text-content-strong">{run.swarm_name}</TD>
+                <TD>
+                  <span className={cn("text-xs", trig.className)}>{trig.label}</span>
+                </TD>
+                <TD>
+                  <StatusBadge status={run.status} />
+                </TD>
+                <TD className="tabular-nums text-content-muted">
+                  {(run.total_tokens_in + run.total_tokens_out).toLocaleString("fr-FR")}
+                </TD>
+                <TD className="text-content-muted">
+                  {formatDuration(run.started_at, run.finished_at)}
+                </TD>
+                <TD className="text-content-muted">{formatDate(run.started_at)}</TD>
+              </TR>
+              {isExpanded && (
+                <DetailPanel
+                  key={`detail-${run.id}`}
+                  runId={run.id}
+                  onClose={() => onToggle(run.id)}
+                />
+              )}
+            </>
+          );
+        })}
+      </TBody>
+    </Table>
   );
 }
 
@@ -391,63 +299,30 @@ export function ActivityFeed({
   const engineOk = engine === "ok";
 
   return (
-    <div>
+    <div className="flex flex-col gap-8">
       {/* Header: engine status + last updated */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: SPACING.sm,
-          marginBottom: SPACING.xl,
-          fontSize: FONT.sm,
-          color: "var(--ct-text-muted)",
-        }}
-      >
+      <div className="flex items-center gap-2 text-sm text-content-muted">
         <EngineDot status={engine} />
         <span>
           Engine ·{" "}
-          <span style={{ color: engineOk ? "var(--ct-status-completed)" : "var(--ct-status-failed)" }}>
+          <span className={engineOk ? "text-[var(--color-ok)]" : "text-danger"}>
             {engineOk ? "ok" : "hors ligne"}
           </span>
         </span>
-        <span
-          style={{
-            marginLeft: "auto",
-            fontSize: FONT.xxs,
-            color: "var(--ct-text-muted)",
-          }}
-        >
+        <span className="ml-auto text-xs text-content-muted">
           Mis à jour {formatDate(lastUpdated.toISOString())}
         </span>
       </div>
 
       {/* Live section */}
-      <div style={{ marginBottom: SPACING.xxl }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: SPACING.sm,
-            marginBottom: SPACING.md,
-          }}
-        >
-          <PulseDot />
-          <span style={{ fontSize: FONT.md, fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-body)" }}>
-            En cours
-          </span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
           <span
-            style={{
-              fontSize: FONT.xxs,
-              fontWeight: FONT_WEIGHT.medium,
-              background: "var(--ct-surface-2)",
-              color: "var(--ct-text-muted)",
-              borderRadius: RADIUS.full,
-              padding: `${SPACING.hair}px ${SPACING.sm}px`,
-              border: "1px solid var(--ct-border)",
-            }}
-          >
-            {liveRuns.length}
-          </span>
+            className="inline-block size-1.5 shrink-0 animate-pulse rounded-full bg-[var(--color-running)]"
+            aria-label="Live"
+          />
+          <span className="text-sm font-semibold text-content">En cours</span>
+          <Badge tone="neutral">{liveRuns.length}</Badge>
         </div>
 
         <RunsTable
@@ -459,12 +334,8 @@ export function ActivityFeed({
       </div>
 
       {/* Recent section */}
-      <div>
-        <div style={{ marginBottom: SPACING.md }}>
-          <span style={{ fontSize: FONT.md, fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-body)" }}>
-            Récents
-          </span>
-        </div>
+      <div className="flex flex-col gap-3">
+        <span className="text-sm font-semibold text-content">Récents</span>
 
         <RunsTable
           runs={initialRuns}

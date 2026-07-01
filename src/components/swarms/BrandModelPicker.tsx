@@ -3,36 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BRANDS, getModelsForBrand } from "@/lib/automobile/brands";
 import { BrandLogo } from "@/components/automobile/BrandLogo";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING, Z_INDEX, SIZE } from "@/lib/ui/tokens";
-
-// ── Styles partagés (alignés sur SwarmInputForm) ─────────────────────────────
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  color: "var(--ct-text-muted)",
-  marginBottom: SPACING.xs,
-  textTransform: "uppercase",
-  letterSpacing: LETTER_SPACING.wide,
-};
-
-const triggerBase: React.CSSProperties = {
-  width: "100%",
-  display: "flex",
-  alignItems: "center",
-  gap: SPACING.sm,
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-  cursor: "pointer",
-  textAlign: "left",
-  boxSizing: "border-box",
-};
+import { Label } from "@/components/ui";
+import { cn } from "@/lib/ui/cn";
 
 // ── Combobox searchable générique ─────────────────────────────────────────────
 
@@ -40,6 +12,11 @@ interface Option {
   value: string;
   withLogo?: boolean;
 }
+
+const TRIGGER =
+  "flex w-full items-center gap-2 rounded-[var(--radius-md)] bg-surface-2 px-3 py-2 " +
+  "text-left text-sm text-content ring-1 ring-inset ring-line transition-shadow " +
+  "focus:outline-none focus:ring-2 focus:ring-accent";
 
 function Combobox({
   value,
@@ -76,7 +53,9 @@ function Combobox({
     return options.filter((o) => o.value.toLowerCase().includes(q));
   }, [options, query]);
 
-  const exactMatch = options.some((o) => o.value.toLowerCase() === query.trim().toLowerCase());
+  const exactMatch = options.some(
+    (o) => o.value.toLowerCase() === query.trim().toLowerCase(),
+  );
 
   function select(v: string) {
     onChange(v);
@@ -85,48 +64,35 @@ function Combobox({
   }
 
   return (
-    <div ref={rootRef} style={{ position: "relative" }}>
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
-        style={{
-          ...triggerBase,
-          opacity: disabled ? 0.5 : 1,
-          cursor: disabled ? "not-allowed" : "pointer",
-        }}
+        className={cn(TRIGGER, disabled && "cursor-not-allowed opacity-50")}
       >
         {value ? (
           <>
-            {options.find((o) => o.value === value)?.withLogo && <BrandLogo brand={value} size={20} variant="inline" />}
-            <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {value}
-            </span>
+            {options.find((o) => o.value === value)?.withLogo && (
+              <BrandLogo brand={value} size={20} variant="inline" />
+            )}
+            <span className="flex-1 truncate">{value}</span>
           </>
         ) : (
-          <span style={{ flex: 1, color: "var(--ct-text-faint)" }}>{placeholder}</span>
+          <span className="flex-1 text-content-faint">{placeholder}</span>
         )}
-        <span style={{ color: "var(--ct-text-faint)", fontSize: FONT.xs }}>▾</span>
+        <span className="text-xs text-content-faint">▾</span>
       </button>
 
       {open && !disabled && (
         <div
-          style={{
-            position: "absolute",
-            top: `calc(100% + ${SPACING.xs}px)`,
-            left: 0,
-            right: 0,
-            zIndex: Z_INDEX.dropdown,
-            // Fond OPAQUE obligatoire : les tokens --ct-surface-* sont des
-            // blancs translucides (~4%), qui laisseraient transparaître les
-            // champs du formulaire derrière le dropdown. --ct-bg-deep est le
-            // seul token opaque du thème.
-            background: "var(--ct-bg-deep)",
-            border: "1px solid var(--ct-border-strong)",
-            borderRadius: RADIUS.md,
-            boxShadow: "var(--ct-shadow-depth)",
-            overflow: "hidden",
-          }}
+          className={cn(
+            "absolute inset-x-0 top-[calc(100%+0.25rem)] z-[60] overflow-hidden",
+            // Fond OPAQUE obligatoire : les tokens surface-* sont translucides,
+            // qui laisseraient transparaître les champs du formulaire derrière
+            // le dropdown. --color-elevated est opaque.
+            "rounded-[var(--radius-md)] bg-elevated shadow-2xl ring-1 ring-inset ring-line-strong",
+          )}
         >
           <input
             autoFocus
@@ -142,52 +108,23 @@ function Combobox({
               }
             }}
             placeholder="Rechercher…"
-            style={{
-              width: "100%",
-              background: "var(--ct-surface-2)",
-              border: "none",
-              borderBottom: "1px solid var(--ct-border)",
-              padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-primary)",
-              fontSize: FONT.sm,
-              fontFamily: "inherit",
-              boxSizing: "border-box",
-              outline: "none",
-            }}
+            className="w-full border-b border-line bg-surface-2 px-3 py-2 text-sm text-content outline-none placeholder:text-content-faint"
           />
-          <ul
-            style={{
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-              maxHeight: SIZE.dropdownMaxH,
-              overflowY: "auto",
-            }}
-          >
+          <ul className="max-h-64 overflow-y-auto">
             {filtered.map((opt) => (
               <li key={opt.value}>
                 <button
                   type="button"
                   onClick={() => select(opt.value)}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: SPACING.sm,
-                    background: opt.value === value ? "var(--ct-surface-3)" : "transparent",
-                    border: "none",
-                    padding: `${SPACING.sm}px ${SPACING.md}px`,
-                    color: "var(--ct-text-primary)",
-                    fontSize: FONT.sm,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    textAlign: "left",
-                  }}
+                  className={cn(
+                    "flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-content transition-colors hover:bg-surface-2",
+                    opt.value === value && "bg-surface-3",
+                  )}
                 >
-                  {opt.withLogo && <BrandLogo brand={opt.value} size={20} variant="inline" />}
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {opt.value}
-                  </span>
+                  {opt.withLogo && (
+                    <BrandLogo brand={opt.value} size={20} variant="inline" />
+                  )}
+                  <span className="truncate">{opt.value}</span>
                 </button>
               </li>
             ))}
@@ -198,22 +135,7 @@ function Combobox({
                 <button
                   type="button"
                   onClick={() => select(query.trim())}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: SPACING.sm,
-                    background: "transparent",
-                    border: "none",
-                    borderTop: "1px solid var(--ct-border-soft)",
-                    padding: `${SPACING.sm}px ${SPACING.md}px`,
-                    color: "var(--ct-text-muted)",
-                    fontSize: FONT.sm,
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    fontStyle: "italic",
-                  }}
+                  className="flex w-full items-center gap-2 border-t border-line px-3 py-2 text-left text-sm italic text-content-muted transition-colors hover:bg-surface-2"
                 >
                   Utiliser «&nbsp;{query.trim()}&nbsp;»
                 </button>
@@ -221,7 +143,7 @@ function Combobox({
             )}
 
             {filtered.length === 0 && !query.trim() && (
-              <li style={{ padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-faint)", fontSize: FONT.sm }}>
+              <li className="px-3 py-2 text-sm text-content-faint">
                 Aucun résultat
               </li>
             )}
@@ -260,10 +182,10 @@ export function BrandModelPicker({
 
   return (
     <>
-      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        <label htmlFor="bmp-make" style={labelStyle}>
-          Marque<span style={{ color: "var(--ct-accent-strong)", marginLeft: SPACING.hair }}>*</span>
-        </label>
+      <div className="flex flex-col">
+        <Label htmlFor="bmp-make">
+          Marque<span className="ml-0.5 text-accent-strong">*</span>
+        </Label>
         <Combobox
           value={make}
           options={brandOptions}
@@ -273,10 +195,10 @@ export function BrandModelPicker({
         <input type="hidden" name="make" value={make} />
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        <label htmlFor="bmp-model" style={labelStyle}>
-          Modèle<span style={{ color: "var(--ct-accent-strong)", marginLeft: SPACING.hair }}>*</span>
-        </label>
+      <div className="flex flex-col">
+        <Label htmlFor="bmp-model">
+          Modèle<span className="ml-0.5 text-accent-strong">*</span>
+        </Label>
         <Combobox
           value={model}
           options={modelOptions}

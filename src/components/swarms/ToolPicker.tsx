@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import type { Tool, ToolBindingInput } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { cn } from "@/lib/ui/cn";
 
 interface ToolPickerProps {
   availableTools: Tool[];
@@ -62,7 +62,7 @@ export function ToolPicker({
 
   if (availableTools.length === 0) {
     return (
-      <p className="ct-placeholder">
+      <p className="text-sm text-content-faint">
         No tool available. Create some from the Tools page (coming).
       </p>
     );
@@ -70,71 +70,39 @@ export function ToolPicker({
 
   if (!agentId) {
     return (
-      <p className="ct-placeholder">
+      <p className="text-sm text-content-faint">
         Select an agent first to assign tools.
       </p>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
+    <div className="flex flex-col gap-5">
       {Array.from(byCategory.entries()).map(([category, tools]) => (
         <div key={category}>
-          <div
-            style={{
-              fontSize: FONT.xs,
-              fontWeight: FONT_WEIGHT.bold,
-              letterSpacing: LETTER_SPACING.wide,
-              textTransform: "uppercase",
-              color: "var(--ct-text-muted)",
-              marginBottom: SPACING.sm,
-            }}
-          >
+          <div className="mb-2 text-xs font-bold uppercase tracking-wider text-content-muted">
             {category}
           </div>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-              gap: SPACING.sm,
-            }}
-          >
+          <div className="grid gap-2 [grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
             {tools.map((tool) => {
               const isSelected = selectedIds.has(tool.id);
               return (
                 <button
                   key={tool.id}
                   type="button"
-                  className="ct-seg-btn"
                   onClick={() => toggle(tool)}
                   aria-pressed={isSelected}
                   aria-label={`${tool.name} — ${isSelected ? "selected" : "not selected"}`}
-                  style={{
-                    background: isSelected
-                      ? "var(--ct-accent-soft)"
-                      : "var(--ct-surface-1)",
-                    border: isSelected
-                      ? "1px solid var(--ct-border-accent)"
-                      : "1px solid var(--ct-border)",
-                    borderRadius: RADIUS.md,
-                    padding: `${SPACING.s}px ${SPACING.md}px`,
-                    textAlign: "left",
-                    color: "var(--ct-text-primary)",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
+                  className={cn(
+                    "rounded-[var(--radius-md)] px-3 py-2 text-left ring-1 ring-inset transition-colors",
+                    isSelected
+                      ? "bg-accent/15 text-content-strong ring-accent/40"
+                      : "bg-surface text-content ring-line hover:bg-surface-2",
+                  )}
                 >
-                  <div style={{ fontWeight: FONT_WEIGHT.semibold, fontSize: FONT.base }}>
-                    {tool.name}
-                  </div>
+                  <div className="font-semibold">{tool.name}</div>
                   {tool.description ? (
-                    <div
-                      style={{
-                        fontSize: FONT.sm,
-                        color: "var(--ct-text-muted)",
-                        marginTop: SPACING.xs,
-                      }}
-                    >
+                    <div className="mt-1 text-sm text-content-muted">
                       {tool.description}
                     </div>
                   ) : null}

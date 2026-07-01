@@ -4,7 +4,7 @@ import "./system-map.css";
 
 import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { SPACING, FONT, LINE_HEIGHT, SIZE } from "@/lib/ui/tokens";
+import { cn } from "@/lib/ui/cn";
 import { DetailPanel } from "./DetailPanel";
 import { buildArchitecture } from "./buildArchitecture";
 import { buildAgentGraph } from "./buildAgentGraph";
@@ -18,16 +18,7 @@ const SystemMapCanvas = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          color: "var(--ct-text-faint)",
-          fontSize: FONT.base,
-        }}
-      >
+      <div className="flex h-full items-center justify-center text-sm text-content-faint">
         Chargement de la cartographie…
       </div>
     ),
@@ -41,6 +32,9 @@ const LEGEND: { label: string; color: string }[] = [
   { label: "template", color: kindColor("template") },
   { label: "data / table", color: kindColor("table") },
 ];
+
+const TAB_BTN =
+  "rounded-[var(--radius-sm)] px-3 py-1.5 text-sm font-medium transition-colors";
 
 export function SystemMap({ data }: { data: SystemMapData }) {
   const [view, setView] = useState<View>("architecture");
@@ -58,22 +52,22 @@ export function SystemMap({ data }: { data: SystemMapData }) {
   return (
     <div className="sm-shell">
       {/* Onglets de vue + légende */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: SPACING.md,
-          flexWrap: "wrap",
-          marginBottom: SPACING.md,
-        }}
-      >
-        <div className="ct-seg-track" role="tablist" aria-label="Vue de la cartographie">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div
+          className="inline-flex gap-1 rounded-[var(--radius-md)] bg-surface-2 p-1 ring-1 ring-inset ring-line"
+          role="tablist"
+          aria-label="Vue de la cartographie"
+        >
           <button
             type="button"
             role="tab"
             aria-selected={view === "architecture"}
-            className={`ct-seg-btn${view === "architecture" ? " active" : ""}`}
+            className={cn(
+              TAB_BTN,
+              view === "architecture"
+                ? "bg-surface text-content-strong ring-1 ring-inset ring-line"
+                : "text-content-muted hover:text-content",
+            )}
             onClick={() => switchView("architecture")}
           >
             Architecture plateforme
@@ -82,26 +76,25 @@ export function SystemMap({ data }: { data: SystemMapData }) {
             type="button"
             role="tab"
             aria-selected={view === "agents"}
-            className={`ct-seg-btn${view === "agents" ? " active" : ""}`}
+            className={cn(
+              TAB_BTN,
+              view === "agents"
+                ? "bg-surface text-content-strong ring-1 ring-inset ring-line"
+                : "text-content-muted hover:text-content",
+            )}
             onClick={() => switchView("agents")}
           >
             Agents Automobile
           </button>
         </div>
 
-        <div style={{ display: "flex", gap: SPACING.lg, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap gap-4">
           {LEGEND.map((l) => (
             <span
               key={l.label}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: SPACING.xxs,
-                fontSize: FONT.xxs,
-                color: "var(--ct-text-muted)",
-              }}
+              className="inline-flex items-center gap-1 text-[10px] text-content-muted"
             >
-              <span style={{ width: SIZE.dot, height: SIZE.dot, borderRadius: "50%", background: l.color }} />
+              <span className="size-2 rounded-full" style={{ background: l.color }} />
               {l.label}
             </span>
           ))}
@@ -109,12 +102,12 @@ export function SystemMap({ data }: { data: SystemMapData }) {
       </div>
 
       {/* Caption contextuelle */}
-      <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", margin: `0 0 ${SPACING.md}px`, lineHeight: LINE_HEIGHT.tight }}>
+      <p className="mb-3 text-sm leading-snug text-content-muted">
         {view === "architecture"
           ? "Flux réel : browser → Next.js (BFF) → Supabase auth / owner_id → FastAPI engine → CrewAI run → persistence Supabase (swarm_runs → swarm_run_steps) → rapport → dashboard Automobile. Clique un nœud pour le détail."
           : "Pipeline du template Automobile alimenté par le dernier run réel. Liaisons : « Transmission via contexte de task / output précédent » — le handoff n'est pas sérialisé en DB. Clique un nœud pour le détail."}
         {data.loadError ? (
-          <span style={{ color: "var(--ct-accent-strong)" }}>
+          <span className="text-accent">
             {" "}· Données template indisponibles ({data.loadError}) — vue agents dégradée.
           </span>
         ) : null}

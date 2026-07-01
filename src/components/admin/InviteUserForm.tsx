@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Field, Input, Select, Button } from "@/components/ui";
 
 interface InviteUserFormProps {
   onSuccess: () => void;
@@ -38,86 +38,46 @@ export function InviteUserForm({ onSuccess }: InviteUserFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
-      <div style={{ display: "flex", gap: SPACING.md, flexWrap: "wrap" }}>
-        <div style={{ flex: 2, minWidth: 140, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
-          <label style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Email
-          </label>
-          <input
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-end gap-4">
+        <Field label="Email" htmlFor="invite-email" className="min-w-[140px] flex-[2]">
+          <Input
+            id="invite-email"
             type="email"
             value={email}
-            onChange={e => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             required
             placeholder="user@example.com"
-            style={{
-              background: "var(--ct-surface-3)",
-              border: "1px solid var(--ct-border)",
-              borderRadius: RADIUS.md,
-              padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-body)",
-              fontSize: FONT.sm,
-              outline: "none",
-            }}
           />
-        </div>
-        <div style={{ flex: 2, minWidth: 140, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
-          <label style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Mot de passe
-          </label>
-          <input
+        </Field>
+        <Field label="Mot de passe" htmlFor="invite-password" className="min-w-[140px] flex-[2]">
+          <Input
+            id="invite-password"
             type="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             required
             minLength={8}
             placeholder="Min. 8 caractères"
-            style={{
-              background: "var(--ct-surface-3)",
-              border: "1px solid var(--ct-border)",
-              borderRadius: RADIUS.md,
-              padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-body)",
-              fontSize: FONT.sm,
-              outline: "none",
-            }}
           />
-        </div>
-        <div style={{ flex: 1, minWidth: 100, display: "flex", flexDirection: "column", gap: SPACING.xs }}>
-          <label style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontWeight: FONT_WEIGHT.bold, textTransform: "uppercase", letterSpacing: "0.06em" }}>
-            Rôle
-          </label>
-          <select
+        </Field>
+        <Field label="Rôle" htmlFor="invite-role" className="min-w-[100px] flex-1">
+          <Select
+            id="invite-role"
             value={role}
-            onChange={e => setRole(e.target.value as "user" | "admin")}
-            style={{
-              background: "var(--ct-surface-3)",
-              border: "1px solid var(--ct-border)",
-              borderRadius: RADIUS.md,
-              padding: `${SPACING.sm}px ${SPACING.md}px`,
-              color: "var(--ct-text-body)",
-              fontSize: FONT.sm,
-              outline: "none",
-            }}
+            onChange={(e) => setRole(e.target.value as "user" | "admin")}
           >
             <option value="user">User</option>
             <option value="admin">Admin</option>
-          </select>
-        </div>
-        <div style={{ display: "flex", alignItems: "flex-end" }}>
-          <button
-            type="submit"
-            className="ct-seg-btn primary"
-            disabled={status === "loading"}
-            style={{ whiteSpace: "nowrap" }}
-          >
-            {status === "loading" ? "Création…" : "+ Créer le compte"}
-          </button>
-        </div>
+          </Select>
+        </Field>
+        <Button type="submit" disabled={status === "loading"} className="whitespace-nowrap">
+          {status === "loading" ? "Création…" : "+ Créer le compte"}
+        </Button>
       </div>
 
       {error && (
-        <p role="alert" style={{ fontSize: FONT.sm, color: "var(--ct-alert-error-text)", margin: 0 }}>
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}

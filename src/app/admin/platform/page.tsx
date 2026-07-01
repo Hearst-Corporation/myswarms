@@ -3,7 +3,7 @@ import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/auth/superAdmin";
 import { getTenants } from "@/lib/platform-admin/data";
 import { getGovernanceActions } from "@/lib/platform-admin/governance";
-import { Chevron } from "@/components/ui/Chevron";
+import { PageHeader, Chevron } from "@/components/ui";
 import { PlatformConsole } from "@/components/platform-admin/PlatformConsole";
 
 export const dynamic = "force-dynamic";
@@ -35,20 +35,19 @@ export default async function PlatformAdminPage() {
   const governanceActions = getGovernanceActions();
 
   return (
-    <>
-      <div className="ct-eyebrow">
-        <Link href="/workspace" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-          <Chevron direction="left" />Workspace
-        </Link>
-      </div>
+    <div className="flex flex-col gap-6">
+      <Link
+        href="/workspace"
+        className="inline-flex w-fit items-center text-xs font-semibold uppercase tracking-wider text-content-muted transition-colors hover:text-content"
+      >
+        <Chevron direction="left" />
+        Workspace
+      </Link>
 
-      <div style={{ marginBottom: 20 }}>
-        <h1 className="ct-title">Platform Admin</h1>
-        <p className="ct-sub">
-          Tenant &amp; Run Governance Console — qui utilise le backend, avec quels runs,
-          quels droits, quels quotas, quels incidents.
-        </p>
-      </div>
+      <PageHeader
+        title="Platform Admin"
+        subtitle="Tenant & Run Governance Console — qui utilise le backend, avec quels runs, quels droits, quels quotas, quels incidents."
+      />
 
       <PlatformConsole
         initialTenants={initial?.tenants ?? []}
@@ -58,6 +57,6 @@ export default async function PlatformAdminPage() {
         governanceActions={governanceActions}
         loadError={loadError}
       />
-    </>
+    </div>
   );
 }

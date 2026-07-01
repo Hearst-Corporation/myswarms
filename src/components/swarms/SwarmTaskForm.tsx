@@ -1,9 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 import type { AgentInput, TaskInput } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Button, Field, Input, Textarea, Select, Alert } from "@/components/ui";
 
 interface SwarmTaskFormProps {
   initialTask?: TaskInput;
@@ -45,10 +44,22 @@ export function SwarmTaskForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!task.name.trim()) { setError("Name is required."); return; }
-    if (!task.agent_id) { setError("Assign an agent to the task."); return; }
-    if (!task.description.trim()) { setError("Description is required."); return; }
-    if (!task.expected_output.trim()) { setError("Expected output is required."); return; }
+    if (!task.name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (!task.agent_id) {
+      setError("Assign an agent to the task.");
+      return;
+    }
+    if (!task.description.trim()) {
+      setError("Description is required.");
+      return;
+    }
+    if (!task.expected_output.trim()) {
+      setError("Expected output is required.");
+      return;
+    }
     onSubmit(task);
   };
 
@@ -58,29 +69,22 @@ export function SwarmTaskForm({
   const assignableAgents = agents.filter((a) => a.id);
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
-        <label style={labelStyle}>
-          <span style={labelText}>Name</span>
-          <input
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Name">
+          <Input
             type="text"
             value={task.name}
             onChange={(e) => update("name", e.target.value)}
             required
-            style={inputStyle}
           />
-        </label>
+        </Field>
 
-        <label style={labelStyle}>
-          <span style={labelText}>Assigned agent</span>
-          <select
+        <Field label="Assigned agent">
+          <Select
             value={task.agent_id ?? ""}
             onChange={(e) => update("agent_id", e.target.value)}
             required
-            style={inputStyle}
           >
             {/* H1 : si la task chargée a agent_id null/vide (post cascade
                 SET NULL), on affiche un placeholder explicite pour forcer
@@ -101,35 +105,32 @@ export function SwarmTaskForm({
                 </option>
               ))
             )}
-          </select>
-        </label>
+          </Select>
+        </Field>
       </div>
 
-      <label style={labelStyle}>
-        <span style={labelText}>Description</span>
-        <textarea
+      <Field label="Description">
+        <Textarea
           value={task.description}
           onChange={(e) => update("description", e.target.value)}
           required
           rows={4}
-          style={{ ...inputStyle, fontFamily: "var(--font-mono)", resize: "vertical" }}
+          className="font-mono"
         />
-      </label>
+      </Field>
 
-      <label style={labelStyle}>
-        <span style={labelText}>Expected output</span>
-        <textarea
+      <Field label="Expected output">
+        <Textarea
           value={task.expected_output}
           onChange={(e) => update("expected_output", e.target.value)}
           required
           rows={3}
-          style={{ ...inputStyle, fontFamily: "var(--font-mono)", resize: "vertical" }}
+          className="font-mono"
         />
-      </label>
+      </Field>
 
-      <label style={labelStyle}>
-        <span style={labelText}>Depends on task</span>
-        <select
+      <Field label="Depends on task">
+        <Select
           value={task.depends_on_task_id ?? ""}
           onChange={(e) =>
             update(
@@ -137,7 +138,6 @@ export function SwarmTaskForm({
               e.target.value === "" ? null : e.target.value,
             )
           }
-          style={inputStyle}
         >
           <option value="">None (root)</option>
           {dependableTasks.map((t) =>
@@ -147,31 +147,20 @@ export function SwarmTaskForm({
               </option>
             ) : null,
           )}
-        </select>
-      </label>
+        </Select>
+      </Field>
 
       {error ? (
-        <div
-          role="alert"
-          style={{
-            background: "var(--ct-alert-error-bg)",
-            border: "1px solid var(--ct-alert-error-border)",
-            color: "var(--ct-alert-error-text)",
-            padding: `${SPACING.sm}px ${SPACING.md}px`,
-            borderRadius: RADIUS.sm,
-            fontSize: FONT.sm,
-            lineHeight: LINE_HEIGHT.tight,
-          }}
-        >
+        <Alert tone="error" role="alert">
           {error}
-        </div>
+        </Alert>
       ) : null}
 
-      <div style={{ display: "flex", gap: SPACING.sm, justifyContent: "flex-end" }}>
+      <div className="flex justify-end gap-2">
         {onCancel ? (
-          <button type="button" className="ct-seg-btn" onClick={onCancel}>
+          <Button variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         ) : null}
         <Button type="submit" variant="primary">
           {initialTask ? "Update" : "Add task"}
@@ -180,25 +169,3 @@ export function SwarmTaskForm({
     </form>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: SPACING.xxs,
-};
-const labelText: React.CSSProperties = {
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  letterSpacing: LETTER_SPACING.tight,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-};
-const inputStyle: React.CSSProperties = {
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.s}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-};

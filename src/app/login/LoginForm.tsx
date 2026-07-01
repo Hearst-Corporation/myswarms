@@ -3,14 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import {
-  SPACING,
-  RADIUS,
-  FONT,
-  FONT_WEIGHT,
-  LETTER_SPACING,
-  LINE_HEIGHT,
-} from "@/lib/ui/tokens";
+import { Field, Input, Button, Alert } from "@/components/ui";
 
 /**
  * Formulaire de connexion email/password Supabase.
@@ -50,41 +43,15 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ width: "100%", maxWidth: 360 }}>
+    <form onSubmit={handleSubmit} className="mt-6 flex w-full flex-col gap-4">
       {error && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: SPACING.lg,
-            padding: `${SPACING.s}px ${SPACING.md}px`,
-            borderRadius: RADIUS.md,
-            background: "var(--ct-alert-error-bg)",
-            border: "1px solid var(--ct-alert-error-border)",
-            color: "var(--ct-alert-error-text)",
-            fontSize: FONT.base,
-            lineHeight: LINE_HEIGHT.tight,
-          }}
-        >
+        <Alert tone="error" role="alert">
           {error}
-        </div>
+        </Alert>
       )}
 
-      <div style={{ marginBottom: SPACING.lg }}>
-        <label
-          htmlFor="email"
-          style={{
-            display: "block",
-            fontSize: FONT.xxs,
-            fontWeight: FONT_WEIGHT.bold,
-            letterSpacing: LETTER_SPACING.tight,
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-            marginBottom: SPACING.xxs,
-          }}
-        >
-          Email
-        </label>
-        <input
+      <Field label="Email" htmlFor="email">
+        <Input
           id="email"
           type="email"
           required
@@ -93,43 +60,11 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          style={{
-            width: "100%",
-            padding: `${SPACING.s}px ${SPACING.md}px`,
-            borderRadius: RADIUS.md,
-            background: "var(--ct-surface-2)",
-            border: "1px solid var(--ct-border-strong)",
-            color: "var(--ct-text-primary)",
-            fontSize: FONT.md,
-            outline: "none",
-            fontFamily: "inherit",
-            transition: "border-color 180ms",
-          }}
-          onFocus={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-accent)")
-          }
-          onBlur={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-border-strong)")
-          }
         />
-      </div>
+      </Field>
 
-      <div style={{ marginBottom: SPACING.xl }}>
-        <label
-          htmlFor="password"
-          style={{
-            display: "block",
-            fontSize: FONT.xxs,
-            fontWeight: FONT_WEIGHT.bold,
-            letterSpacing: LETTER_SPACING.tight,
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-            marginBottom: SPACING.xxs,
-          }}
-        >
-          Password
-        </label>
-        <input
+      <Field label="Password" htmlFor="password">
+        <Input
           id="password"
           type="password"
           required
@@ -137,35 +72,12 @@ export function LoginForm({ returnTo = "/" }: { returnTo?: string }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          style={{
-            width: "100%",
-            padding: `${SPACING.s}px ${SPACING.md}px`,
-            borderRadius: RADIUS.md,
-            background: "var(--ct-surface-2)",
-            border: "1px solid var(--ct-border-strong)",
-            color: "var(--ct-text-primary)",
-            fontSize: FONT.md,
-            outline: "none",
-            fontFamily: "inherit",
-            transition: "border-color 180ms",
-          }}
-          onFocus={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-accent)")
-          }
-          onBlur={(e) =>
-            (e.currentTarget.style.borderColor = "var(--ct-border-strong)")
-          }
         />
-      </div>
+      </Field>
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="ct-seg-btn primary"
-        style={{ width: "100%" }}
-      >
+      <Button type="submit" disabled={loading} className="mt-2 w-full">
         {loading ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

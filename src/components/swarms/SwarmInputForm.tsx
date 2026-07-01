@@ -1,10 +1,18 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { AlertDialog } from "@/components/ui/AlertDialog";
 import { BrandModelPicker } from "@/components/swarms/BrandModelPicker";
 import type { InputField } from "@/lib/swarms/inputSchema";
+import {
+  Input,
+  Textarea,
+  Select,
+  Label,
+  Button,
+  Alert,
+} from "@/components/ui";
+import { cn } from "@/lib/ui/cn";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -24,42 +32,6 @@ interface Props {
   extractedFields?: Record<string, { source: string; confidence: string } | undefined>;
 }
 
-// ── Styles communs ────────────────────────────────────────────────────────────
-
-const inputBase: React.CSSProperties = {
-  width: "100%",
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  color: "var(--ct-text-muted)",
-  marginBottom: SPACING.xs,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-};
-
-const fieldWrapStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: 0,
-};
-
-const hintStyle: React.CSSProperties = {
-  fontSize: FONT.xs,
-  color: "var(--ct-text-faint)",
-  marginTop: SPACING.xs,
-};
-
 // ── Field component ───────────────────────────────────────────────────────────
 
 function Field({
@@ -74,16 +46,18 @@ function Field({
   extractionMeta?: { source: string; confidence: string };
 }) {
   const id = `swarm-input-${field.key}`;
-  const borderColor = error ? "var(--ct-alert-error-border)" : undefined;
+  const errorRing = error
+    ? "ring-[color-mix(in_oklab,var(--color-danger)_50%,transparent)]"
+    : undefined;
 
   let control: React.ReactNode;
   if (field.type === "select" && field.options) {
     control = (
-      <select
+      <Select
         id={id}
         name={field.key}
         defaultValue={initialValue}
-        style={{ ...inputBase, borderColor, appearance: "none", cursor: "pointer" }}
+        className={errorRing}
       >
         <option value="" disabled>
           {field.placeholder || `Choisir…`}
@@ -93,54 +67,53 @@ function Field({
             {opt}
           </option>
         ))}
-      </select>
+      </Select>
     );
   } else if (field.type === "textarea") {
     control = (
-      <textarea
+      <Textarea
         id={id}
         name={field.key}
         placeholder={field.placeholder}
         defaultValue={initialValue}
         rows={3}
-        style={{ ...inputBase, resize: "vertical", borderColor }}
+        className={errorRing}
       />
     );
   } else {
     control = (
-      <input
+      <Input
         id={id}
         name={field.key}
         type={field.type}
         placeholder={field.placeholder}
         defaultValue={initialValue}
         step={field.type === "number" ? "any" : undefined}
-        style={{ ...inputBase, borderColor }}
+        className={errorRing}
       />
     );
   }
 
   return (
-    <div style={fieldWrapStyle}>
-      <label htmlFor={id} style={labelStyle}>
+    <div className="flex flex-col">
+      <Label htmlFor={id}>
         {field.label}
-        {field.required && (
-          <span style={{ color: "var(--ct-accent-strong)", marginLeft: SPACING.hair }}>*</span>
-        )}
-      </label>
+        {field.required && <span className="ml-0.5 text-accent-strong">*</span>}
+      </Label>
 
       {control}
 
       {error ? (
-        <span style={{ ...hintStyle, color: "var(--ct-alert-error-text)" }}>
-          {error}
-        </span>
+        <span className="mt-1 text-xs text-danger">{error}</span>
       ) : extractionMeta ? (
-        <span style={{ ...hintStyle, color: "var(--ct-accent-strong)" }}>
-          Pré-rempli depuis {extractionMeta.source} · confiance {extractionMeta.confidence}
+        <span className="mt-1 text-xs text-accent-strong">
+          Pré-rempli depuis {extractionMeta.source} · confiance{" "}
+          {extractionMeta.confidence}
         </span>
       ) : field.description ? (
-        <span style={hintStyle}>{field.description.replace(/^[^—]*—\s*/, "")}</span>
+        <span className="mt-1 text-xs text-content-faint">
+          {field.description.replace(/^[^—]*—\s*/, "")}
+        </span>
       ) : null}
     </div>
   );
@@ -207,11 +180,11 @@ export function SwarmInputForm({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl, width: "100%" }}>
+    <div className="flex w-full flex-col gap-6">
       <form
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
-        style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}
+        className="flex flex-col gap-5"
       >
         {/* Hidden trigger field */}
         <input type="hidden" name="trigger" value="on_demand" />
@@ -219,13 +192,12 @@ export function SwarmInputForm({
           <input type="hidden" name="image_url" value={initialValues.image_url} />
         ) : null}
 
-        {/* Field grid — 2 cols on wide, 1 on narrow */}
+        {/* Field grid — auto-fill, 1 col on narrow */}
         <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-            gap: SPACING.lg,
-          }}
+          className={cn(
+            "grid gap-5",
+            "[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]",
+          )}
         >
           {/* Si le form contient make + model (template automobile), on les
               remplace par le sélecteur Marque (avec logo) → Modèle dépendant. */}
@@ -249,15 +221,14 @@ export function SwarmInputForm({
         </div>
 
         {/* Run button row */}
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: SPACING.sm }}>
-          <button
-            type="button"
-            className="ct-seg-btn primary"
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="primary"
             disabled={isPending}
             onClick={handleRunClick}
           >
             {isPending ? "Running…" : "Run now"}
-          </button>
+          </Button>
         </div>
       </form>
 
@@ -273,19 +244,9 @@ export function SwarmInputForm({
       />
 
       {actionError && (
-        <p
-          role="alert"
-          style={{
-            borderRadius: RADIUS.md,
-            border: "1px solid var(--ct-alert-error-border)",
-            background: "var(--ct-alert-error-bg)",
-            padding: `${SPACING.sm}px ${SPACING.md}px`,
-            fontSize: FONT.xs,
-            color: "var(--ct-alert-error-text)",
-          }}
-        >
+        <Alert tone="error" role="alert">
           {actionError}
-        </p>
+        </Alert>
       )}
     </div>
   );

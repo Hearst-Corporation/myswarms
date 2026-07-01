@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import { brandLogoUrl } from "@/lib/automobile/brands";
-import { RADIUS, SPACING, FONT, FONT_WEIGHT, COLOR, SIZE } from "@/lib/ui/tokens";
+import { SIZE } from "@/lib/ui/tokens";
 
 /**
  * Logo de marque automobile avec deux variantes :
  *
- * - `variant="chip"` (défaut) : chip arrondi à fond clair (COLOR.textStrong =
- *   --ct-text-strong = blanc pur) contenant le logo PNG. Le fond clair est
- *   obligatoire : les logos jsDelivr sont souvent sombres/colorés et seraient
- *   illisibles sur le thème cockpit foncé. Tout passe par les tokens --ct-*.
+ * - `variant="chip"` (défaut) : chip arrondi à fond blanc contenant le logo
+ *   PNG. Le fond clair est obligatoire : les logos jsDelivr sont souvent
+ *   sombres/colorés et seraient illisibles sur le thème foncé.
  *
  * - `variant="inline"` : simple `<img>` sans chip, pour les contextes où le
  *   fond clair jurerait (dropdown compact, liste dense). Le fond du contenant
@@ -20,7 +19,6 @@ import { RADIUS, SPACING, FONT, FONT_WEIGHT, COLOR, SIZE } from "@/lib/ui/tokens
  * si la marque est inconnue, on affiche les initiales (1-2 lettres).
  */
 
-const CHIP_BG = COLOR.textStrong; // blanc pur (--ct-text-strong) — lisibilité des logos colorés
 const DEFAULT_SIZE = SIZE.avatar;
 
 function initials(brand: string): string {
@@ -45,22 +43,17 @@ export function BrandLogo({
   const [failed, setFailed] = useState(false);
   const hasBrand = brand.trim() !== "";
   const showImg = hasBrand && !failed;
+  const fallbackFontSize = Math.max(11, Math.round(size * 0.32));
 
   if (variant === "inline") {
-    const inlineStyle: React.CSSProperties = {
-      width: size,
-      height: size,
-      objectFit: "contain",
-      flexShrink: 0,
-      display: "inline-block",
-    };
     if (showImg) {
       return (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={brandLogoUrl(brand)}
           alt=""
-          style={inlineStyle}
+          className="inline-block shrink-0 object-contain"
+          style={{ width: size, height: size }}
           onError={() => setFailed(true)}
           loading="lazy"
         />
@@ -69,18 +62,8 @@ export function BrandLogo({
     // Fallback initiales en inline
     return (
       <span
-        style={{
-          ...inlineStyle,
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "var(--ct-surface-3)",
-          borderRadius: RADIUS.sm,
-          fontSize: Math.max(FONT.xs, Math.round(size * 0.32)),
-          fontWeight: FONT_WEIGHT.bold,
-          color: "var(--ct-text-muted)",
-          lineHeight: 1,
-        }}
+        className="inline-flex shrink-0 items-center justify-center rounded-[var(--radius-sm)] bg-surface-3 font-bold leading-none text-content-muted"
+        style={{ width: size, height: size, fontSize: fallbackFontSize }}
         aria-hidden
       >
         {hasBrand ? initials(brand) : ""}
@@ -88,25 +71,11 @@ export function BrandLogo({
     );
   }
 
-  // variant === "chip" (défaut)
-  const chipStyle: React.CSSProperties = {
-    width: size,
-    height: size,
-    flex: "0 0 auto",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: CHIP_BG,
-    borderRadius: RADIUS.md,
-    border: "1px solid var(--ct-border)",
-    padding: SPACING.xs,
-    boxSizing: "border-box",
-    overflow: "hidden",
-  };
-
+  // variant === "chip" (défaut) — fond blanc pour la lisibilité des logos.
   return (
     <span
-      style={chipStyle}
+      className="box-border inline-flex shrink-0 items-center justify-center overflow-hidden rounded-[var(--radius-md)] border border-line bg-white p-1"
+      style={{ width: size, height: size }}
       title={hasBrand ? brand : undefined}
       aria-label={hasBrand ? brand : "marque inconnue"}
     >
@@ -117,21 +86,12 @@ export function BrandLogo({
           alt={brand}
           loading="lazy"
           onError={() => setFailed(true)}
-          style={{
-            maxWidth: "100%",
-            maxHeight: "100%",
-            objectFit: "contain",
-            display: "block",
-          }}
+          className="block max-h-full max-w-full object-contain"
         />
       ) : (
         <span
-          style={{
-            fontSize: Math.max(FONT.xs, Math.round(size * 0.32)),
-            fontWeight: FONT_WEIGHT.bold,
-            color: "var(--ct-bg-deep)",
-            lineHeight: 1,
-          }}
+          className="font-bold leading-none text-canvas"
+          style={{ fontSize: fallbackFontSize }}
         >
           {hasBrand ? initials(brand) : "—"}
         </span>

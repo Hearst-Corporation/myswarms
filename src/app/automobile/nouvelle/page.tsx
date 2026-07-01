@@ -5,8 +5,8 @@ import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { parseInputSchema } from "@/lib/swarms/inputSchema";
 import { type SwarmInputFormState } from "@/components/swarms/SwarmInputForm";
 import { AutomobileUrlFirstForm } from "@/components/automobile/AutomobileUrlFirstForm";
-import { Chevron } from "@/components/ui/Chevron";
-import { FONT, SPACING } from "@/lib/ui/tokens";
+import { Chevron, Card, CardBody, PageHeader } from "@/components/ui";
+import { LinkButton } from "@/components/automobile/LinkButton";
 import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 import { parsePrefillParams } from "@/lib/automobile/prefill";
 import { findRecentRunByUrl, type DuplicateRunRef } from "@/lib/automobile/dedup";
@@ -88,45 +88,39 @@ export default async function NouvelleAnalysePage({ searchParams }: PageProps) {
   return (
     <>
       {/* Breadcrumb */}
-      <div className="ct-eyebrow">
-        <Link href="/automobile" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-          <Chevron direction="left" />Automobile
-        </Link>
-      </div>
+      <Link
+        href="/automobile"
+        className="mb-4 inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content"
+      >
+        <Chevron direction="left" />Automobile
+      </Link>
 
-      <div style={{ marginBottom: SPACING.xl }}>
-        <h1 className="ct-title">Nouvelle analyse</h1>
-        <p
-          className="ct-sub"
-          style={{ fontSize: FONT.base, color: "var(--ct-text-muted)", marginTop: SPACING.xs }}
-        >
-          {Object.keys(prefillValues).length > 0
-            ? "Champs pré-remplis depuis l'annonce. Vérifie-les avant de lancer l'analyse."
-            : "Renseignez les informations du véhicule pour lancer l'analyse."}
-        </p>
+      <div className="mb-8">
+        <PageHeader
+          title="Nouvelle analyse"
+          subtitle={
+            Object.keys(prefillValues).length > 0
+              ? "Champs pré-remplis depuis l'annonce. Vérifie-les avant de lancer l'analyse."
+              : "Renseignez les informations du véhicule pour lancer l'analyse."
+          }
+        />
       </div>
 
       {loadFailed || inputFields.length === 0 ? (
-        <div
-          className="ct-card"
-          role="alert"
-          style={{
-            padding: `${SPACING.lx}px`,
-            borderColor: "var(--ct-alert-error-border)",
-            background: "var(--ct-alert-error-bg)",
-          }}
-        >
-          <div className="ct-card-title" style={{ marginBottom: SPACING.sm }}>
-            Formulaire indisponible
-          </div>
-          <p style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.md }}>
-            Le template d&apos;analyse est momentanément inaccessible (moteur
-            indisponible ou template introuvable). Réessaie dans un instant.
-          </p>
-          <Link href="/automobile/nouvelle" className="ct-seg-btn">
-            Réessayer
-          </Link>
-        </div>
+        <Card role="alert" className="bg-danger/10 ring-danger/25">
+          <CardBody>
+            <h3 className="mb-2 text-sm font-semibold text-content-strong">
+              Formulaire indisponible
+            </h3>
+            <p className="mb-4 text-sm text-content-muted">
+              Le template d&apos;analyse est momentanément inaccessible (moteur
+              indisponible ou template introuvable). Réessaie dans un instant.
+            </p>
+            <LinkButton href="/automobile/nouvelle" variant="secondary">
+              Réessayer
+            </LinkButton>
+          </CardBody>
+        </Card>
       ) : (
         <AutomobileUrlFirstForm
           action={triggerAnalyse}

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { SwarmBuilder } from "@/components/swarms/SwarmBuilder";
 import type { Tool } from "@/lib/forms/swarmSchemas";
 import { Chevron } from "@/components/ui/Chevron";
+import { PageHeader, Card, CardBody, Alert, Button, Skeleton } from "@/components/ui";
 
 export default function NewSwarmPage() {
   const [tools, setTools] = useState<Tool[]>([]);
@@ -39,46 +40,38 @@ export default function NewSwarmPage() {
   }, [reloadKey]);
 
   return (
-    <>
-      <div className="ct-eyebrow">
+    <div className="flex flex-col gap-6">
+      <div>
         <Link
           href="/swarms"
-          style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
+          className="inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content"
         >
-          <Chevron direction="left" />Swarms
+          <Chevron direction="left" />
+          Swarms
         </Link>
       </div>
-      <h1 className="ct-title">New swarm</h1>
-      <p className="ct-sub">
-        Define name, agents, tasks and tools. You can edit after creation.
-      </p>
+
+      <PageHeader
+        title="New swarm"
+        subtitle="Define name, agents, tasks and tools. You can edit after creation."
+      />
 
       {toolsLoading ? (
-        <div className="ct-card" aria-busy="true" aria-live="polite">
-          <div className="ct-card-title">Loading tools…</div>
-          <div className="ct-placeholder">
-            Fetching catalog from the CrewAI engine.
-          </div>
-        </div>
+        <Card aria-busy="true" aria-live="polite">
+          <CardBody className="flex flex-col gap-3">
+            <p className="text-sm font-semibold text-content-strong">
+              Loading tools…
+            </p>
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+          </CardBody>
+        </Card>
       ) : toolsError ? (
-        <div
-          className="ct-card"
-          role="alert"
-          style={{
-            background: "var(--ct-alert-warning-bg)",
-            borderColor: "var(--ct-alert-warning-border)",
-          }}
-        >
-          <div
-            className="ct-card-title"
-            style={{ color: "var(--ct-alert-warning-text)" }}
-          >
-            {toolsError}
-          </div>
-          <div className="ct-card-body">
-            <button
-              type="button"
-              className="ct-seg-btn"
+        <Alert tone="warning" role="alert" title={toolsError}>
+          <div className="mt-3">
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => {
                 setToolsError(null);
                 setToolsLoading(true);
@@ -86,12 +79,12 @@ export default function NewSwarmPage() {
               }}
             >
               Retry
-            </button>
+            </Button>
           </div>
-        </div>
+        </Alert>
       ) : (
         <SwarmBuilder mode="create" availableTools={tools} />
       )}
-    </>
+    </div>
   );
 }

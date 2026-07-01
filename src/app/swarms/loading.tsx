@@ -1,4 +1,4 @@
-import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
+import { Skeleton } from "@/components/ui";
 
 /**
  * Skeleton de chargement de la liste Swarms — affiché pendant le fetch
@@ -6,75 +6,33 @@ import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
  */
 export default function SwarmsLoading() {
   return (
-    <>
+    <div className="flex flex-col gap-6" aria-busy="true" aria-live="polite">
       {/* Eyebrow + titre */}
-      <span className="ct-eyebrow">Cockpit · MySwarms</span>
-      <h1 className="ct-title">Swarms</h1>
-      <p className="ct-sub">Loading…</p>
+      <div className="border-b border-line pb-5">
+        <Skeleton className="mb-2 h-3 w-32" />
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="mt-2 h-4 w-72" />
+      </div>
 
       {/* KPIs skeleton — 4 cartes */}
-      <div
-        aria-busy="true"
-        aria-live="polite"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
-          gap: SPACING.md,
-          marginBottom: SPACING.xl,
-        }}
-      >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="ct-card"
-            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 72 }}
-          />
+          <Skeleton key={i} className="h-[72px] rounded-[var(--radius-lg)]" />
         ))}
       </div>
 
       {/* Header liste skeleton */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: SPACING.lg,
-        }}
-      >
-        <div
-          style={{
-            width: 100,
-            height: SIZE.skeletonLine,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            opacity: OPACITY.skeletonStrong,
-          }}
-        />
-        <div
-          style={{
-            width: 120,
-            height: 32,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.md,
-            opacity: OPACITY.skeletonSoft,
-          }}
-        />
-      </div>
+      <Skeleton className="h-3 w-24" />
 
       {/* SwarmList skeleton — 4 lignes */}
-      <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
+      <div className="overflow-hidden rounded-[var(--radius-lg)] ring-1 ring-inset ring-line">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
+          <Skeleton
             key={i}
-            style={{
-              height: 52,
-              background: "var(--ct-surface-2)",
-              opacity: i % 2 === 0 ? OPACITY.skeletonStrong : OPACITY.skeletonFaint,
-              borderBottom: "1px solid var(--ct-border-soft)",
-            }}
+            className="h-[52px] rounded-none border-b border-line"
           />
         ))}
       </div>
-    </>
+    </div>
   );
 }

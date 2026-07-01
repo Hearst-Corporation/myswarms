@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FONT, SPACING } from "@/lib/ui/tokens";
+import { Button } from "@/components/ui";
 
 interface SwarmArchiveButtonProps {
   swarmId: string;
@@ -49,25 +49,18 @@ export function SwarmArchiveButton({
   }
 
   return (
-    <div style={{ display: "inline-flex", flexDirection: "column", gap: SPACING.xs }}>
-      <button
-        type="button"
-        className="ct-seg-btn"
+    <div className="inline-flex flex-col gap-1">
+      <Button
+        variant="secondary"
+        size="sm"
         onClick={handleArchive}
         disabled={busy}
         title="Disable the swarm — reversible"
       >
         {busy ? "Archiving…" : "Archive"}
-      </button>
+      </Button>
       {error ? (
-        <span
-          role="alert"
-          aria-live="assertive"
-          style={{
-            fontSize: FONT.xs,
-            color: "var(--ct-accent-strong)",
-          }}
-        >
+        <span role="alert" aria-live="assertive" className="text-xs text-danger">
           {error}
         </span>
       ) : null}

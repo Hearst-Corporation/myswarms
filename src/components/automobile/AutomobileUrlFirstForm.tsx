@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { SwarmInputForm, type SwarmInputFormState } from "@/components/swarms/SwarmInputForm";
+import { Button, Card, CardBody, Input, Label } from "@/components/ui";
 import type { InputField } from "@/lib/swarms/inputSchema";
 import type {
   ExtractedVehicleField,
@@ -11,7 +12,6 @@ import type {
 } from "@/lib/automobile/urlExtractor";
 import type { DuplicateRunRef } from "@/lib/automobile/dedup";
 import { formatDate } from "@/lib/utils/format";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 
 type ExtractApiResponse =
   | (VehicleUrlExtraction & { duplicate?: DuplicateRunRef | null })
@@ -31,28 +31,6 @@ interface Props {
   /** Doublon détecté côté serveur pour l'URL pré-remplie (flux sourcing). */
   initialDuplicate?: DuplicateRunRef | null;
 }
-
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-  boxSizing: "border-box",
-};
-
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  color: "var(--ct-text-muted)",
-  marginBottom: SPACING.xs,
-  textTransform: "uppercase",
-  letterSpacing: "0.06em",
-};
 
 function fieldSourceLabel(meta: FieldExtractionMeta): string {
   const source =
@@ -127,150 +105,101 @@ export function AutomobileUrlFirstForm({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
-      <div
-        className="ct-card"
-        style={{
-          padding: `${SPACING.lg}px`,
-          background:
-            "linear-gradient(135deg, var(--ct-surface-2), var(--ct-surface-1))",
-          borderColor: "var(--ct-border-strong)",
-        }}
-      >
-        <form
-          onSubmit={handleExtract}
-          style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}
-        >
-          <div>
-            <label htmlFor="automobile-url-extractor" style={labelStyle}>
-              Coller une URL d&apos;annonce
-            </label>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0, 1fr) auto",
-                gap: SPACING.sm,
-              }}
-            >
-              <input
-                id="automobile-url-extractor"
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.autoscout24.fr/..."
-                style={inputStyle}
-              />
-              <button
-                type="submit"
-                className="ct-seg-btn"
-                disabled={isPending || !url.trim()}
-                style={{ whiteSpace: "nowrap" }}
-              >
-                {isPending ? "Extraction…" : "Pré-remplir"}
-              </button>
-            </div>
-          </div>
-
-          <p style={{ margin: 0, fontSize: FONT.xs, color: "var(--ct-text-faint)" }}>
-            Optionnel : l&apos;extraction pré-remplit le formulaire, mais tu gardes la
-            validation finale avant de consommer des tokens.
-          </p>
-
-          {error ? (
-            <div
-              role="alert"
-              style={{
-                borderRadius: RADIUS.md,
-                border: "1px solid var(--ct-alert-error-border)",
-                background: "var(--ct-alert-error-bg)",
-                color: "var(--ct-alert-error-text)",
-                padding: `${SPACING.sm}px ${SPACING.md}px`,
-                fontSize: FONT.xs,
-              }}
-            >
-              {error}
-            </div>
-          ) : null}
-
-          {duplicate ? (
-            <div
-              role="status"
-              style={{
-                display: "flex",
-                flexWrap: "wrap",
-                alignItems: "center",
-                gap: SPACING.sm,
-                borderRadius: RADIUS.md,
-                border: "1px solid var(--ct-border-accent)",
-                background: "var(--ct-accent-soft)",
-                padding: `${SPACING.sm}px ${SPACING.md}px`,
-                fontSize: FONT.xs,
-                color: "var(--ct-text-muted)",
-              }}
-            >
-              <span>
-                Cette annonce a déjà été analysée le{" "}
-                <strong style={{ color: "var(--ct-text-primary)" }}>
-                  {formatDate(duplicate.startedAt)}
-                </strong>{" "}
-                — relancer consommera de nouveau des tokens.
-              </span>
-              <Link
-                href={`/automobile/${duplicate.runId}`}
-                className="ct-link"
-                style={{ fontWeight: FONT_WEIGHT.semibold, whiteSpace: "nowrap" }}
-              >
-                Ouvrir le rapport existant →
-              </Link>
-            </div>
-          ) : null}
-
-          {warnings.length > 0 ? (
-            <div
-              style={{
-                borderRadius: RADIUS.md,
-                border: "1px solid var(--ct-border-accent)",
-                background: "var(--ct-accent-soft)",
-                padding: `${SPACING.sm}px ${SPACING.md}px`,
-                fontSize: FONT.xs,
-                color: "var(--ct-text-muted)",
-              }}
-            >
-              {warnings.join(" ")}
-            </div>
-          ) : null}
-
-          {extractedCount > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: SPACING.xs }}>
-              {Object.entries(extractedFields).map(([field, meta]) => (
-                <span
-                  key={field}
-                  style={{
-                    borderRadius: RADIUS.full,
-                    border: "1px solid var(--ct-border)",
-                    background: "var(--ct-surface-2)",
-                    color: "var(--ct-text-muted)",
-                    padding: `${SPACING.hair}px ${SPACING.sm}px`,
-                    fontSize: FONT.xs,
-                  }}
+    <div className="flex flex-col gap-6">
+      <Card className="bg-gradient-to-br from-surface-2 to-surface ring-line-strong">
+        <CardBody>
+          <form onSubmit={handleExtract} className="flex flex-col gap-4">
+            <div>
+              <Label htmlFor="automobile-url-extractor">
+                Coller une URL d&apos;annonce
+              </Label>
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <Input
+                  id="automobile-url-extractor"
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://www.autoscout24.fr/..."
+                />
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  disabled={isPending || !url.trim()}
+                  className="whitespace-nowrap"
                 >
-                  {field === "image_url" ? "photo" : field} · {fieldSourceLabel(meta)}
-                </span>
-              ))}
+                  {isPending ? "Extraction…" : "Pré-remplir"}
+                </Button>
+              </div>
             </div>
-          ) : null}
-        </form>
-      </div>
 
-      <div className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-        <SwarmInputForm
-          key={prefillKey}
-          action={action}
-          fields={fields}
-          initialValues={prefill}
-          extractedFields={extractedFields}
-        />
-      </div>
+            <p className="text-xs text-content-faint">
+              Optionnel : l&apos;extraction pré-remplit le formulaire, mais tu gardes la
+              validation finale avant de consommer des tokens.
+            </p>
+
+            {error ? (
+              <div
+                role="alert"
+                className="rounded-[var(--radius-md)] bg-danger/10 px-3 py-2 text-xs text-danger ring-1 ring-inset ring-danger/25"
+              >
+                {error}
+              </div>
+            ) : null}
+
+            {duplicate ? (
+              <div
+                role="status"
+                className="flex flex-wrap items-center gap-2 rounded-[var(--radius-md)] bg-accent/10 px-3 py-2 text-xs text-content-muted ring-1 ring-inset ring-accent/30"
+              >
+                <span>
+                  Cette annonce a déjà été analysée le{" "}
+                  <strong className="text-content-strong">
+                    {formatDate(duplicate.startedAt)}
+                  </strong>{" "}
+                  — relancer consommera de nouveau des tokens.
+                </span>
+                <Link
+                  href={`/automobile/${duplicate.runId}`}
+                  className="whitespace-nowrap font-semibold text-accent hover:text-accent-strong"
+                >
+                  Ouvrir le rapport existant →
+                </Link>
+              </div>
+            ) : null}
+
+            {warnings.length > 0 ? (
+              <div className="rounded-[var(--radius-md)] bg-accent/10 px-3 py-2 text-xs text-content-muted ring-1 ring-inset ring-accent/30">
+                {warnings.join(" ")}
+              </div>
+            ) : null}
+
+            {extractedCount > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(extractedFields).map(([field, meta]) => (
+                  <span
+                    key={field}
+                    className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs text-content-muted ring-1 ring-inset ring-line"
+                  >
+                    {field === "image_url" ? "photo" : field} · {fieldSourceLabel(meta)}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </form>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardBody>
+          <SwarmInputForm
+            key={prefillKey}
+            action={action}
+            fields={fields}
+            initialValues={prefill}
+            extractedFields={extractedFields}
+          />
+        </CardBody>
+      </Card>
     </div>
   );
 }

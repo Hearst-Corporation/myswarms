@@ -1,5 +1,6 @@
 /* Visualisations Automobile — animations CSS pures (aucun JS state, SSR-safe).
-   Style "control-room AI" : glass, gradients, glow, motion. Tokens cockpit only. */
+   Style "control-room AI" : glass, gradients, glow, motion. DS neuf (tokens
+   --color-*). L'accent devient ambre sous [data-product="automobile"]. */
 
 .av-grid {
   display: grid;
@@ -10,10 +11,10 @@
 .av-card {
   position: relative;
   background:
-    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--ct-accent-strong) 8%, transparent), transparent 60%),
-    var(--ct-surface-2);
-  border: 1px solid var(--ct-border);
-  border-radius: 16px;
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--color-accent-strong) 8%, transparent), transparent 60%),
+    var(--color-surface-2);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
   padding: 18px;
   overflow: hidden;
   animation: av-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -23,7 +24,7 @@
   position: absolute;
   inset: 0 0 auto 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ct-accent-strong) 60%, transparent), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--color-accent-strong) 60%, transparent), transparent);
   opacity: 0.7;
 }
 .av-card:nth-child(2) { animation-delay: 0.06s; }
@@ -35,7 +36,7 @@
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--ct-text-muted);
+  color: var(--color-content-muted);
   margin-bottom: 14px;
   display: flex;
   align-items: center;
@@ -49,19 +50,19 @@
   gap: 6px;
   font-size: 9px;
   letter-spacing: 0.12em;
-  color: var(--ct-state-ok);
+  color: var(--color-ok);
 }
 .av-live-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--ct-state-ok);
-  box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct-state-ok) 70%, transparent);
+  background: var(--color-ok);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ok) 70%, transparent);
   animation: av-pulse 1.6s ease-out infinite;
 }
 
 /* Donut */
-.av-donut-track { fill: none; stroke: var(--ct-surface-3); }
+.av-donut-track { fill: none; stroke: var(--color-surface-3); }
 .av-donut-seg {
   fill: none;
   stroke-linecap: round;
@@ -118,7 +119,7 @@
   to { stroke-dashoffset: 0; }
 }
 @keyframes av-pulse {
-  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ct-state-ok) 60%, transparent); }
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ok) 60%, transparent); }
   70% { box-shadow: 0 0 0 7px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }

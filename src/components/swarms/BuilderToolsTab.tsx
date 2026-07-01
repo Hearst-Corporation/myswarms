@@ -7,7 +7,7 @@ import type {
   Tool,
   ToolBindingInput,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Card, CardHeader, CardTitle, CardBody, Field, Select } from "@/components/ui";
 
 /**
  * G8 fix : tab "Tools" + `ToolsPickerWithAgentSelector` extrait de SwarmBuilder.
@@ -28,15 +28,19 @@ export function BuilderToolsTab({
   onChange,
 }: BuilderToolsTabProps) {
   return (
-    <div className="ct-card">
-      <div className="ct-card-title">Linked tools</div>
-      <ToolsPickerWithAgentSelector
-        availableTools={availableTools}
-        selectedBindings={toolBindings}
-        onChange={onChange}
-        agents={agents}
-      />
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Linked tools</CardTitle>
+      </CardHeader>
+      <CardBody>
+        <ToolsPickerWithAgentSelector
+          availableTools={availableTools}
+          selectedBindings={toolBindings}
+          onChange={onChange}
+          agents={agents}
+        />
+      </CardBody>
+    </Card>
   );
 }
 
@@ -62,47 +66,27 @@ function ToolsPickerWithAgentSelector({
 
   if (assignableAgents.length === 0) {
     return (
-      <p className="ct-placeholder">
+      <p className="text-sm text-content-faint">
         Add an agent in the Agents tab first to assign tools to it.
       </p>
     );
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
-      <label htmlFor={agentSelectId} style={{ display: "flex", flexDirection: "column", gap: SPACING.xxs }}>
-        <span
-          style={{
-            fontSize: FONT.nano,
-            fontWeight: FONT_WEIGHT.bold,
-            letterSpacing: LETTER_SPACING.wide,
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-          }}
-        >
-          Target agent
-        </span>
-        <select
+    <div className="flex flex-col gap-5">
+      <Field label="Target agent" htmlFor={agentSelectId} className="max-w-xs">
+        <Select
           id={agentSelectId}
           value={selectedAgentId ?? ""}
           onChange={(e) => setSelectedAgentId(e.target.value || null)}
-          style={{
-            background: "var(--ct-surface-2)",
-            border: "1px solid var(--ct-border)",
-            borderRadius: RADIUS.md,
-            padding: `${SPACING.s}px ${SPACING.md}px`,
-            color: "var(--ct-text-primary)",
-            fontSize: FONT.base,
-            fontFamily: "inherit",
-          }}
         >
           {assignableAgents.map((a) => (
             <option key={a.id} value={a.id}>
               {a.name}
             </option>
           ))}
-        </select>
-      </label>
+        </Select>
+      </Field>
       <ToolPicker
         availableTools={availableTools}
         selectedBindings={selectedBindings}

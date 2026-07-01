@@ -4,13 +4,24 @@ import { crewaiClient } from "@/lib/crewai/client";
 import type { RunSummary } from "@/lib/crewai/types";
 import { formatDate } from "@/lib/utils/format";
 import { StatusBadge } from "@/components/runs/StatusBadge";
-import { FONT, SPACING } from "@/lib/ui/tokens";
 import { requireOwnerId } from "@/lib/auth/owner";
+import {
+  PageHeader,
+  SectionLabel,
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+  EmptyState,
+  Alert,
+} from "@/components/ui";
 import { Chevron } from "@/components/ui/Chevron";
 
 const CREW_NAME = "chief-of-staff";
 
-export const metadata = { title: "Run history — Chief of Staff — myswarms" };
+export const metadata = { title: "Run history — Chief of Staff — MySwarms" };
 export const dynamic = "force-dynamic";
 
 export default async function ChiefOfStaffHistoryPage() {
@@ -33,86 +44,67 @@ export default async function ChiefOfStaffHistoryPage() {
     <>
       <Link
         href="/"
-        className="ct-breadcrumb-link"
-        style={{ fontSize: FONT.base }}
+        className="inline-flex items-center gap-1 text-sm text-content-muted transition-colors hover:text-content"
       >
-        <Chevron direction="left" />Cockpit
+        <Chevron direction="left" />
+        Cockpit
       </Link>
 
-      <div
-        style={{
-          marginTop: SPACING.sm,
-          marginBottom: SPACING.xl,
-        }}
-      >
-        <h1 className="ct-title" style={{ marginBottom: SPACING.xs }}>
-          Run history
-        </h1>
-        <p className="ct-sub" style={{ marginBottom: 0 }}>
-          Last 20 runs of the Daily Chief of Staff
-        </p>
+      <div className="mt-2 mb-8">
+        <PageHeader
+          title="Run history"
+          subtitle="Last 20 runs of the Daily Chief of Staff"
+          eyebrow="Chief of Staff"
+        />
       </div>
 
       <section>
-        <div className="ct-eyebrow">Recent runs</div>
+        <SectionLabel text="Recent runs" />
 
         {listError ? (
-          <div
-            className="ct-card"
-            style={{
-              border: "1px solid var(--ct-alert-error-border)",
-              background: "var(--ct-alert-error-bg)",
-            }}
-          >
-            <p className="ct-card-body" style={{ color: "var(--ct-alert-error-text)" }}>
-              {listError}
-            </p>
-          </div>
+          <Alert tone="error" role="alert" title="Failed to load runs">
+            {listError}
+          </Alert>
         ) : runs.length === 0 ? (
-          <div className="ct-card">
-            <p className="ct-card-body">
-              No run yet. Trigger a brief from the main page.
-            </p>
-          </div>
+          <EmptyState
+            title="No run yet"
+            description="Trigger a brief from the main page to see it appear here."
+          />
         ) : (
-          <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
-            <table className="ct-table">
-              <thead>
-                <tr>
-                  <th className="ct-th">Kickoff ID</th>
-                  <th className="ct-th">Trigger</th>
-                  <th className="ct-th">Status</th>
-                  <th className="ct-th">Started</th>
-                  <th className="ct-th">Finished</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((r) => (
-                  <tr key={r.kickoff_id} className="ct-tr">
-                    <td className="ct-td" style={{ fontFamily: "var(--font-mono)", fontSize: FONT.xs }}>
-                      <Link
-                        href={`/crews/${CREW_NAME}/runs/${r.kickoff_id}`}
-                        prefetch={false}
-                        className="ct-link"
-                      >
-                        {r.kickoff_id.slice(0, 8)}…
-                      </Link>
-                    </td>
-                    <td className="ct-td">{r.trigger}</td>
-                    <td className="ct-td">
-                      <StatusBadge status={r.status} />
-                    </td>
-                    <td className="ct-td" style={{ fontSize: FONT.xs }}>
-                      {formatDate(r.started_at)}
-                    </td>
-                    <td className="ct-td" style={{ fontSize: FONT.xs }}>
-                      {r.finished_at ? formatDate(r.finished_at) : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Kickoff ID</TH>
+                <TH>Trigger</TH>
+                <TH>Status</TH>
+                <TH>Started</TH>
+                <TH>Finished</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {runs.map((r) => (
+                <TR key={r.kickoff_id}>
+                  <TD className="font-mono text-xs">
+                    <Link
+                      href={`/crews/${CREW_NAME}/runs/${r.kickoff_id}`}
+                      prefetch={false}
+                      className="text-accent transition-colors hover:text-accent-strong"
+                    >
+                      {r.kickoff_id.slice(0, 8)}…
+                    </Link>
+                  </TD>
+                  <TD>{r.trigger}</TD>
+                  <TD>
+                    <StatusBadge status={r.status} />
+                  </TD>
+                  <TD className="text-xs text-content-muted">{formatDate(r.started_at)}</TD>
+                  <TD className="text-xs text-content-muted">
+                    {r.finished_at ? formatDate(r.finished_at) : "—"}
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         )}
       </section>
     </>

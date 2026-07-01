@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { LLMPicker } from "./LLMPicker";
 import {
   type AgentInput,
@@ -9,7 +8,7 @@ import {
   type ModelProvider,
   AgentRoleSchema,
 } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, LINE_HEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Button, Field, Input, Textarea, Select, Alert } from "@/components/ui";
 
 interface SwarmAgentFormProps {
   initialAgent?: AgentInput;
@@ -48,53 +47,51 @@ export function SwarmAgentForm({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!agent.name.trim()) { setError("Name is required."); return; }
-    if (!agent.system_prompt.trim()) { setError("System prompt is required."); return; }
+    if (!agent.name.trim()) {
+      setError("Name is required.");
+      return;
+    }
+    if (!agent.system_prompt.trim()) {
+      setError("System prompt is required.");
+      return;
+    }
     onSubmit(agent);
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}
-    >
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
-        <label style={labelStyle}>
-          <span style={labelText}>Name</span>
-          <input
+    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Name">
+          <Input
             type="text"
             value={agent.name}
             onChange={(e) => update("name", e.target.value)}
             required
-            style={inputStyle}
           />
-        </label>
-        <label style={labelStyle}>
-          <span style={labelText}>Role</span>
-          <select
+        </Field>
+        <Field label="Role">
+          <Select
             value={agent.role}
             onChange={(e) => update("role", e.target.value as AgentRole)}
-            style={inputStyle}
           >
             {AgentRoleSchema.options.map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
             ))}
-          </select>
-        </label>
+          </Select>
+        </Field>
       </div>
 
-      <label style={labelStyle}>
-        <span style={labelText}>System prompt</span>
-        <textarea
+      <Field label="System prompt">
+        <Textarea
           value={agent.system_prompt}
           onChange={(e) => update("system_prompt", e.target.value)}
           required
           rows={6}
-          style={{ ...inputStyle, fontFamily: "var(--font-mono)", resize: "vertical" }}
+          className="font-mono"
         />
-      </label>
+      </Field>
 
       <LLMPicker
         provider={agent.model_provider}
@@ -108,27 +105,16 @@ export function SwarmAgentForm({
       />
 
       {error ? (
-        <div
-          role="alert"
-          style={{
-            background: "var(--ct-alert-error-bg)",
-            border: "1px solid var(--ct-alert-error-border)",
-            color: "var(--ct-alert-error-text)",
-            padding: `${SPACING.sm}px ${SPACING.md}px`,
-            borderRadius: RADIUS.sm,
-            fontSize: FONT.sm,
-            lineHeight: LINE_HEIGHT.tight,
-          }}
-        >
+        <Alert tone="error" role="alert">
           {error}
-        </div>
+        </Alert>
       ) : null}
 
-      <div style={{ display: "flex", gap: SPACING.sm, justifyContent: "flex-end" }}>
+      <div className="flex justify-end gap-2">
         {onCancel ? (
-          <button type="button" className="ct-seg-btn" onClick={onCancel}>
+          <Button variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
+          </Button>
         ) : null}
         <Button type="submit" variant="primary">
           {initialAgent ? "Update" : "Add agent"}
@@ -137,25 +123,3 @@ export function SwarmAgentForm({
     </form>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: SPACING.xxs,
-};
-const labelText: React.CSSProperties = {
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  letterSpacing: LETTER_SPACING.tight,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-};
-const inputStyle: React.CSSProperties = {
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.s}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-};

@@ -3,8 +3,7 @@
 import { useState, useCallback } from "react";
 import { InviteUserForm } from "./InviteUserForm";
 import { UserTable } from "./UserTable";
-import { SPACING } from "@/lib/ui/tokens";
-import { SectionLabel } from "@/components/ui/SectionLabel";
+import { Card, CardHeader, CardTitle, CardBody, Button } from "@/components/ui";
 
 interface User {
   id: string;
@@ -36,29 +35,34 @@ export function AdminUsersClient({ initialUsers, superAdminEmail }: AdminUsersCl
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xxl }}>
+    <div className="flex flex-col gap-8">
       {/* Créer un compte */}
-      <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-        <SectionLabel text="Créer un nouveau compte" mb={SPACING.md} />
-        <InviteUserForm onSuccess={refresh} />
-      </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Créer un nouveau compte</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <InviteUserForm onSuccess={refresh} />
+        </CardBody>
+      </Card>
 
       {/* Liste des utilisateurs */}
-      <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: SPACING.md }}>
-          <SectionLabel text={`Utilisateurs — ${users.length}`} />
-          <button
-            type="button"
-            className="ct-seg-btn"
+      <Card>
+        <CardHeader>
+          <CardTitle>Utilisateurs — {users.length}</CardTitle>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={refresh}
             disabled={refreshing}
-            style={{ fontSize: "var(--ct-font-size-xs)" }}
           >
             {refreshing ? "…" : "Actualiser"}
-          </button>
-        </div>
-        <UserTable users={users} superAdminEmail={superAdminEmail} onRefresh={refresh} />
-      </section>
+          </Button>
+        </CardHeader>
+        <CardBody>
+          <UserTable users={users} superAdminEmail={superAdminEmail} onRefresh={refresh} />
+        </CardBody>
+      </Card>
     </div>
   );
 }

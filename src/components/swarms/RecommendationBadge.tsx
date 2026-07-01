@@ -1,5 +1,6 @@
+import type { CSSProperties } from "react";
 import type { Recommendation } from "@/lib/swarms/recommendation";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
+import { cn } from "@/lib/ui/cn";
 
 /**
  * Badge de recommandation APM — couleurs pilotées par CSS variables
@@ -13,10 +14,10 @@ import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tok
  * `size="md"` : grand badge pour la page de détail d'un run.
  */
 const REC_META: Record<Recommendation, { key: string; label: string }> = {
-  APPELER:  { key: "appeler", label: "Appeler" },
+  APPELER: { key: "appeler", label: "Appeler" },
   ATTENDRE: { key: "attendre", label: "Attendre" },
   "ÉVITER": { key: "eviter", label: "Éviter" },
-  UNKNOWN:  { key: "unknown", label: "—" },
+  UNKNOWN: { key: "unknown", label: "—" },
 };
 
 export function RecommendationBadge({
@@ -28,19 +29,19 @@ export function RecommendationBadge({
 }) {
   const m = REC_META[rec];
   const isMd = size === "md";
+  // Couleur pilotée par le produit via CSS variables (contrat de theming,
+  // pas un token de présentation legacy — conservé volontairement).
+  const colorStyle: CSSProperties = {
+    color: `var(--rec-${m.key}-color)`,
+    background: `var(--rec-${m.key}-bg)`,
+  };
   return (
     <span
-      style={{
-        display: "inline-block",
-        padding: isMd ? `${SPACING.sm}px ${SPACING.lg}px` : `${SPACING.xs}px ${SPACING.sm}px`,
-        borderRadius: RADIUS.full,
-        fontSize: isMd ? FONT.md : FONT.xs,
-        fontWeight: FONT_WEIGHT.bold,
-        letterSpacing: LETTER_SPACING.wide,
-        textTransform: "uppercase",
-        color: `var(--rec-${m.key}-color)`,
-        background: `var(--rec-${m.key}-bg)`,
-      }}
+      className={cn(
+        "inline-block rounded-full font-bold uppercase tracking-wide",
+        isMd ? "px-4 py-1.5 text-base" : "px-2.5 py-0.5 text-xs",
+      )}
+      style={colorStyle}
     >
       {rec === "UNKNOWN" ? "—" : isMd ? m.label : rec}
     </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FONT, SPACING, FONT_WEIGHT } from "@/lib/ui/tokens";
+import { Button } from "@/components/ui";
 
 interface ConnectButtonProps {
   toolkit: string; // "gmail" | "trello"
@@ -36,48 +36,24 @@ export function ConnectButton({ toolkit, label }: ConnectButtonProps) {
 
   if (status === "done") {
     return (
-      <span
-        style={{
-          fontSize: FONT.xs,
-          color: "var(--ct-status-completed)",
-          fontWeight: FONT_WEIGHT.bold,
-        }}
-      >
+      <span className="text-xs font-semibold text-[var(--color-ok)]">
         ✓ Fenêtre OAuth ouverte
       </span>
     );
   }
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "flex-end",
-        gap: SPACING.xs,
-      }}
-    >
-      <button
-        type="button"
-        className="ct-seg-btn primary"
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        variant="primary"
+        size="sm"
         onClick={handleConnect}
         disabled={status === "loading"}
-        style={{
-          fontSize: FONT.xs,
-          padding: `${SPACING.xs}px ${SPACING.md}px`,
-        }}
       >
         {status === "loading" ? "…" : `Connecter ${label}`}
-      </button>
+      </Button>
       {status === "error" && errorMsg && (
-        <span
-          style={{
-            fontSize: FONT.xxs,
-            color: "var(--ct-alert-error-text)",
-            maxWidth: 200,
-            textAlign: "right",
-          }}
-        >
+        <span className="max-w-[200px] text-right text-[10px] text-danger">
           {errorMsg}
         </span>
       )}

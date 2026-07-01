@@ -1,11 +1,5 @@
 import { LoginForm } from "./LoginForm";
-import {
-  SPACING,
-  RADIUS,
-  FONT,
-  BLUR,
-  SIZE,
-} from "@/lib/ui/tokens";
+import { Alert } from "@/components/ui";
 
 export const metadata = {
   title: "Sign in — MySwarms",
@@ -26,99 +20,29 @@ export default async function LoginPage({
   const params = await searchParams;
   const returnTo = params?.returnTo ?? "/";
   const error = params?.error ?? null;
+
   return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--ct-overlay-modal)",
-        backdropFilter: BLUR.modal,
-        WebkitBackdropFilter: BLUR.modal,
-        padding: SPACING.xl,
-      }}
-    >
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 400,
-          padding: `${SPACING.xxl + SPACING.sm}px ${SPACING.xxl + SPACING.xs}px`,
-          borderRadius: RADIUS.xl,
-          background: "var(--ct-surface-1)",
-          border: "1px solid var(--ct-border-strong)",
-          backdropFilter: BLUR.panel,
-          WebkitBackdropFilter: BLUR.panel,
-          boxShadow: "var(--ct-shadow-depth)",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 0,
-        }}
-      >
+    <div className="flex min-h-dvh items-center justify-center bg-canvas p-6">
+      <div className="flex w-full max-w-sm flex-col items-center rounded-[var(--radius-xl)] bg-surface px-8 py-10 ring-1 ring-inset ring-line-strong shadow-lg shadow-black/40">
         {/* Logo / identité */}
-        <div
-          style={{
-            width: SIZE.logoLg,
-            height: SIZE.logoLg,
-            borderRadius: RADIUS.lg,
-            background: "var(--ct-surface-3)",
-            border: "1px solid var(--ct-border-strong)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            marginBottom: SPACING.xl,
-          }}
-        >
-          <div
-            style={{
-              width: 20,
-              height: 20,
-              borderRadius: "50%",
-              background: "var(--ct-accent-strong)",
-            }}
-          />
+        <div className="mb-6 flex size-14 items-center justify-center rounded-[var(--radius-lg)] bg-surface-3 ring-1 ring-inset ring-line-strong">
+          <div className="size-5 rounded-full bg-accent-strong" aria-hidden="true" />
         </div>
 
-        <p
-          className="ct-eyebrow"
-          style={{ marginBottom: SPACING.xs, textAlign: "center" }}
-        >
+        <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-accent">
           MySwarms
         </p>
-        <h1
-          className="ct-title"
-          style={{
-            marginBottom: SPACING.xxs,
-            textAlign: "center",
-          }}
-        >
+        <h1 className="text-xl font-semibold tracking-tight text-content-strong">
           Sign in
         </h1>
-        <p
-          className="ct-sub"
-          style={{ textAlign: "center" }}
-        >
+        <p className="mt-1 text-center text-sm text-content-muted">
           Restricted access — authentication required.
         </p>
 
         {error === "unauthorized" && (
-          <div
-            role="alert"
-            style={{
-              width: "100%",
-              marginTop: SPACING.lg,
-              padding: `${SPACING.sm}px ${SPACING.md}px`,
-              borderRadius: RADIUS.md,
-              background: "var(--ct-alert-error-bg)",
-              border: "1px solid var(--ct-alert-error-border)",
-              fontSize: FONT.sm,
-              color: "var(--ct-alert-error-text)",
-              textAlign: "center",
-            }}
-          >
+          <Alert tone="error" role="alert" className="mt-5 w-full text-center">
             Accès non autorisé. Ce compte n&apos;est pas admis sur cette plateforme.
-          </div>
+          </Alert>
         )}
 
         <LoginForm returnTo={returnTo} />

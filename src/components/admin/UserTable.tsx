@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
+import { Table, THead, TBody, TR, TH, TD, Badge, Button } from "@/components/ui";
 
 interface User {
   id: string;
@@ -45,96 +44,66 @@ export function UserTable({ users, superAdminEmail, onRefresh }: UserTableProps)
   }
 
   return (
-    <div>
+    <div className="flex flex-col gap-3">
       {error && (
-        <p role="alert" style={{ fontSize: FONT.sm, color: "var(--ct-alert-error-text)", marginBottom: SPACING.md }}>
+        <p role="alert" className="text-sm text-danger">
           {error}
         </p>
       )}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr>
-              <th style={thStyle}>Email</th>
-              <th style={thStyle}>Rôle</th>
-              <th style={thStyle}>Confirmé</th>
-              <th style={thStyle}>Dernière connexion</th>
-              <th style={thStyle}>Créé le</th>
-              <th style={thStyle}></th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => {
-              const isSelf = u.email === superAdminEmail;
-              return (
-                <tr key={u.id}>
-                  <td style={tdStyle}>
-                    <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
-                      <span>{u.email ?? "—"}</span>
-                      {isSelf && (
-                        <span style={{
-                          fontSize: FONT.xxs,
-                          fontWeight: FONT_WEIGHT.bold,
-                          padding: `1px ${SPACING.xs}px`,
-                          borderRadius: RADIUS.full,
-                          background: "var(--ct-accent-strong)",
-                          color: "var(--ct-text-strong)",
-                          textTransform: "uppercase",
-                          letterSpacing: LETTER_SPACING.wide,
-                        }}>
-                          Vous
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td style={tdStyle}>
-                    <span style={{
-                      fontSize: FONT.xs,
-                      fontWeight: FONT_WEIGHT.bold,
-                      padding: `1px ${SPACING.xs}px`,
-                      borderRadius: RADIUS.full,
-                      background: u.role === "admin" ? "var(--ct-status-running-bg)" : "var(--ct-surface-3)",
-                      color: u.role === "admin" ? "var(--ct-accent-strong)" : "var(--ct-text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: LETTER_SPACING.wide,
-                    }}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td style={tdStyle}>
-                    {u.email_confirmed_at
-                      ? <span style={{ color: "var(--ct-status-completed)" }}>✓</span>
-                      : <span style={{ color: "var(--ct-text-faint)" }}>En attente</span>}
-                  </td>
-                  <td style={{ ...tdStyle, color: "var(--ct-text-muted)", fontSize: FONT.xs }}>{formatDate(u.last_sign_in_at)}</td>
-                  <td style={{ ...tdStyle, color: "var(--ct-text-muted)", fontSize: FONT.xs }}>{formatDate(u.created_at)}</td>
-                  <td style={{ ...tdStyle, textAlign: "right" }}>
-                    {!isSelf && (
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(u.id, u.email)}
-                        disabled={deleting === u.id}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "var(--ct-alert-error-text)",
-                          fontSize: FONT.xs,
-                          padding: `${SPACING.xs}px ${SPACING.sm}px`,
-                          borderRadius: RADIUS.sm,
-                          opacity: deleting === u.id ? 0.5 : 1,
-                        }}
-                      >
-                        {deleting === u.id ? "…" : "Supprimer"}
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Email</TH>
+            <TH>Rôle</TH>
+            <TH>Confirmé</TH>
+            <TH>Dernière connexion</TH>
+            <TH>Créé le</TH>
+            <TH><span className="sr-only">Actions</span></TH>
+          </TR>
+        </THead>
+        <TBody>
+          {users.map((u) => {
+            const isSelf = u.email === superAdminEmail;
+            return (
+              <TR key={u.id}>
+                <TD>
+                  <div className="flex items-center gap-2">
+                    <span className="text-content-strong">{u.email ?? "—"}</span>
+                    {isSelf && <Badge tone="accent">Vous</Badge>}
+                  </div>
+                </TD>
+                <TD>
+                  <Badge tone={u.role === "admin" ? "running" : "neutral"}>
+                    {u.role}
+                  </Badge>
+                </TD>
+                <TD>
+                  {u.email_confirmed_at ? (
+                    <span className="text-[var(--color-ok)]">✓</span>
+                  ) : (
+                    <span className="text-content-faint">En attente</span>
+                  )}
+                </TD>
+                <TD className="text-xs text-content-muted">{formatDate(u.last_sign_in_at)}</TD>
+                <TD className="text-xs text-content-muted">{formatDate(u.created_at)}</TD>
+                <TD className="text-right">
+                  {!isSelf && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(u.id, u.email)}
+                      disabled={deleting === u.id}
+                      className="text-danger hover:text-danger"
+                    >
+                      {deleting === u.id ? "…" : "Supprimer"}
+                    </Button>
+                  )}
+                </TD>
+              </TR>
+            );
+          })}
+        </TBody>
+      </Table>
     </div>
   );
 }

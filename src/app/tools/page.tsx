@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import type { Tool } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, SPACING } from "@/lib/ui/tokens";
 import { redirect } from "next/navigation";
+import { PageHeader, Card, Alert, Badge, EmptyState, SectionLabel } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -51,123 +51,50 @@ export default async function ToolsPage() {
   );
 
   return (
-    <>
-      <span className="ct-eyebrow">Catalog</span>
-      <h1 className="ct-title">Tools</h1>
-      <p className="ct-sub">
-        {tools.length} tool{tools.length > 1 ? "s" : ""} available for your agents.
-      </p>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        eyebrow="Catalog"
+        title="Tools"
+        subtitle={`${tools.length} tool${tools.length > 1 ? "s" : ""} available for your agents.`}
+      />
 
       {dbError ? (
-        <div
-          className="ct-card"
-          style={{
-            background: "var(--ct-alert-warning-bg)",
-            borderColor: "var(--ct-alert-warning-border)",
-          }}
-        >
-          <div
-            className="ct-card-title"
-            style={{ color: "var(--ct-alert-warning-text)" }}
-          >
-            Erreur de chargement du catalog
-          </div>
-          <div className="ct-card-body">
-            <code>{dbError}</code>
-          </div>
-        </div>
+        <Alert tone="warning" title="Erreur de chargement du catalog">
+          <code className="font-mono text-xs">{dbError}</code>
+        </Alert>
       ) : tools.length === 0 ? (
-        <div className="ct-card">
-          <div className="ct-card-title">Catalog vide</div>
-          <div className="ct-placeholder">
-            Aucun tool trouvé pour cet utilisateur.
-            Provisionnez-en via une migration Supabase.
-          </div>
-        </div>
+        <EmptyState
+          title="Catalog vide"
+          description="Aucun tool trouvé pour cet utilisateur. Provisionnez-en via une migration Supabase."
+        />
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: SPACING.xl,
-          }}
-        >
+        <div className="flex flex-col gap-8">
           {categories.map(([cat, list]) => (
-            <section key={cat}>
-              <div
-                style={{
-                  fontSize: FONT.xs,
-                  fontWeight: FONT_WEIGHT.bold,
-                  letterSpacing: LETTER_SPACING.wide,
-                  textTransform: "uppercase",
-                  color: "var(--ct-text-muted)",
-                  marginBottom: SPACING.sm,
-                }}
-              >
-                {cat} · {list.length}
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fill, minmax(var(--ct-card-min-w), 1fr))",
-                  gap: SPACING.md,
-                }}
-              >
+            <section key={cat} className="flex flex-col gap-3">
+              <SectionLabel text={`${cat} · ${list.length}`} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((tool) => (
-                  <div
-                    key={tool.id}
-                    className="ct-card"
-                    style={{ marginBottom: 0 }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                        gap: SPACING.sm,
-                        marginBottom: SPACING.xs,
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: FONT.md,
-                          fontWeight: FONT_WEIGHT.semibold,
-                          color: "var(--ct-text-strong)",
-                        }}
-                      >
+                  <Card key={tool.id} className="p-4">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <div className="text-sm font-semibold text-content-strong">
                         {tool.name}
                       </div>
                       {!tool.is_active ? (
-                        <span
-                          style={{
-                            fontSize: FONT.xxs,
-                            color: "var(--ct-text-muted)",
-                            textTransform: "uppercase",
-                            letterSpacing: LETTER_SPACING.wide,
-                          }}
-                        >
-                          inactive
-                        </span>
+                        <Badge tone="neutral">inactive</Badge>
                       ) : null}
                     </div>
                     {tool.description ? (
-                      <div
-                        style={{
-                          fontSize: FONT.sm,
-                          color: "var(--ct-text-body)",
-                        }}
-                      >
+                      <div className="text-sm text-content-muted">
                         {tool.description}
                       </div>
                     ) : null}
-                  </div>
+                  </Card>
                 ))}
               </div>
             </section>
           ))}
         </div>
       )}
-    </>
+    </div>
   );
 }

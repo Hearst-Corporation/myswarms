@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { getOwnerId } from "@/lib/auth/owner";
 import { isValidUuid } from "@/lib/utils/uuid";
@@ -9,17 +9,16 @@ import { parseInputSchema } from "@/lib/swarms/inputSchema";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
-import { PageTitle } from "@/components/ui/PageTitle";
-import { Chevron } from "@/components/ui/Chevron";
-import { ErrorLayout } from "@/components/ui/ErrorLayout";
 import {
-  FONT,
-  FONT_WEIGHT,
-  LETTER_SPACING,
-  LINE_HEIGHT,
-  RADIUS,
-  SPACING,
-} from "@/lib/ui/tokens";
+  PageTitle,
+  Chevron,
+  ErrorLayout,
+  Card,
+  CardBody,
+  Badge,
+  SectionLabel,
+  EmptyState,
+} from "@/components/ui";
 import type {
   SwarmRecord,
   SwarmRun,
@@ -34,6 +33,15 @@ const OBJECTIVE_CHARS = 240; // longueur max de l'objectif (task.description)
 const OUTPUT_DECL_CHARS = 220; // longueur max de la sortie déclarée (task.expected_output)
 const STEP_OUTPUT_CHARS = 200; // longueur max de l'aperçu d'un output de step
 const REPORT_EXCERPT_CHARS = 320; // longueur max de l'extrait de rapport final
+
+const BREADCRUMB =
+  "inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content";
+const PRIMARY_LINK =
+  "inline-flex h-9 items-center rounded-[var(--radius-sm)] bg-accent px-3 text-xs font-semibold text-white transition-colors hover:bg-accent-strong";
+const SECONDARY_LINK =
+  "inline-flex h-9 items-center rounded-[var(--radius-sm)] bg-surface-3 px-3 text-xs font-semibold text-content ring-1 ring-inset ring-line transition-colors hover:bg-elevated";
+const CHIP =
+  "inline-flex items-center whitespace-nowrap rounded-full bg-surface-3 px-2.5 py-0.5 text-xs font-medium uppercase tracking-tight text-content-muted";
 
 type Agent = SwarmRecord["agents"][number];
 type Task = SwarmRecord["tasks"][number];
@@ -67,17 +75,15 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
   } catch (err) {
     if (err instanceof SwarmEngineError && err.status === 404) notFound();
     return (
-      <>
-        <div className="ct-eyebrow">
-          <Link href={`/swarms/${id}`} className="ct-breadcrumb-link">
-            <Chevron direction="left" />Swarm
-          </Link>
-        </div>
+      <div className="flex flex-col gap-6">
+        <Link href={`/swarms/${id}`} className={BREADCRUMB}>
+          <Chevron direction="left" />Swarm
+        </Link>
         <ErrorLayout
           title="Schéma indisponible"
           message={err instanceof Error ? err.message : "Erreur inconnue"}
         />
-      </>
+      </div>
     );
   }
 
@@ -121,61 +127,42 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
   const recommendation = extractRecommendation(lastRun?.result_text);
 
   return (
-    <>
-      <div className="ct-eyebrow">
-        <Link href={`/swarms/${id}`} className="ct-breadcrumb-link">
-          <Chevron direction="left" />Swarm
-        </Link>
-      </div>
+    <div className="flex flex-col gap-6">
+      <Link href={`/swarms/${id}`} className={BREADCRUMB}>
+        <Chevron direction="left" />Swarm
+      </Link>
 
       {/* ── 1. Header ─────────────────────────────────────────────────────── */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: SPACING.lg,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: SPACING.md,
-              flexWrap: "wrap",
-            }}
-          >
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-5">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
             <PageTitle>{swarm.name}</PageTitle>
-            {isTemplate ? <span style={templateBadgeStyle}>TEMPLATE</span> : null}
+            {isTemplate ? <Badge tone="neutral">TEMPLATE</Badge> : null}
           </div>
-          <p className="ct-sub" style={{ maxWidth: PIPELINE_MAX_WIDTH }}>
+          <p
+            className="mt-1 text-sm text-content-muted"
+            style={{ maxWidth: PIPELINE_MAX_WIDTH }}
+          >
             {swarm.description || "Aucune description."}
           </p>
-          <div
-            style={{
-              display: "flex",
-              gap: SPACING.lg,
-              flexWrap: "wrap",
-              fontSize: FONT.xs,
-              color: "var(--ct-text-muted)",
-              marginTop: SPACING.sm,
-            }}
-          >
+          <div className="mt-2 flex flex-wrap gap-5 text-xs text-content-muted">
             <span>Provider : {modelLabel}</span>
-            <span>{swarm.agents.length} agent{swarm.agents.length !== 1 ? "s" : ""}</span>
-            <span>{swarm.tasks.length} task{swarm.tasks.length !== 1 ? "s" : ""}</span>
+            <span>
+              {swarm.agents.length} agent{swarm.agents.length !== 1 ? "s" : ""}
+            </span>
+            <span>
+              {swarm.tasks.length} task{swarm.tasks.length !== 1 ? "s" : ""}
+            </span>
           </div>
         </div>
-        <div style={{ display: "flex", gap: SPACING.sm, alignItems: "center", flexWrap: "wrap" }}>
-          <Link href={`/swarms/${id}`} className="ct-seg-btn primary">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href={`/swarms/${id}`} className={PRIMARY_LINK}>
             Lancer une recherche
           </Link>
-          <Link href={`/swarms/${id}`} className="ct-seg-btn">
+          <Link href={`/swarms/${id}`} className={SECONDARY_LINK}>
             Voir les runs
           </Link>
-          <Link href={`/swarms/${id}`} className="ct-seg-btn">
+          <Link href={`/swarms/${id}`} className={SECONDARY_LINK}>
             Retour au swarm
           </Link>
         </div>
@@ -183,106 +170,82 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
 
       {/* ── 4. Dernier run (aperçu) ──────────────────────────────────────── */}
       {lastRunSummary ? (
-        <div className="ct-card">
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: SPACING.md,
-              flexWrap: "wrap",
-            }}
-          >
-            <div className="ct-card-title" style={{ margin: 0 }}>
-              Dernier run
+        <Card>
+          <CardBody>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <CardTitleInline>Dernier run</CardTitleInline>
+              <Link
+                href={`/swarms/${id}/runs/${lastRunSummary.id}`}
+                className="inline-flex items-center text-sm text-accent hover:text-accent-strong"
+              >
+                Ouvrir le run <Chevron direction="right" />
+              </Link>
             </div>
-            <Link
-              href={`/swarms/${id}/runs/${lastRunSummary.id}`}
-              className="ct-link"
-              style={{ fontSize: FONT.sm }}
-            >
-              Ouvrir le run <Chevron direction="right" />
-            </Link>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              gap: SPACING.lg,
-              flexWrap: "wrap",
-              alignItems: "center",
-              marginTop: SPACING.md,
-              fontSize: FONT.sm,
-              color: "var(--ct-text-muted)",
-            }}
-          >
-            <Link
-              href={`/swarms/${id}/runs/${lastRunSummary.id}`}
-              className="ct-link"
-              style={{ fontFamily: "var(--font-mono)", fontSize: FONT.sm }}
-            >
-              {lastRunSummary.id.slice(0, 8)}…
-            </Link>
-            <StatusBadge status={lastRunSummary.status} />
-            <span>début : {formatDate(lastRunSummary.started_at, { withSeconds: true })}</span>
-            <span>
-              fin :{" "}
-              {lastRunSummary.finished_at
-                ? formatDate(lastRunSummary.finished_at, { withSeconds: true })
-                : "—"}
-            </span>
-            <span>{steps.length} step{steps.length !== 1 ? "s" : ""}</span>
-            <span>
-              {(
-                lastRunSummary.total_tokens_in + lastRunSummary.total_tokens_out
-              ).toLocaleString("en-US")}{" "}
-              tok
-            </span>
-            {recommendation !== "UNKNOWN" ? (
-              <RecommendationBadge rec={recommendation} />
+            <div className="mt-3 flex flex-wrap items-center gap-5 text-sm text-content-muted">
+              <Link
+                href={`/swarms/${id}/runs/${lastRunSummary.id}`}
+                className="font-mono text-sm text-accent hover:text-accent-strong"
+              >
+                {lastRunSummary.id.slice(0, 8)}…
+              </Link>
+              <StatusBadge status={lastRunSummary.status} />
+              <span>
+                début :{" "}
+                {formatDate(lastRunSummary.started_at, { withSeconds: true })}
+              </span>
+              <span>
+                fin :{" "}
+                {lastRunSummary.finished_at
+                  ? formatDate(lastRunSummary.finished_at, { withSeconds: true })
+                  : "—"}
+              </span>
+              <span>
+                {steps.length} step{steps.length !== 1 ? "s" : ""}
+              </span>
+              <span>
+                {(
+                  lastRunSummary.total_tokens_in +
+                  lastRunSummary.total_tokens_out
+                ).toLocaleString("en-US")}{" "}
+                tok
+              </span>
+              {recommendation !== "UNKNOWN" ? (
+                <RecommendationBadge rec={recommendation} />
+              ) : null}
+            </div>
+            {lastRun && !runHasSteps ? (
+              <p className="mt-3 text-xs leading-tight text-content-faint">
+                {"Détail par agent indisponible : les steps de ce run n'ont pas été journalisés. Le schéma ci-dessous montre le plan d'exécution du swarm."}
+              </p>
             ) : null}
-          </div>
-          {lastRun && !runHasSteps ? (
-            <p
-              style={{
-                fontSize: FONT.xs,
-                color: "var(--ct-text-faint)",
-                marginTop: SPACING.md,
-                lineHeight: LINE_HEIGHT.tight,
-              }}
-            >
-              {"Détail par agent indisponible : les steps de ce run n'ont pas été journalisés. Le schéma ci-dessous montre le plan d'exécution du swarm."}
-            </p>
-          ) : null}
-        </div>
+          </CardBody>
+        </Card>
       ) : (
-        <div className="ct-card">
-          <p className="ct-placeholder">
-            Lance une recherche pour voir les agents opérer en temps réel.
-          </p>
-        </div>
+        <Card>
+          <CardBody>
+            <EmptyState
+              title="Aucun run"
+              description="Lance une recherche pour voir les agents opérer en temps réel."
+            />
+          </CardBody>
+        </Card>
       )}
 
       {/* ── 2 + 3. Agent graph + handoff (flux vertical) ─────────────────── */}
-      <div
-        style={{
-          maxWidth: PIPELINE_MAX_WIDTH,
-          margin: "0 auto",
-          width: "100%",
-        }}
-      >
+      <div className="mx-auto w-full" style={{ maxWidth: PIPELINE_MAX_WIDTH }}>
         {/* Input utilisateur */}
         <EndpointNode label="Input utilisateur" tone="neutral">
           {inputFields.length > 0 ? (
-            <div style={{ display: "flex", flexWrap: "wrap", gap: SPACING.xs }}>
+            <div className="flex flex-wrap gap-1.5">
               {inputFields.map((f) => (
-                <span key={f.key} style={chipStyle}>
+                <span key={f.key} className={CHIP}>
                   {f.label}
                   {f.required ? " *" : ""}
                 </span>
               ))}
             </div>
           ) : (
-            <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
+            <span className="text-sm text-content-muted">
               {"Déclenchement manuel (pas d'inputs structurés)."}
             </span>
           )}
@@ -291,9 +254,13 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
         {agents.length === 0 ? (
           <>
             <FlowConnector />
-            <div className="ct-card">
-              <p className="ct-placeholder">{"Ce swarm n'a aucun agent défini."}</p>
-            </div>
+            <Card>
+              <CardBody>
+                <p className="text-sm text-content-faint">
+                  {"Ce swarm n'a aucun agent défini."}
+                </p>
+              </CardBody>
+            </Card>
           </>
         ) : (
           agents.map((agent, idx) => {
@@ -303,9 +270,7 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
             const lastStep = agentSteps[agentSteps.length - 1] ?? null;
             return (
               <div key={agent.id ?? agent.name}>
-                <FlowConnector
-                  label={idx === 0 ? undefined : HANDOFF_LABEL}
-                />
+                <FlowConnector label={idx === 0 ? undefined : HANDOFF_LABEL} />
                 <AgentCard
                   order={idx + 1}
                   agent={agent}
@@ -324,30 +289,22 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
           {lastRun?.status === "completed" && lastRun.result_text ? (
             <div>
               {recommendation !== "UNKNOWN" ? (
-                <div style={{ marginBottom: SPACING.sm }}>
+                <div className="mb-2">
                   <RecommendationBadge rec={recommendation} size="md" />
                 </div>
               ) : null}
-              <p
-                style={{
-                  fontSize: FONT.sm,
-                  color: "var(--ct-text-primary)",
-                  lineHeight: LINE_HEIGHT.base,
-                  margin: 0,
-                }}
-              >
+              <p className="text-sm leading-relaxed text-content">
                 {plainExcerpt(lastRun.result_text, REPORT_EXCERPT_CHARS)}
               </p>
               <Link
                 href={`/swarms/${id}/runs/${lastRunSummary?.id ?? ""}`}
-                className="ct-link"
-                style={{ display: "inline-block", marginTop: SPACING.md, fontSize: FONT.sm }}
+                className="mt-3 inline-flex items-center text-sm text-accent hover:text-accent-strong"
               >
                 Ouvrir le rapport complet <Chevron direction="right" />
               </Link>
             </div>
           ) : (
-            <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
+            <span className="text-sm text-content-muted">
               {lastRun
                 ? "Run non terminé — le rapport final apparaîtra ici une fois le run complété."
                 : "Lance une recherche pour générer le rapport final."}
@@ -355,13 +312,19 @@ export default async function SwarmSchemaPage({ params }: PageProps) {
           )}
         </EndpointNode>
       </div>
-    </>
+    </div>
   );
 }
 
 // ════════════════════════════════════════════════════════════════════════════
 // Sous-composants (server components, pas d'état)
 // ════════════════════════════════════════════════════════════════════════════
+
+function CardTitleInline({ children }: { children: ReactNode }) {
+  return (
+    <h3 className="text-sm font-semibold text-content-strong">{children}</h3>
+  );
+}
 
 function AgentCard({
   order,
@@ -377,82 +340,55 @@ function AgentCard({
   lastStep: Step | null;
 }) {
   return (
-    <div className="ct-card">
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: SPACING.md,
-          flexWrap: "wrap",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: SPACING.md, minWidth: 0 }}>
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: FONT.xs,
-              color: "var(--ct-text-faint)",
-            }}
-          >
-            #{order}
-          </span>
-          <span style={{ fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-strong)" }}>
-            {agent.name}
-          </span>
-          <span style={chipStyle}>{agent.role}</span>
-        </div>
-        {lastStep ? <StatusBadge status={lastStep.status} /> : null}
-      </div>
-
-      <div style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", marginTop: SPACING.hair }}>
-        {prettyModel(agent.model_name)} · {agent.model_provider}
-      </div>
-
-      {task ? (
-        <MetaRow label="Task">
-          <span style={{ fontWeight: FONT_WEIGHT.medium }}>{task.name}</span>
-        </MetaRow>
-      ) : null}
-
-      {task?.description ? (
-        <MetaRow label="Objectif">{truncate(task.description, OBJECTIVE_CHARS)}</MetaRow>
-      ) : null}
-
-      <MetaRow label="Inputs attendus">
-        {inputs.length > 0 ? inputs.join(", ") : "—"}
-      </MetaRow>
-
-      {task?.expected_output ? (
-        <MetaRow label="Outputs produits">
-          {truncate(task.expected_output, OUTPUT_DECL_CHARS)}
-        </MetaRow>
-      ) : null}
-
-      {lastStep?.output_text ? (
-        <div
-          style={{
-            marginTop: SPACING.md,
-            paddingTop: SPACING.md,
-            borderTop: "1px solid var(--ct-border-soft)",
-          }}
-        >
-          <div className="ct-eyebrow" style={{ marginBottom: SPACING.hair }}>
-            Dernier output
+    <Card>
+      <CardBody>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="font-mono text-xs text-content-faint">
+              #{order}
+            </span>
+            <span className="font-semibold text-content-strong">
+              {agent.name}
+            </span>
+            <span className={CHIP}>{agent.role}</span>
           </div>
-          <p
-            style={{
-              fontSize: FONT.sm,
-              color: "var(--ct-text-primary)",
-              lineHeight: LINE_HEIGHT.tight,
-              margin: 0,
-            }}
-          >
-            {plainExcerpt(lastStep.output_text, STEP_OUTPUT_CHARS)}
-          </p>
+          {lastStep ? <StatusBadge status={lastStep.status} /> : null}
         </div>
-      ) : null}
-    </div>
+
+        <div className="mt-1 text-xs text-content-muted">
+          {prettyModel(agent.model_name)} · {agent.model_provider}
+        </div>
+
+        {task ? (
+          <MetaRow label="Task">
+            <span className="font-medium">{task.name}</span>
+          </MetaRow>
+        ) : null}
+
+        {task?.description ? (
+          <MetaRow label="Objectif">{truncate(task.description, OBJECTIVE_CHARS)}</MetaRow>
+        ) : null}
+
+        <MetaRow label="Inputs attendus">
+          {inputs.length > 0 ? inputs.join(", ") : "—"}
+        </MetaRow>
+
+        {task?.expected_output ? (
+          <MetaRow label="Outputs produits">
+            {truncate(task.expected_output, OUTPUT_DECL_CHARS)}
+          </MetaRow>
+        ) : null}
+
+        {lastStep?.output_text ? (
+          <div className="mt-3 border-t border-line pt-3">
+            <SectionLabel text="Dernier output" />
+            <p className="text-sm leading-tight text-content">
+              {plainExcerpt(lastStep.output_text, STEP_OUTPUT_CHARS)}
+            </p>
+          </div>
+        ) : null}
+      </CardBody>
+    </Card>
   );
 }
 
@@ -466,45 +402,23 @@ function EndpointNode({
   children: ReactNode;
 }) {
   return (
-    <div
-      className="ct-card"
-      style={
-        tone === "accent"
-          ? { borderColor: "var(--ct-border-accent)", background: "var(--ct-accent-soft)" }
-          : undefined
-      }
-    >
-      <div className="ct-card-title" style={{ marginBottom: SPACING.sm }}>
-        {label}
-      </div>
-      {children}
-    </div>
+    <Card className={tone === "accent" ? "bg-accent/10 ring-accent/30" : undefined}>
+      <CardBody>
+        <h3 className="mb-2 text-sm font-semibold text-content-strong">
+          {label}
+        </h3>
+        {children}
+      </CardBody>
+    </Card>
   );
 }
 
 function FlowConnector({ label }: { label?: string }) {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        padding: `${SPACING.sm}px 0`,
-      }}
-    >
-      <span style={{ color: "var(--ct-text-faint)", fontSize: FONT.lg, lineHeight: 1 }}>↓</span>
+    <div className="flex flex-col items-center py-2">
+      <span className="text-lg leading-none text-content-faint">↓</span>
       {label ? (
-        <span
-          style={{
-            marginTop: SPACING.xs,
-            fontSize: FONT.xs,
-            color: "var(--ct-text-faint)",
-            fontStyle: "italic",
-            textAlign: "center",
-            maxWidth: 360,
-            lineHeight: LINE_HEIGHT.tight,
-          }}
-        >
+        <span className="mt-1 max-w-[360px] text-center text-xs italic leading-tight text-content-faint">
           {label}
         </span>
       ) : null}
@@ -514,19 +428,9 @@ function FlowConnector({ label }: { label?: string }) {
 
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ marginTop: SPACING.sm }}>
-      <div className="ct-eyebrow" style={{ marginBottom: SPACING.hair }}>
-        {label}
-      </div>
-      <div
-        style={{
-          fontSize: FONT.sm,
-          color: "var(--ct-text-primary)",
-          lineHeight: LINE_HEIGHT.tight,
-        }}
-      >
-        {children}
-      </div>
+    <div className="mt-2">
+      <SectionLabel text={label} />
+      <div className="text-sm leading-tight text-content">{children}</div>
     </div>
   );
 }
@@ -609,27 +513,3 @@ function plainExcerpt(md: string, max: number): string {
     .trim();
   return truncate(plain, max);
 }
-
-const templateBadgeStyle: CSSProperties = {
-  background: "var(--ct-surface-3)",
-  color: "var(--ct-text-muted)",
-  padding: `${SPACING.xs}px ${SPACING.s}px`,
-  borderRadius: RADIUS.full,
-  fontSize: FONT.sm,
-  fontWeight: FONT_WEIGHT.bold,
-  letterSpacing: LETTER_SPACING.mid,
-  textTransform: "uppercase",
-  border: "1px solid var(--ct-border)",
-};
-
-const chipStyle: CSSProperties = {
-  background: "var(--ct-surface-3)",
-  color: "var(--ct-text-muted)",
-  padding: `${SPACING.hair}px ${SPACING.sm}px`,
-  borderRadius: RADIUS.full,
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.medium,
-  letterSpacing: LETTER_SPACING.tight,
-  textTransform: "uppercase",
-  whiteSpace: "nowrap",
-};

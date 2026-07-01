@@ -4,7 +4,8 @@ import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { swarmsClient } from "@/lib/crewai/swarms";
 import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 import { HistoriqueExplorer } from "@/components/automobile/HistoriqueExplorer";
-import { FONT, SPACING } from "@/lib/ui/tokens";
+import { Card, CardBody, PageHeader } from "@/components/ui";
+import { LinkButton } from "@/components/automobile/LinkButton";
 import type { SwarmRunSummary, SwarmRun } from "@/lib/forms/swarmSchemas";
 import { getDecisionsForRuns, type VehicleDecisionStatus } from "@/lib/automobile/decisions";
 
@@ -54,44 +55,31 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
   return (
     <>
       {/* Header */}
-      <div className="ct-eyebrow">Cockpit · MySwarms · Automobile</div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: SPACING.lg,
-          flexWrap: "wrap",
-          marginBottom: SPACING.xxl,
-        }}
-      >
-        <div>
-          <h1 className="ct-title">Historique des analyses</h1>
-          <p className="ct-sub">
-            {summaries.length} analyse{summaries.length > 1 ? "s" : ""} au total
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: SPACING.sm, alignSelf: "center", flexWrap: "wrap" }}>
-          <Link href="/automobile" className="ct-link" style={{ fontSize: FONT.xs }}>
-            ← Retour
-          </Link>
-          <Link href="/automobile/nouvelle" className="ct-seg-btn primary" style={{ whiteSpace: "nowrap" }}>
-            → Nouvelle analyse
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        className="mb-8"
+        eyebrow="Cockpit · MySwarms · Automobile"
+        title="Historique des analyses"
+        subtitle={`${summaries.length} analyse${summaries.length > 1 ? "s" : ""} au total`}
+        actions={
+          <>
+            <Link
+              href="/automobile"
+              className="text-xs font-medium text-accent hover:text-accent-strong"
+            >
+              ← Retour
+            </Link>
+            <LinkButton href="/automobile/nouvelle" variant="primary">
+              → Nouvelle analyse
+            </LinkButton>
+          </>
+        }
+      />
 
       {/* Error */}
       {loadError && (
         <div
-          className="ct-card"
           role="alert"
-          style={{
-            borderColor: "var(--ct-alert-error-border)",
-            background: "var(--ct-alert-error-bg)",
-            color: "var(--ct-alert-error-text)",
-            marginBottom: SPACING.lg,
-          }}
+          className="mb-6 rounded-[var(--radius-lg)] bg-danger/10 px-4 py-3 text-sm text-danger ring-1 ring-inset ring-danger/25"
         >
           Engine indisponible — {loadError}
         </div>
@@ -100,14 +88,16 @@ export default async function HistoriquePage({ searchParams }: PageProps) {
       {/* Explorateur (filtres + recherche + tri + table, client-side) */}
       {!loadError &&
         (runs.length === 0 ? (
-          <div className="ct-card" style={{ textAlign: "center", padding: `${SPACING.xxl}px` }}>
-            <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>
-              Aucune analyse pour le moment
-            </div>
-            <Link href="/automobile/nouvelle" className="ct-seg-btn primary">
-              → Lancer une analyse
-            </Link>
-          </div>
+          <Card>
+            <CardBody className="py-12 text-center">
+              <h3 className="mb-4 text-sm font-semibold text-content-strong">
+                Aucune analyse pour le moment
+              </h3>
+              <LinkButton href="/automobile/nouvelle" variant="primary">
+                → Lancer une analyse
+              </LinkButton>
+            </CardBody>
+          </Card>
         ) : (
           <HistoriqueExplorer runs={runs} initialRec={recFilter ?? ""} decisions={decisions} />
         ))}

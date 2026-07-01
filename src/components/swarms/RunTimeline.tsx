@@ -4,7 +4,8 @@ import { useState } from "react";
 import { StepCard } from "./StepCard";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import type { SwarmRunStep } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, SPACING } from "@/lib/ui/tokens";
+import { Card, CardBody, EmptyState } from "@/components/ui";
+import { ChevronRightIcon } from "@heroicons/react/24/outline";
 
 interface RunTimelineProps {
   steps: SwarmRunStep[];
@@ -69,70 +70,30 @@ function AgentGroupRow({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div
-      className="ct-card"
-      style={{ marginBottom: SPACING.md, padding: 0, overflow: "hidden" }}
-    >
+    <Card className="mb-3 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          width: "100%",
-          padding: `${SPACING.md}px ${SPACING.lx}px`,
-          background: "transparent",
-          border: "none",
-          cursor: "pointer",
-          textAlign: "left",
-          gap: SPACING.md,
-        }}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-surface-2/60"
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: SPACING.md,
-            flex: 1,
-            minWidth: 0,
-          }}
-        >
-          <span
-            style={{
-              fontSize: FONT.xs,
-              color: "var(--ct-text-faint)",
-              display: "inline-block",
-              transform: open ? "rotate(90deg)" : "rotate(0deg)",
-              transition: "transform 0.15s",
-              flexShrink: 0,
-            }}
-          >
-            ▶
-          </span>
-          <span
-            style={{
-              fontWeight: FONT_WEIGHT.semibold,
-              color: "var(--ct-text-strong)",
-              fontSize: FONT.base,
-            }}
-          >
+        <div className="flex min-w-0 flex-1 items-center gap-3">
+          <ChevronRightIcon
+            className={
+              "size-4 shrink-0 text-content-faint transition-transform " +
+              (open ? "rotate-90" : "")
+            }
+            aria-hidden="true"
+          />
+          <span className="font-semibold text-content-strong">
             {group.agentName}
           </span>
-          <span style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}>
+          <span className="text-xs text-content-muted">
             {group.steps.length} step{group.steps.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: SPACING.md,
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}>
+        <div className="flex shrink-0 items-center gap-3">
+          <span className="text-xs text-content-muted">
             {group.totalTokens.toLocaleString("en-US")} tok
           </span>
           <StatusBadge status={group.status} />
@@ -140,27 +101,24 @@ function AgentGroupRow({
       </button>
 
       {open && (
-        <div
-          style={{
-            borderTop: "1px solid var(--ct-border-soft)",
-            padding: `${SPACING.md}px`,
-          }}
-        >
+        <div className="border-t border-line p-3">
           {group.steps.map((step) => (
             <StepCard key={step.id} step={step} />
           ))}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
 export function RunTimeline({ steps, status }: RunTimelineProps) {
   if (steps.length === 0) {
     return (
-      <div className="ct-card">
-        <p className="ct-placeholder">{emptyMessage(status)}</p>
-      </div>
+      <Card>
+        <CardBody>
+          <EmptyState title="No steps" description={emptyMessage(status)} />
+        </CardBody>
+      </Card>
     );
   }
 
@@ -168,7 +126,7 @@ export function RunTimeline({ steps, status }: RunTimelineProps) {
   const lastIdx = groups.length - 1;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column" }}>
+    <div className="flex flex-col">
       {groups.map((group, idx) => (
         <AgentGroupRow
           key={group.agentName}

@@ -1,4 +1,4 @@
-import { SPACING, OPACITY, SIZE } from "@/lib/ui/tokens";
+import { Skeleton } from "@/components/ui";
 
 /**
  * Skeleton de chargement du catalogue Tools — affiché pendant le fetch
@@ -7,30 +7,19 @@ import { SPACING, OPACITY, SIZE } from "@/lib/ui/tokens";
 export default function ToolsLoading() {
   return (
     <>
-      <span className="ct-eyebrow">Catalog</span>
-      <h1 className="ct-title">Tools</h1>
-      <p className="ct-sub">Loading catalog…</p>
+      <span className="block text-xs font-semibold uppercase tracking-wider text-accent">
+        Catalog
+      </span>
+      <h1 className="text-xl font-semibold tracking-tight text-content-strong">Tools</h1>
+      <p className="mb-6 text-sm text-content-muted">Loading catalog…</p>
 
       <div
         aria-busy="true"
         aria-live="polite"
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fill, minmax(var(--ct-card-min-w), 1fr))",
-          gap: SPACING.md,
-        }}
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
       >
         {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="ct-card"
-            style={{
-              marginBottom: 0,
-              opacity: OPACITY.skeletonStrong,
-              minHeight: SIZE.skeletonCardMinH,
-            }}
-          />
+          <Skeleton key={i} className="h-24 rounded-[var(--radius-lg)]" />
         ))}
       </div>
     </>

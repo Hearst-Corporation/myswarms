@@ -5,35 +5,10 @@
  * cliquable pour ouvrir le détail. Aucun secret ; owner_id raccourci.
  */
 
-import { SPACING, FONT, FONT_WEIGHT } from "@/lib/ui/tokens";
+import { Table, THead, TBody, TR, TH, TD } from "@/components/ui";
+import { cn } from "@/lib/ui/cn";
 import type { PlatformTenant } from "@/lib/platform-admin/types";
 import { TenantStatusChip } from "./chips";
-
-const th: React.CSSProperties = {
-  textAlign: "left",
-  fontSize: FONT.nano,
-  fontWeight: FONT_WEIGHT.medium,
-  color: "var(--ct-text-faint)",
-  textTransform: "uppercase",
-  letterSpacing: "0.05em",
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  borderBottom: "1px solid var(--ct-border-soft)",
-  whiteSpace: "nowrap",
-};
-
-const td: React.CSSProperties = {
-  fontSize: FONT.sm,
-  color: "var(--ct-text-body)",
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  borderBottom: "1px solid var(--ct-border-soft)",
-  whiteSpace: "nowrap",
-};
-
-const mono: React.CSSProperties = {
-  fontFamily: "var(--font-mono, ui-monospace, monospace)",
-  fontSize: FONT.xs,
-  color: "var(--ct-text-muted)",
-};
 
 export function TenantTable({
   tenants,
@@ -46,79 +21,74 @@ export function TenantTable({
 }) {
   if (!tenants.length) {
     return (
-      <div style={{ padding: SPACING.xxl, textAlign: "center", color: "var(--ct-text-faint)", fontSize: FONT.sm }}>
+      <div className="px-6 py-12 text-center text-sm text-content-faint">
         Aucun owner connu. La plateforme n&apos;a pas encore d&apos;identité enregistrée côté auth.
       </div>
     );
   }
 
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={th}>Owner</th>
-            <th style={th}>Status</th>
-            <th style={th}>Swarms</th>
-            <th style={th}>Runs</th>
-            <th style={th}>Actifs</th>
-            <th style={th}>Quota</th>
-            <th style={th}>Outils</th>
-            <th style={th}>Incidents</th>
-            <th style={th}>Dernière activité</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tenants.map((t) => {
-            const selected = t.ownerId === selectedOwnerId;
-            const toolsOn = Object.values(t.tools).filter((s) => s === "enabled").length;
-            const toolsFail = Object.values(t.tools).filter((s) => s === "fail_closed").length;
-            return (
-              <tr
-                key={t.ownerId}
-                onClick={() => onSelect(t.ownerId)}
-                style={{
-                  cursor: "pointer",
-                  background: selected ? "var(--ct-accent-soft)" : "transparent",
-                }}
-              >
-                <td style={td}>
-                  <div style={{ display: "flex", flexDirection: "column" }}>
-                    <span style={{ color: "var(--ct-text-strong)", fontWeight: FONT_WEIGHT.medium }}>
-                      {t.label}
-                    </span>
-                    <span style={mono} title="owner_id (raccourci)">{shortId(t.ownerId)}</span>
-                  </div>
-                </td>
-                <td style={td}><TenantStatusChip status={t.status} /></td>
-                <td style={td}>{t.swarmsCount}</td>
-                <td style={td}>{t.runsCount}</td>
-                <td style={{ ...td, color: t.activeRunsCount > 0 ? "var(--ct-status-running)" : "var(--ct-text-body)" }}>
-                  {t.activeRunsCount}
-                </td>
-                <td style={{ ...td, color: "var(--ct-text-faint)", fontSize: FONT.xs }}>
-                  {t.quota.notConfigured ? "n/c" : `${t.quota.used}/${t.quota.limit ?? "∞"}`}
-                </td>
-                <td style={td}>
-                  <span style={{ fontSize: FONT.xs }}>
-                    <span style={{ color: "var(--ct-state-ok)" }}>{toolsOn} on</span>
-                    {toolsFail > 0 && (
-                      <span style={{ color: "var(--ct-status-failed)" }}> · {toolsFail} fail-closed</span>
-                    )}
+    <Table>
+      <THead>
+        <TR>
+          <TH>Owner</TH>
+          <TH>Status</TH>
+          <TH>Swarms</TH>
+          <TH>Runs</TH>
+          <TH>Actifs</TH>
+          <TH>Quota</TH>
+          <TH>Outils</TH>
+          <TH>Incidents</TH>
+          <TH>Dernière activité</TH>
+        </TR>
+      </THead>
+      <TBody>
+        {tenants.map((t) => {
+          const selected = t.ownerId === selectedOwnerId;
+          const toolsOn = Object.values(t.tools).filter((s) => s === "enabled").length;
+          const toolsFail = Object.values(t.tools).filter((s) => s === "fail_closed").length;
+          return (
+            <TR
+              key={t.ownerId}
+              onClick={() => onSelect(t.ownerId)}
+              className={cn("cursor-pointer", selected && "bg-accent/10 hover:bg-accent/10")}
+            >
+              <TD>
+                <div className="flex flex-col">
+                  <span className="font-medium text-content-strong">{t.label}</span>
+                  <span className="font-mono text-xs text-content-muted" title="owner_id (raccourci)">
+                    {shortId(t.ownerId)}
                   </span>
-                </td>
-                <td style={{ ...td, color: t.incidentsCount > 0 ? "var(--ct-status-failed)" : "var(--ct-text-faint)" }}>
-                  {t.incidentsCount}
-                </td>
-                <td style={{ ...td, color: "var(--ct-text-muted)", fontSize: FONT.xs }}>
-                  {t.lastActivityAt ? new Date(t.lastActivityAt).toLocaleString("fr-FR") : "—"}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
+                </div>
+              </TD>
+              <TD><TenantStatusChip status={t.status} /></TD>
+              <TD>{t.swarmsCount}</TD>
+              <TD>{t.runsCount}</TD>
+              <TD className={t.activeRunsCount > 0 ? "text-[var(--color-running)]" : undefined}>
+                {t.activeRunsCount}
+              </TD>
+              <TD className="text-xs text-content-faint">
+                {t.quota.notConfigured ? "n/c" : `${t.quota.used}/${t.quota.limit ?? "∞"}`}
+              </TD>
+              <TD>
+                <span className="text-xs">
+                  <span className="text-[var(--color-ok)]">{toolsOn} on</span>
+                  {toolsFail > 0 && (
+                    <span className="text-danger"> · {toolsFail} fail-closed</span>
+                  )}
+                </span>
+              </TD>
+              <TD className={t.incidentsCount > 0 ? "text-danger" : "text-content-faint"}>
+                {t.incidentsCount}
+              </TD>
+              <TD className="text-xs text-content-muted">
+                {t.lastActivityAt ? new Date(t.lastActivityAt).toLocaleString("fr-FR") : "—"}
+              </TD>
+            </TR>
+          );
+        })}
+      </TBody>
+    </Table>
   );
 }
 

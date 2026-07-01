@@ -7,11 +7,18 @@
  * contenu ici plutôt que de rebondir vers /settings.
  */
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { createClient } from "@/lib/supabase/server";
-import { SectionLabel } from "@/components/ui/SectionLabel";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
-import Link from "next/link";
+import {
+  PageHeader,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardBody,
+  Button,
+} from "@/components/ui";
+import { cn } from "@/lib/ui/cn";
 
 export const metadata = { title: "Profil — MySwarms" };
 export const dynamic = "force-dynamic";
@@ -29,68 +36,64 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <>
-      <div style={{ marginBottom: SPACING.xl }}>
-        <h1 className="ct-title">Profil</h1>
-        <p className="ct-sub">Informations de compte et accès rapide.</p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Profil"
+        subtitle="Informations de compte et accès rapide."
+      />
 
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl }}>
-        <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-          <SectionLabel text="Compte" mb={SPACING.md} />
-          <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
-            <Field label="Email" value={user?.email ?? "—"} />
-            <Field label="Owner ID" value={ownerId} mono />
-            <Field label="Rôle" value={(user?.app_metadata as Record<string,string>)?.role ?? "user"} />
-          </div>
-        </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Compte</CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-col gap-4">
+          <FieldRow label="Email" value={user?.email ?? "—"} />
+          <FieldRow label="Owner ID" value={ownerId} mono />
+          <FieldRow label="Rôle" value={(user?.app_metadata as Record<string, string>)?.role ?? "user"} />
+        </CardBody>
+      </Card>
 
-        <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-          <SectionLabel text="Navigation rapide" mb={SPACING.md} />
-          <div style={{ display: "flex", flexWrap: "wrap", gap: SPACING.md }}>
-            <Link href="/settings?tab=integrations" className="ct-seg-btn">Intégrations</Link>
-            <Link href="/settings?tab=sources" className="ct-seg-btn">Sources</Link>
-            <Link href="/admin/users" className="ct-seg-btn">Utilisateurs</Link>
-          </div>
-        </section>
+      <Card>
+        <CardHeader>
+          <CardTitle>Navigation rapide</CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-wrap gap-3">
+          <Link href="/settings?tab=integrations">
+            <Button variant="secondary" size="sm">Intégrations</Button>
+          </Link>
+          <Link href="/settings?tab=sources">
+            <Button variant="secondary" size="sm">Sources</Button>
+          </Link>
+          <Link href="/admin/users">
+            <Button variant="secondary" size="sm">Utilisateurs</Button>
+          </Link>
+        </CardBody>
+      </Card>
 
-        <section className="ct-card" style={{ padding: `${SPACING.lx}px` }}>
-          <SectionLabel text="Session" mb={SPACING.md} />
-          <p style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)", marginBottom: SPACING.md }}>
+      <Card>
+        <CardHeader>
+          <CardTitle>Session</CardTitle>
+        </CardHeader>
+        <CardBody className="flex flex-col gap-4">
+          <p className="text-xs text-content-faint">
             Cliquez à nouveau sur l&apos;avatar en bas à gauche pour vous déconnecter.
           </p>
-          <Link
-            href="/auth/signout"
-            className="ct-seg-btn"
-            style={{ color: "var(--ct-alert-error-text)" }}
-          >
-            Se déconnecter
+          <Link href="/auth/signout" className="w-fit">
+            <Button variant="danger" size="sm">Se déconnecter</Button>
           </Link>
-        </section>
-      </div>
-    </>
+        </CardBody>
+      </Card>
+    </div>
   );
 }
 
-function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+function FieldRow({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <span style={{
-        fontSize: FONT.xs,
-        color: "var(--ct-text-faint)",
-        fontWeight: FONT_WEIGHT.bold,
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
-      }}>
+    <div className="flex flex-col gap-0.5">
+      <span className="text-xs font-bold uppercase tracking-wider text-content-faint">
         {label}
       </span>
-      <span style={{
-        fontSize: FONT.sm,
-        color: "var(--ct-text-body)",
-        fontFamily: mono ? "monospace" : undefined,
-        wordBreak: "break-all",
-        borderRadius: RADIUS.sm,
-      }}>
+      <span className={cn("text-sm text-content", mono && "font-mono break-all")}>
         {value}
       </span>
     </div>

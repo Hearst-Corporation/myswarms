@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { swarmsClient } from "@/lib/crewai/swarms";
 import { ActivityFeed, type RunRow } from "@/components/activity/ActivityFeed";
-import { SPACING } from "@/lib/ui/tokens";
+import { PageHeader } from "@/components/ui";
 
 export const metadata = { title: "Activité — MySwarms" };
 export const dynamic = "force-dynamic";
@@ -80,18 +80,15 @@ export default async function ActivityPage() {
   }
 
   return (
-    <>
-      <div className="ct-eyebrow">Cockpit · MySwarms</div>
-      <h1 className="ct-title">Activité</h1>
+    <div className="flex flex-col gap-6">
+      <PageHeader eyebrow="Cockpit · MySwarms" title="Activité" />
 
-      <div style={{ marginTop: SPACING.xl }}>
-        <ActivityFeed
-          initialRuns={recentRuns}
-          initialLive={liveRuns}
-          swarmMap={swarmMap}
-          initialEngine={engine}
-        />
-      </div>
-    </>
+      <ActivityFeed
+        initialRuns={recentRuns}
+        initialLive={liveRuns}
+        swarmMap={swarmMap}
+        initialEngine={engine}
+      />
+    </div>
   );
 }

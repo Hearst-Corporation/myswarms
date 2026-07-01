@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
+import { Button, Field, Input, Select } from "@/components/ui";
 
 const MARKET_OPTIONS = [
   { value: "fr", label: "France" },
@@ -14,28 +14,6 @@ const MARKET_OPTIONS = [
   { value: "at", label: "Autriche" },
   { value: "ch", label: "Suisse" },
 ] as const;
-
-const LABEL_STYLE = {
-  display: "block",
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  color: "var(--ct-text-muted)",
-  marginBottom: SPACING.xs,
-  textTransform: "uppercase" as const,
-  letterSpacing: LETTER_SPACING.wide,
-};
-
-const INPUT_STYLE = {
-  width: "100%",
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-  boxSizing: "border-box" as const,
-};
 
 /**
  * Formulaire de recherche sourcing AutoScout24.
@@ -80,108 +58,64 @@ export function SourcingSearchForm({
   );
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: SPACING.lg,
-        }}
-      >
-        {/* Marque */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="sourcing-make" style={LABEL_STYLE}>
-            Marque *
-          </label>
-          <input
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-6">
+        <Field label="Marque *" htmlFor="sourcing-make">
+          <Input
             id="sourcing-make"
             name="make"
             type="text"
             placeholder="ex: BMW"
             defaultValue={defaultMake}
             required
-            style={INPUT_STYLE}
           />
-        </div>
+        </Field>
 
-        {/* Modèle */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="sourcing-model" style={LABEL_STYLE}>
-            Modèle
-          </label>
-          <input
+        <Field label="Modèle" htmlFor="sourcing-model">
+          <Input
             id="sourcing-model"
             name="model"
             type="text"
             placeholder="ex: X2"
             defaultValue={defaultModel}
-            style={INPUT_STYLE}
           />
-        </div>
+        </Field>
 
-        {/* Marché */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="sourcing-market" style={LABEL_STYLE}>
-            Marché
-          </label>
-          <select
-            id="sourcing-market"
-            name="market"
-            defaultValue={defaultMarket}
-            style={{
-              ...INPUT_STYLE,
-              appearance: "none",
-              cursor: "pointer",
-            }}
-          >
+        <Field label="Marché" htmlFor="sourcing-market">
+          <Select id="sourcing-market" name="market" defaultValue={defaultMarket}>
             {MARKET_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>
             ))}
-          </select>
-        </div>
+          </Select>
+        </Field>
 
-        {/* Prix min */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="sourcing-price-min" style={LABEL_STYLE}>
-            Prix min (€)
-          </label>
-          <input
+        <Field label="Prix min (€)" htmlFor="sourcing-price-min">
+          <Input
             id="sourcing-price-min"
             name="priceMin"
             type="number"
             min={0}
             placeholder="ex: 5000"
             defaultValue={defaultPriceMin}
-            style={INPUT_STYLE}
           />
-        </div>
+        </Field>
 
-        {/* Prix max */}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <label htmlFor="sourcing-price-max" style={LABEL_STYLE}>
-            Prix max (€)
-          </label>
-          <input
+        <Field label="Prix max (€)" htmlFor="sourcing-price-max">
+          <Input
             id="sourcing-price-max"
             name="priceMax"
             type="number"
             min={0}
             placeholder="ex: 30000"
             defaultValue={defaultPriceMax}
-            style={INPUT_STYLE}
           />
-        </div>
+        </Field>
       </div>
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button type="submit" className="ct-seg-btn primary">
-          Lancer la recherche
-        </button>
+      <div className="flex justify-end">
+        <Button type="submit">Lancer la recherche</Button>
       </div>
     </form>
   );

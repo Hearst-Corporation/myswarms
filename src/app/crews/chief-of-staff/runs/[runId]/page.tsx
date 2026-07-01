@@ -5,11 +5,11 @@ import { formatDate } from "@/lib/utils/format";
 import { isValidUuidV4 } from "@/lib/utils/uuid";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { AutoRefresh } from "@/components/runs/AutoRefresh";
-import { FONT, LINE_HEIGHT, SPACING } from "@/lib/ui/tokens";
 import { requireOwnerId } from "@/lib/auth/owner";
 import { Chevron } from "@/components/ui/Chevron";
 import { PageTitle } from "@/components/ui/PageTitle";
 import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import { Card, SectionLabel } from "@/components/ui";
 import { LiveIndicator } from "@/components/runs/LiveIndicator";
 import { isRunningStatus } from "@/lib/crewai/runStatus";
 
@@ -47,8 +47,12 @@ export default async function RunDetailPage({ params }: PageProps) {
     }
     return (
       <>
-        <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
-          <Chevron direction="left" />Cockpit
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1 text-sm text-content-muted transition-colors hover:text-content"
+        >
+          <Chevron direction="left" />
+          Cockpit
         </Link>
         <ErrorLayout
           title="Run not found"
@@ -81,40 +85,35 @@ export default async function RunDetailPage({ params }: PageProps) {
       {/* Auto-refresh every 5s while the crew flow is running. Stops when status is terminal. */}
       <AutoRefresh active={isRunning} seconds={5} />
 
-      <Link href="/" className="ct-breadcrumb-link" style={{ fontSize: FONT.base }}>
-        <Chevron direction="left" />Cockpit
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1 text-sm text-content-muted transition-colors hover:text-content"
+      >
+        <Chevron direction="left" />
+        Cockpit
       </Link>
 
-      <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}>
-        <PageTitle variant="mono" style={{ marginBottom: SPACING.sm }}>
+      <div className="mt-2 mb-8">
+        <PageTitle variant="mono" style={{ marginBottom: "0.75rem" }}>
           {runId.slice(0, 8)}…
         </PageTitle>
-        <div style={{ display: "flex", alignItems: "center", gap: SPACING.md, flexWrap: "wrap" }}>
+        <div className="flex flex-wrap items-center gap-3">
           <StatusBadge status={run.status} size="md" />
-          <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>·</span>
-          <span style={{ fontSize: FONT.base, color: "var(--ct-text-body)" }}>
+          <span className="text-content-faint">·</span>
+          <span className="text-sm text-content-muted">
             trigger :{" "}
-            <span style={{ fontFamily: "var(--font-mono)", color: "var(--ct-text-strong)" }}>
-              {triggerLabel}
-            </span>
+            <span className="font-mono text-content-strong">{triggerLabel}</span>
           </span>
           {isRunning && run.status !== "paused_hitl" && <LiveIndicator intervalSeconds={5} />}
         </div>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: SPACING.lg,
-          marginBottom: SPACING.xl,
-        }}
-      >
-        <Field
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <MetaField
           label="Started at"
           value={formatDate(run.started_at, { withSeconds: true, withYear: true })}
         />
-        <Field
+        <MetaField
           label="Finished at"
           value={
             run.finished_at
@@ -124,66 +123,40 @@ export default async function RunDetailPage({ params }: PageProps) {
         />
       </div>
 
-      <div style={{ marginBottom: SPACING.xl }}>
-        <div className="ct-eyebrow">Result</div>
+      <div className="mb-8">
+        <SectionLabel text="Result" />
         {run.result ? (
-          <div className="ct-card" style={{ padding: 0 }}>
-            <pre
-              style={{
-                overflow: "auto",
-                padding: `${SPACING.lg}px ${SPACING.lx}px`,
-                fontSize: FONT.xs,
-                fontFamily: "var(--font-mono)",
-                color: "var(--ct-text-body)",
-                lineHeight: LINE_HEIGHT.base,
-                margin: 0,
-              }}
-            >
+          <Card className="overflow-hidden">
+            <pre className="overflow-auto p-5 font-mono text-xs leading-relaxed text-content">
               {resultPretty ?? run.result}
             </pre>
-          </div>
+          </Card>
         ) : (
-          <p className="ct-placeholder">No result yet.</p>
+          <p className="text-sm text-content-faint">No result yet.</p>
         )}
       </div>
 
       {statePretty && (
         <div>
-          <div className="ct-eyebrow">State</div>
-          <div className="ct-card" style={{ padding: 0 }}>
-            <pre
-              style={{
-                overflow: "auto",
-                padding: `${SPACING.lg}px ${SPACING.lx}px`,
-                fontSize: FONT.xs,
-                fontFamily: "var(--font-mono)",
-                color: "var(--ct-text-body)",
-                lineHeight: LINE_HEIGHT.base,
-                margin: 0,
-              }}
-            >
+          <SectionLabel text="State" />
+          <Card className="overflow-hidden">
+            <pre className="overflow-auto p-5 font-mono text-xs leading-relaxed text-content">
               {statePretty}
             </pre>
-          </div>
+          </Card>
         </div>
       )}
     </>
   );
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function MetaField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="ct-card" style={{ marginBottom: 0 }}>
-      <div className="ct-card-title">{label}</div>
-      <div
-        style={{
-          fontSize: FONT.base,
-          fontFamily: "var(--font-mono)",
-          color: "var(--ct-text-primary)",
-        }}
-      >
-        {value}
+    <Card className="p-5">
+      <div className="mb-1.5 text-xs font-medium uppercase tracking-wider text-content-muted">
+        {label}
       </div>
-    </div>
+      <div className="font-mono text-sm text-content-strong">{value}</div>
+    </Card>
   );
 }

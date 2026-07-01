@@ -1,7 +1,7 @@
 "use client";
 
 import type { ModelProvider } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Field, Select, Input, Label } from "@/components/ui";
 
 interface LLMPickerProps {
   provider: ModelProvider;
@@ -30,8 +30,8 @@ const HYPERCLI_MODELS = [
 // Only Hypercli/Kimi providers exposed — runtime-enforced.
 // anthropic and openai keys kept for type-compat but intentionally identical content.
 const PROVIDER_MODELS: Record<ModelProvider, string[]> = {
-  anthropic: HYPERCLI_MODELS,  // DB legacy — engine routes to Hypercli
-  openai: HYPERCLI_MODELS,     // DB value — engine routes to Hypercli
+  anthropic: HYPERCLI_MODELS, // DB legacy — engine routes to Hypercli
+  openai: HYPERCLI_MODELS, // DB value — engine routes to Hypercli
   kimi: HYPERCLI_MODELS,
   hypercli: HYPERCLI_MODELS,
 };
@@ -53,114 +53,77 @@ export function LLMPicker({
   onMaxTokensChange,
 }: LLMPickerProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.md }}>
+    <div className="flex flex-col gap-3">
       {/* Runtime enforcement notice */}
-      <div
-        style={{
-          fontSize: FONT.xs,
-          color: "var(--ct-text-muted)",
-          background: "var(--ct-surface-2)",
-          border: "1px solid var(--ct-border-soft)",
-          borderRadius: RADIUS.md,
-          padding: `${SPACING.xs}px ${SPACING.md}px`,
-        }}
-      >
-        Provider enforced at runtime : <strong style={{ color: "var(--ct-text-primary)" }}>Hypercli · Kimi K2.6</strong>.
-        {" "}Any provider stored in DB is routed to Hypercli by the engine.
+      <div className="rounded-[var(--radius-md)] bg-surface-2 px-3 py-2 text-xs text-content-muted ring-1 ring-inset ring-line">
+        Provider enforced at runtime :{" "}
+        <strong className="text-content-strong">Hypercli · Kimi K2.6</strong>. Any
+        provider stored in DB is routed to Hypercli by the engine.
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACING.lg }}>
-      <label style={labelStyle}>
-        <span style={labelText}>Provider (stored)</span>
-        <select
-          value={provider}
-          onChange={(e) => {
-            const next = e.target.value as ModelProvider;
-            onProviderChange(next);
-            const firstModel = PROVIDER_MODELS[next][0];
-            if (firstModel) onModelChange(firstModel);
-          }}
-          style={inputStyle}
-        >
-          <option value="openai">openai (→ Hypercli)</option>
-          <option value="hypercli">hypercli (→ Hypercli)</option>
-          <option value="kimi">kimi (→ Hypercli, legacy)</option>
-          <option value="anthropic">anthropic (→ Hypercli, legacy)</option>
-        </select>
-      </label>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Provider (stored)">
+          <Select
+            value={provider}
+            onChange={(e) => {
+              const next = e.target.value as ModelProvider;
+              onProviderChange(next);
+              const firstModel = PROVIDER_MODELS[next][0];
+              if (firstModel) onModelChange(firstModel);
+            }}
+          >
+            <option value="openai">openai (→ Hypercli)</option>
+            <option value="hypercli">hypercli (→ Hypercli)</option>
+            <option value="kimi">kimi (→ Hypercli, legacy)</option>
+            <option value="anthropic">anthropic (→ Hypercli, legacy)</option>
+          </Select>
+        </Field>
 
-      <label style={labelStyle}>
-        <span style={labelText}>Model</span>
-        <select
-          value={modelName}
-          onChange={(e) => onModelChange(e.target.value)}
-          style={inputStyle}
-        >
-          {PROVIDER_MODELS[provider].map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-          {!PROVIDER_MODELS[provider].includes(modelName) && modelName ? (
-            <option value={modelName}>{modelName} (stored)</option>
-          ) : null}
-        </select>
-      </label>
+        <Field label="Model">
+          <Select
+            value={modelName}
+            onChange={(e) => onModelChange(e.target.value)}
+          >
+            {PROVIDER_MODELS[provider].map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+            {!PROVIDER_MODELS[provider].includes(modelName) && modelName ? (
+              <option value={modelName}>{modelName} (stored)</option>
+            ) : null}
+          </Select>
+        </Field>
 
-      <label style={labelStyle}>
-        <span style={labelText}>
-          Temperature: <strong>{temperature.toFixed(1)}</strong>
-        </span>
-        <input
-          type="range"
-          min={TEMP_MIN}
-          max={TEMP_MAX}
-          step={TEMP_STEP}
-          value={temperature}
-          onChange={(e) => onTemperatureChange(Number(e.target.value))}
-          style={{ width: "100%" }}
-          aria-label="Temperature"
-          aria-valuemin={TEMP_MIN}
-          aria-valuemax={TEMP_MAX}
-          aria-valuenow={temperature}
-        />
-      </label>
+        <div className="w-full">
+          <Label>
+            Temperature: <strong className="text-content">{temperature.toFixed(1)}</strong>
+          </Label>
+          <input
+            type="range"
+            min={TEMP_MIN}
+            max={TEMP_MAX}
+            step={TEMP_STEP}
+            value={temperature}
+            onChange={(e) => onTemperatureChange(Number(e.target.value))}
+            className="w-full accent-[var(--color-accent)]"
+            aria-label="Temperature"
+            aria-valuemin={TEMP_MIN}
+            aria-valuemax={TEMP_MAX}
+            aria-valuenow={temperature}
+          />
+        </div>
 
-      <label style={labelStyle}>
-        <span style={labelText}>Max tokens</span>
-        <input
-          type="number"
-          min={MAX_TOKENS_MIN}
-          max={MAX_TOKENS_MAX}
-          value={maxTokens}
-          onChange={(e) => onMaxTokensChange(Number(e.target.value))}
-          style={inputStyle}
-        />
-      </label>
+        <Field label="Max tokens">
+          <Input
+            type="number"
+            min={MAX_TOKENS_MIN}
+            max={MAX_TOKENS_MAX}
+            value={maxTokens}
+            onChange={(e) => onMaxTokensChange(Number(e.target.value))}
+          />
+        </Field>
       </div>
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: SPACING.xxs,
-};
-const labelText: React.CSSProperties = {
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  letterSpacing: LETTER_SPACING.tight,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-};
-const inputStyle: React.CSSProperties = {
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.s}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-  outline: "none",
-};

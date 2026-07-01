@@ -6,7 +6,8 @@ import { AUTOMOBILE_SWARM_ID } from "@/lib/automobile/config";
 import { getDecision } from "@/lib/automobile/decisions";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
 import { DecisionCanvas } from "@/components/automobile/DecisionCanvas";
-import { FONT, FONT_WEIGHT, SPACING, RADIUS } from "@/lib/ui/tokens";
+import { PageTitle } from "@/components/ui";
+import { LinkButton } from "@/components/automobile/LinkButton";
 import type { SwarmRun } from "@/lib/forms/swarmSchemas";
 
 export const metadata = { title: "Canvas — Automobile" };
@@ -38,65 +39,37 @@ export default async function CanvasPage() {
 
   return (
     <>
-      {/* Breadcrumb */}
-      <div className="ct-eyebrow">Cockpit · MySwarms</div>
-
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: SPACING.lg,
-          flexWrap: "wrap",
-          marginBottom: SPACING.xxl,
-        }}
-      >
+      <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
         <div>
-          <div style={{ marginBottom: SPACING.sm }}>
+          <div className="mb-2">
             <Link
               href="/automobile"
-              style={{
-                fontSize: FONT.sm,
-                color: "var(--ct-text-muted)",
-                textDecoration: "none",
-              }}
+              className="text-sm text-content-muted hover:text-content"
             >
               ← Automobile
             </Link>
           </div>
-          <h1 className="ct-title">Decision Canvas</h1>
-          <p className="ct-sub">
+          <PageTitle>Decision Canvas</PageTitle>
+          <p className="mt-1 text-sm text-content-muted">
             Visualisation du flow de décision pour la dernière analyse automobile.
           </p>
         </div>
-        <div style={{ display: "flex", gap: SPACING.sm, alignSelf: "center", flexWrap: "wrap" }}>
-          <Link href="/automobile/nouvelle" className="ct-seg-btn primary" style={{ whiteSpace: "nowrap" }}>
+        <div className="flex flex-wrap items-center gap-2 self-center">
+          <LinkButton href="/automobile/nouvelle" variant="primary">
             Nouvelle analyse
-          </Link>
+          </LinkButton>
           {run?.id ? (
-            <Link href={`/automobile/${run.id}`} className="ct-seg-btn" style={{ whiteSpace: "nowrap" }}>
+            <LinkButton href={`/automobile/${run.id}`} variant="secondary">
               Rapport complet
-            </Link>
+            </LinkButton>
           ) : null}
         </div>
       </div>
 
       {/* Run context banner (if run available) */}
       {run ? (
-        <div
-          style={{
-            background: "var(--ct-surface-0)",
-            border: "1px solid var(--ct-border-soft)",
-            borderRadius: RADIUS.nav,
-            padding: `${SPACING.md}px ${SPACING.xl}px`,
-            display: "flex",
-            gap: SPACING.xxl,
-            flexWrap: "wrap",
-            marginBottom: SPACING.xl,
-            fontSize: FONT.sm,
-          }}
-        >
+        <div className="mb-8 flex flex-wrap gap-10 rounded-[var(--radius-lg)] bg-canvas px-6 py-4 text-sm ring-1 ring-inset ring-line">
           {[
             { label: "Make", value: typeof run.inputs_json?.make === "string" ? run.inputs_json.make : null },
             { label: "Model", value: typeof run.inputs_json?.model === "string" ? run.inputs_json.model : null },
@@ -113,21 +86,11 @@ export default async function CanvasPage() {
           ]
             .filter((item) => item.value != null)
             .map(({ label, value }) => (
-              <div key={label} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <span
-                  style={{
-                    fontSize: FONT.xs,
-                    color: "var(--ct-text-faint)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.08em",
-                    fontWeight: FONT_WEIGHT.bold,
-                  }}
-                >
+              <div key={label} className="flex flex-col gap-0.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-content-faint">
                   {label}
                 </span>
-                <span style={{ color: "var(--ct-text-primary)", fontWeight: FONT_WEIGHT.medium }}>
-                  {value}
-                </span>
+                <span className="font-medium text-content">{value}</span>
               </div>
             ))}
         </div>

@@ -8,6 +8,7 @@ import { RecommendationBadge } from "@/components/swarms/RecommendationBadge";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { BrandLogo } from "@/components/automobile/BrandLogo";
 import { DecisionBadge } from "@/components/automobile/DecisionBadge";
+import { Card, CardBody, Input, Select, Table, THead, TBody, TR, TH, TD } from "@/components/ui";
 import { getVehicleLabel } from "@/lib/automobile/vehicleLabel";
 import { getSourceName } from "@/lib/automobile/source";
 import {
@@ -16,8 +17,6 @@ import {
   type VehicleDecisionStatus,
 } from "@/lib/automobile/decisionStatus";
 import { formatDate, fmtPrice, fmtKm } from "@/lib/utils/format";
-import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING, LETTER_SPACING } from "@/lib/ui/tokens";
 
 // ── Helpers purs ────────────────────────────────────────────────────────────
 
@@ -84,31 +83,6 @@ const REC_OPTIONS: Array<{ value: "" | Recommendation; label: string }> = [
   { value: "ÉVITER", label: "ÉVITER" },
   { value: "UNKNOWN", label: "UNKNOWN" },
 ];
-
-const selectStyle: React.CSSProperties = {
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.sm,
-  fontFamily: "inherit",
-  appearance: "none",
-  cursor: "pointer",
-  boxSizing: "border-box",
-};
-
-const inputStyle: React.CSSProperties = {
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.sm}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.sm,
-  fontFamily: "inherit",
-  boxSizing: "border-box",
-  width: "100%",
-};
 
 // ── Composant ─────────────────────────────────────────────────────────────────
 
@@ -265,130 +239,109 @@ export function HistoriqueExplorer({
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
+    <div className="flex flex-col gap-6">
       {/* Barre de filtres */}
-      <div
-        className="ct-card"
-        style={{
-          padding: `${SPACING.lg}px`,
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: SPACING.md,
-          alignItems: "end",
-        }}
-      >
-        <div style={{ gridColumn: "1 / -1" }}>
-          <input
-            type="search"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher : marque, modèle, source, URL, notes…"
-            style={inputStyle}
+      <Card>
+        <CardBody className="grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] items-end gap-4">
+          <div className="col-span-full">
+            <Input
+              type="search"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Rechercher : marque, modèle, source, URL, notes…"
+            />
+          </div>
+
+          <Select value={rec} onChange={(e) => setRec(e.target.value)}>
+            {REC_OPTIONS.map((o) => (
+              <option key={o.value || "all"} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </Select>
+
+          <Select value={decision} onChange={(e) => setDecision(e.target.value)}>
+            <option value="">Toutes décisions</option>
+            {VEHICLE_DECISION_STATUSES.map((s) => (
+              <option key={s.value} value={s.value}>
+                {decisionLabel(s.value)}
+              </option>
+            ))}
+          </Select>
+
+          <Select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">Tous statuts</option>
+            {distinct.statuses.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+
+          <Select value={country} onChange={(e) => setCountry(e.target.value)}>
+            <option value="">Tous pays</option>
+            {distinct.countries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+
+          <Select value={fuel} onChange={(e) => setFuel(e.target.value)}>
+            <option value="">Tous carburants</option>
+            {distinct.fuels.map((f) => (
+              <option key={f} value={f}>
+                {f}
+              </option>
+            ))}
+          </Select>
+
+          <Select value={source} onChange={(e) => setSource(e.target.value)}>
+            <option value="">Toutes sources</option>
+            {distinct.sources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </Select>
+
+          <Input
+            type="number"
+            value={priceMin}
+            onChange={(e) => setPriceMin(e.target.value)}
+            placeholder="Prix min €"
+            min={0}
           />
-        </div>
+          <Input
+            type="number"
+            value={priceMax}
+            onChange={(e) => setPriceMax(e.target.value)}
+            placeholder="Prix max €"
+            min={0}
+          />
 
-        <select value={rec} onChange={(e) => setRec(e.target.value)} style={selectStyle}>
-          {REC_OPTIONS.map((o) => (
-            <option key={o.value || "all"} value={o.value}>
-              {o.label}
-            </option>
-          ))}
-        </select>
-
-        <select value={decision} onChange={(e) => setDecision(e.target.value)} style={selectStyle}>
-          <option value="">Toutes décisions</option>
-          {VEHICLE_DECISION_STATUSES.map((s) => (
-            <option key={s.value} value={s.value}>
-              {decisionLabel(s.value)}
-            </option>
-          ))}
-        </select>
-
-        <select value={status} onChange={(e) => setStatus(e.target.value)} style={selectStyle}>
-          <option value="">Tous statuts</option>
-          {distinct.statuses.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-
-        <select value={country} onChange={(e) => setCountry(e.target.value)} style={selectStyle}>
-          <option value="">Tous pays</option>
-          {distinct.countries.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-
-        <select value={fuel} onChange={(e) => setFuel(e.target.value)} style={selectStyle}>
-          <option value="">Tous carburants</option>
-          {distinct.fuels.map((f) => (
-            <option key={f} value={f}>
-              {f}
-            </option>
-          ))}
-        </select>
-
-        <select value={source} onChange={(e) => setSource(e.target.value)} style={selectStyle}>
-          <option value="">Toutes sources</option>
-          {distinct.sources.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="number"
-          value={priceMin}
-          onChange={(e) => setPriceMin(e.target.value)}
-          placeholder="Prix min €"
-          min={0}
-          style={inputStyle}
-        />
-        <input
-          type="number"
-          value={priceMax}
-          onChange={(e) => setPriceMax(e.target.value)}
-          placeholder="Prix max €"
-          min={0}
-          style={inputStyle}
-        />
-
-        <select value={sort} onChange={(e) => setSort(e.target.value as SortValue)} style={selectStyle}>
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>
-              Tri : {o.label}
-            </option>
-          ))}
-        </select>
-      </div>
+          <Select value={sort} onChange={(e) => setSort(e.target.value as SortValue)}>
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                Tri : {o.label}
+              </option>
+            ))}
+          </Select>
+        </CardBody>
+      </Card>
 
       {/* Compteur + reset */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: SPACING.md,
-        }}
-      >
-        <span
-          style={{
-            fontSize: FONT.xs,
-            fontWeight: FONT_WEIGHT.bold,
-            letterSpacing: LETTER_SPACING.wide,
-            textTransform: "uppercase",
-            color: "var(--ct-text-muted)",
-          }}
-        >
+      <div className="flex items-center justify-between gap-4">
+        <span className="text-xs font-bold uppercase tracking-wider text-content-muted">
           {filtered.length} résultat{filtered.length > 1 ? "s" : ""}
           {filtered.length !== views.length ? ` sur ${views.length}` : ""}
         </span>
         {hasActiveFilter ? (
-          <button type="button" onClick={reset} className="ct-link" style={{ fontSize: FONT.xs }}>
+          <button
+            type="button"
+            onClick={reset}
+            className="text-xs font-medium text-accent hover:text-accent-strong"
+          >
             Réinitialiser les filtres
           </button>
         ) : null}
@@ -396,96 +349,84 @@ export function HistoriqueExplorer({
 
       {/* Tableau */}
       {filtered.length === 0 ? (
-        <div className="ct-card" style={{ textAlign: "center", padding: `${SPACING.xxl}px` }}>
-          <div className="ct-card-title" style={{ marginBottom: SPACING.sm }}>
-            Aucune analyse ne correspond
-          </div>
-          <p className="ct-card-body">Ajuste ou réinitialise les filtres.</p>
-        </div>
+        <Card>
+          <CardBody className="py-12 text-center">
+            <h3 className="mb-2 text-sm font-semibold text-content-strong">
+              Aucune analyse ne correspond
+            </h3>
+            <p className="text-sm text-content-muted">Ajuste ou réinitialise les filtres.</p>
+          </CardBody>
+        </Card>
       ) : (
-        <div className="ct-card" style={{ padding: 0, overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.sm }}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Véhicule</th>
-                <th style={thStyle}>Recommandation</th>
-                <th style={thStyle}>Décision</th>
-                <th style={thStyle}>Prix / KM</th>
-                <th style={thStyle}>Source</th>
-                <th style={thStyle}>Statut</th>
-                <th style={thStyle}>Tokens</th>
-                <th style={thStyle}>Date</th>
-                <th style={thStyle}>Durée</th>
-                <th style={{ ...thStyle, textAlign: "right" }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((v) => {
-                const dur = durationMs(v.run);
-                return (
-                  <tr key={v.run.id}>
-                    <td style={{ ...tdStyle, minWidth: 220 }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}>
-                        <BrandLogo brand={v.make} size={32} />
-                        <div>
-                          <div
-                            style={{
-                              fontWeight: FONT_WEIGHT.semibold,
-                              color: "var(--ct-text-primary)",
-                            }}
-                          >
-                            {v.label}
-                          </div>
-                          <div style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)" }}>
-                            {[v.fuel, v.country].filter(Boolean).join(" · ") || "—"}
-                          </div>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Véhicule</TH>
+              <TH>Recommandation</TH>
+              <TH>Décision</TH>
+              <TH>Prix / KM</TH>
+              <TH>Source</TH>
+              <TH>Statut</TH>
+              <TH>Tokens</TH>
+              <TH>Date</TH>
+              <TH>Durée</TH>
+              <TH className="text-right" />
+            </TR>
+          </THead>
+          <TBody>
+            {filtered.map((v) => {
+              const dur = durationMs(v.run);
+              return (
+                <TR key={v.run.id}>
+                  <TD className="min-w-[220px]">
+                    <div className="flex items-center gap-2">
+                      <BrandLogo brand={v.make} size={32} />
+                      <div>
+                        <div className="font-semibold text-content-strong">{v.label}</div>
+                        <div className="text-xs text-content-faint">
+                          {[v.fuel, v.country].filter(Boolean).join(" · ") || "—"}
                         </div>
                       </div>
-                    </td>
-                    <td style={tdStyle}>
-                      <RecommendationBadge rec={v.rec} />
-                    </td>
-                    <td style={tdStyle}>
-                      {v.decision ? (
-                        <DecisionBadge status={v.decision} />
-                      ) : (
-                        <span style={{ color: "var(--ct-text-faint)" }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ ...tdStyle, whiteSpace: "nowrap" }}>
-                      <strong style={{ color: "var(--ct-text-primary)" }}>{fmtPrice(v.price)}</strong>
-                      <div style={{ fontSize: FONT.xs, color: "var(--ct-text-faint)" }}>
-                        {fmtKm(v.mileage)}
-                      </div>
-                    </td>
-                    <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>{v.source ?? "—"}</td>
-                    <td style={tdStyle}>
-                      <StatusBadge status={v.run.status} />
-                    </td>
-                    <td style={{ ...tdStyle, color: "var(--ct-text-muted)", whiteSpace: "nowrap" }}>
-                      {v.tokens.toLocaleString("fr-FR")}
-                    </td>
-                    <td style={{ ...tdStyle, color: "var(--ct-text-muted)", whiteSpace: "nowrap" }}>
-                      {formatDate(v.run.started_at)}
-                    </td>
-                    <td style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                      {dur ? fmtDuration(dur) : "—"}
-                    </td>
-                    <td style={{ ...tdStyle, textAlign: "right" }}>
-                      <Link
-                        href={`/automobile/${v.run.id}`}
-                        className="ct-link"
-                        style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
-                      >
-                        Voir →
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </TD>
+                  <TD>
+                    <RecommendationBadge rec={v.rec} />
+                  </TD>
+                  <TD>
+                    {v.decision ? (
+                      <DecisionBadge status={v.decision} />
+                    ) : (
+                      <span className="text-content-faint">—</span>
+                    )}
+                  </TD>
+                  <TD className="whitespace-nowrap">
+                    <strong className="text-content-strong">{fmtPrice(v.price)}</strong>
+                    <div className="text-xs text-content-faint">{fmtKm(v.mileage)}</div>
+                  </TD>
+                  <TD className="text-content-muted">{v.source ?? "—"}</TD>
+                  <TD>
+                    <StatusBadge status={v.run.status} />
+                  </TD>
+                  <TD className="whitespace-nowrap text-content-muted">
+                    {v.tokens.toLocaleString("fr-FR")}
+                  </TD>
+                  <TD className="whitespace-nowrap text-content-muted">
+                    {formatDate(v.run.started_at)}
+                  </TD>
+                  <TD className="text-content-muted">{dur ? fmtDuration(dur) : "—"}</TD>
+                  <TD className="text-right">
+                    <Link
+                      href={`/automobile/${v.run.id}`}
+                      className="whitespace-nowrap text-xs font-medium text-accent hover:text-accent-strong"
+                    >
+                      Voir →
+                    </Link>
+                  </TD>
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
       )}
     </div>
   );

@@ -1,16 +1,30 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { createClient } from "@/lib/supabase/server";
 import { swarmsClient } from "@/lib/crewai/swarms";
 import { getOwnerId } from "@/lib/auth/owner";
-import { KPIDashboard } from "@/components/swarms/KPIDashboard";
-import { SectionLabel } from "@/components/ui/SectionLabel";
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmListItem, SwarmRunSummary } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING, COLOR } from "@/lib/ui/tokens";
-import { makeTableStyles } from "@/lib/ui/tableStyles";
-import { Chevron } from "@/components/ui/Chevron";
+import {
+  PageHeader,
+  StatCard,
+  KpiGrid,
+  Card,
+  CardBody,
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+  SectionLabel,
+  Badge,
+  Alert,
+  EmptyState,
+  Chevron,
+} from "@/components/ui";
 
 export const metadata = { title: "Workspace — MySwarms" };
 export const dynamic = "force-dynamic";
@@ -19,126 +33,117 @@ export const dynamic = "force-dynamic";
 
 function OwnerBadge({ email, id }: { email: string | null; id: string }) {
   return (
-    <div
-      className="ct-card"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: SPACING.lg,
-        padding: `${SPACING.md}px ${SPACING.lx}px`,
-        marginBottom: SPACING.xl,
-      }}
-    >
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: RADIUS.full,
-          background: "var(--ct-accent-strong)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: FONT.md,
-          fontWeight: FONT_WEIGHT.bold,
-          color: COLOR.textStrong,
-          flexShrink: 0,
-        }}
-      >
-        {(email ?? "?").slice(0, 1).toUpperCase()}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: FONT.md, fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-strong)" }}>
-          {email ?? "Authenticated user"}
+    <Card>
+      <div className="flex items-center gap-4 px-5 py-3">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-accent text-base font-bold text-white">
+          {(email ?? "?").slice(0, 1).toUpperCase()}
         </div>
-        <div style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", fontFamily: "monospace", marginTop: 2 }}>
-          owner_id: {id}
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-semibold text-content-strong">
+            {email ?? "Authenticated user"}
+          </div>
+          <div className="mt-0.5 font-mono text-xs text-content-muted">owner_id: {id}</div>
         </div>
+        <span className="text-xs uppercase tracking-wider text-content-muted">
+          Single workspace
+        </span>
       </div>
-      <div style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", letterSpacing: LETTER_SPACING.wide, textTransform: "uppercase" }}>
-        Single workspace
-      </div>
-    </div>
+    </Card>
   );
 }
 
 function SwarmRow({ s, variant }: { s: SwarmListItem; variant: "owned" | "template" }) {
   return (
-    <tr style={{ borderBottom: "1px solid var(--ct-border-soft)" }}>
-      <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, color: "var(--ct-text-body)" }}>
-        <Link href={`/swarms/${s.id}`} className="ct-link" style={{ fontWeight: FONT_WEIGHT.semibold }}>
+    <TR>
+      <TD>
+        <Link
+          href={`/swarms/${s.id}`}
+          className="font-semibold text-accent-strong hover:text-accent"
+        >
           {s.name}
         </Link>
         {variant === "template" && (
-          <span
-            style={{
-              marginLeft: SPACING.sm,
-              fontSize: FONT.xs,
-              padding: `${SPACING.hair}px ${SPACING.xxs}px`,
-              borderRadius: RADIUS.sm,
-              background: "var(--ct-surface-3)",
-              color: "var(--ct-text-muted)",
-            }}
-          >
+          <Badge tone="neutral" className="ml-2">
             TEMPLATE
-          </span>
+          </Badge>
         )}
-      </td>
-      <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
+      </TD>
+      <TD className="text-sm text-content-muted">
         {s.agents_count} agent{s.agents_count !== 1 ? "s" : ""}
-      </td>
-      <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
+      </TD>
+      <TD>
         {s.last_run_status ? (
           <StatusBadge status={s.last_run_status} />
         ) : (
-          <span style={{ color: "var(--ct-text-faint)", fontSize: FONT.sm }}>—</span>
+          <span className="text-sm text-content-faint">—</span>
         )}
-      </td>
-      <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
+      </TD>
+      <TD className="text-sm text-content-muted">
         {s.last_run_at ? formatDate(s.last_run_at) : "—"}
-      </td>
-      <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, textAlign: "right" }}>
+      </TD>
+      <TD className="text-right">
         {variant === "owned" ? (
-          <Link href={`/swarms/${s.id}/edit`} style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}>
+          <Link
+            href={`/swarms/${s.id}/edit`}
+            className="text-sm text-accent-strong hover:text-accent"
+          >
             Edit
           </Link>
         ) : (
-          <Link href={`/swarms/${s.id}`} style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}>
+          <Link
+            href={`/swarms/${s.id}`}
+            className="text-sm text-accent-strong hover:text-accent"
+          >
             View
           </Link>
         )}
-      </td>
-    </tr>
+      </TD>
+    </TR>
   );
 }
-
-// padY: SPACING.md(12), padX: SPACING.lx(20), no border (tr carries the border)
-const { th: thStyle } = makeTableStyles({ padY: SPACING.md, padX: SPACING.lx, border: false });
 
 function SwarmTable({ swarms, variant }: { swarms: SwarmListItem[]; variant: "owned" | "template" }) {
   if (swarms.length === 0) {
     return (
-      <div className="ct-placeholder" style={{ padding: `${SPACING.xl}px ${SPACING.lx}px` }}>
-        {variant === "owned"
-          ? <>No swarm yet. <Link href="/swarms/new" className="ct-link">Create one →</Link></>
-          : "No global template available."}
-      </div>
+      <EmptyState
+        title={variant === "owned" ? "No swarm yet" : "No global template available"}
+        description={
+          variant === "owned"
+            ? "Create your first swarm to start orchestrating agents."
+            : undefined
+        }
+        action={
+          variant === "owned" ? (
+            <Link
+              href="/swarms/new"
+              className="text-sm text-accent-strong hover:text-accent"
+            >
+              Create one →
+            </Link>
+          ) : undefined
+        }
+      />
     );
   }
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}>
-      <thead>
-        <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
-          <th style={thStyle}>Name</th>
-          <th style={thStyle}>Agents</th>
-          <th style={thStyle}>Last status</th>
-          <th style={thStyle}>Last run</th>
-          <th style={thStyle}></th>
-        </tr>
-      </thead>
-      <tbody>
-        {swarms.map((s) => <SwarmRow key={s.id} s={s} variant={variant} />)}
-      </tbody>
-    </table>
+    <Table>
+      <THead>
+        <TR>
+          <TH>Name</TH>
+          <TH>Agents</TH>
+          <TH>Last status</TH>
+          <TH>Last run</TH>
+          <TH>
+            <span className="sr-only">Actions</span>
+          </TH>
+        </TR>
+      </THead>
+      <TBody>
+        {swarms.map((s) => (
+          <SwarmRow key={s.id} s={s} variant={variant} />
+        ))}
+      </TBody>
+    </Table>
   );
 }
 
@@ -153,51 +158,55 @@ interface RecentRun {
 function RecentRunsTable({ runs }: { runs: RecentRun[] }) {
   if (runs.length === 0) {
     return (
-      <div className="ct-placeholder" style={{ padding: `${SPACING.xl}px ${SPACING.lx}px` }}>
-        No run yet. Kickoff a swarm to get started.
-      </div>
+      <EmptyState
+        title="No run yet"
+        description="Kickoff a swarm to get started."
+      />
     );
   }
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.base }}>
-      <thead>
-        <tr style={{ borderBottom: "1px solid var(--ct-border)" }}>
-          <th style={thStyle}>Run ID</th>
-          <th style={thStyle}>Swarm</th>
-          <th style={thStyle}>Status</th>
-          <th style={thStyle}>Started</th>
-          <th style={thStyle}></th>
-        </tr>
-      </thead>
-      <tbody>
+    <Table>
+      <THead>
+        <TR>
+          <TH>Run ID</TH>
+          <TH>Swarm</TH>
+          <TH>Status</TH>
+          <TH>Started</TH>
+          <TH>
+            <span className="sr-only">Actions</span>
+          </TH>
+        </TR>
+      </THead>
+      <TBody>
         {runs.map((r) => (
-          <tr key={r.run_id} style={{ borderBottom: "1px solid var(--ct-border-soft)" }}>
-            <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, fontFamily: "monospace", fontSize: FONT.xs, color: "var(--ct-text-muted)" }}>
-              {r.run_id.slice(0, 8)}
-            </td>
-            <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
-              <Link href={`/swarms/${r.swarm_id}`} className="ct-link" style={{ fontSize: FONT.sm }}>
+          <TR key={r.run_id}>
+            <TD className="font-mono text-xs text-content-muted">{r.run_id.slice(0, 8)}</TD>
+            <TD>
+              <Link
+                href={`/swarms/${r.swarm_id}`}
+                className="text-sm text-accent-strong hover:text-accent"
+              >
                 {r.swarm_name}
               </Link>
-            </td>
-            <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px` }}>
+            </TD>
+            <TD>
               <StatusBadge status={r.status} />
-            </td>
-            <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, color: "var(--ct-text-muted)", fontSize: FONT.sm }}>
+            </TD>
+            <TD className="text-sm text-content-muted">
               {r.started_at ? formatDate(r.started_at) : "—"}
-            </td>
-            <td style={{ padding: `${SPACING.s}px ${SPACING.lx}px`, textAlign: "right" }}>
+            </TD>
+            <TD className="text-right">
               <Link
                 href={`/swarms/${r.swarm_id}/runs/${r.run_id}`}
-                style={{ color: "var(--ct-accent-strong)", fontSize: FONT.sm }}
+                className="text-sm text-accent-strong hover:text-accent"
               >
                 View <Chevron direction="right" />
               </Link>
-            </td>
-          </tr>
+            </TD>
+          </TR>
         ))}
-      </tbody>
-    </table>
+      </TBody>
+    </Table>
   );
 }
 
@@ -257,115 +266,102 @@ export default async function WorkspacePage() {
   const activeRuns = recentRuns.filter((r) => r.status === "running").length;
 
   return (
-    <>
-      <div className="ct-eyebrow">Cockpit · MySwarms</div>
-      <h1 className="ct-title">Workspace</h1>
-      <p className="ct-sub">
-        Your tenant scope, swarms, and recent runs at a glance.
-      </p>
+    <div className="flex flex-col gap-8">
+      <PageHeader
+        eyebrow="Cockpit · MySwarms"
+        title="Workspace"
+        subtitle="Your tenant scope, swarms, and recent runs at a glance."
+      />
 
       {/* Owner badge */}
       <OwnerBadge email={user.email ?? null} id={user.id} />
 
       {/* KPIs */}
-      <KPIDashboard
-        kpis={[
-          { label: "Owned swarms", value: ownedSwarms.length, accent: true },
-          { label: "Global templates", value: templateSwarms.length },
-          { label: "Recent runs", value: totalRuns },
-          { label: "Active runs", value: activeRuns },
-        ]}
-      />
+      <KpiGrid>
+        <StatCard label="Owned swarms" value={ownedSwarms.length} />
+        <StatCard label="Global templates" value={templateSwarms.length} />
+        <StatCard label="Recent runs" value={totalRuns} />
+        <StatCard label="Active runs" value={activeRuns} />
+      </KpiGrid>
 
       {swarmsError && (
-        <div
-          className="ct-card"
-          role="alert"
-          style={{
-            borderColor: "var(--ct-alert-error-border)",
-            background: "var(--ct-alert-error-bg)",
-            color: "var(--ct-alert-error-text)",
-            marginBottom: SPACING.lg,
-          }}
-        >
-          Engine unreachable — {swarmsError}
-        </div>
+        <Alert tone="error" role="alert">Engine unreachable — {swarmsError}</Alert>
       )}
 
       {/* Section: Swarms tenant-owned */}
-      <div style={{ marginBottom: SPACING.xxl }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: SPACING.md }}>
+      <section>
+        <div className="mb-3 flex items-center justify-between">
           <SectionLabel text={`Your swarms — ${ownedSwarms.length}`} mb={0} />
-          <Link href="/swarms/new" className="ct-seg-btn primary" style={{ fontSize: FONT.sm }}>
-            + New swarm
+          <Link
+            href="/swarms/new"
+            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[var(--radius-sm)] bg-accent px-3 text-xs font-semibold text-white transition-colors hover:bg-accent-strong"
+          >
+            <PlusIcon className="size-4" aria-hidden="true" />
+            New swarm
           </Link>
         </div>
-        <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
-          <SwarmTable swarms={ownedSwarms} variant="owned" />
-        </div>
-      </div>
+        <SwarmTable swarms={ownedSwarms} variant="owned" />
+      </section>
 
       {/* Section: Templates globaux */}
-      <div style={{ marginBottom: SPACING.xxl }}>
+      <section>
         <SectionLabel text={`Global templates — ${templateSwarms.length}`} />
-        <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
-          <SwarmTable swarms={templateSwarms} variant="template" />
-        </div>
-      </div>
+        <SwarmTable swarms={templateSwarms} variant="template" />
+      </section>
 
       {/* Section: Runs récents cross-swarms */}
-      <div style={{ marginBottom: SPACING.xxl }}>
+      <section>
         <SectionLabel text={`Recent runs — ${totalRuns}`} />
-        <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
-          <RecentRunsTable runs={recentRuns.slice(0, 20)} />
-        </div>
-      </div>
+        <RecentRunsTable runs={recentRuns.slice(0, 20)} />
+      </section>
 
       {/* Section: Outputs/assets */}
-      <div style={{ marginBottom: SPACING.xxl }}>
+      <section>
         <SectionLabel text="Outputs & assets" />
-        <div className="ct-card">
-          <div className="ct-placeholder">
+        <Card>
+          <CardBody className="text-sm text-content-muted">
             Outputs are stored per-run in{" "}
-            <code style={{ fontSize: FONT.xs }}>swarm_run_steps.output_text</code> and{" "}
-            <code style={{ fontSize: FONT.xs }}>swarm_runs.result_text</code>.
-            No dedicated asset table exists yet.{" "}
+            <code className="rounded bg-surface-3 px-1 py-0.5 font-mono text-xs text-content">
+              swarm_run_steps.output_text
+            </code>{" "}
+            and{" "}
+            <code className="rounded bg-surface-3 px-1 py-0.5 font-mono text-xs text-content">
+              swarm_runs.result_text
+            </code>
+            . No dedicated asset table exists yet.{" "}
             {ownedSwarms.length > 0 && (
               <>
                 View outputs inside each{" "}
-                <Link href="/swarms" className="ct-link">swarm run →</Link>
+                <Link href="/swarms" className="text-accent-strong hover:text-accent">
+                  swarm run →
+                </Link>
               </>
             )}
-          </div>
-        </div>
-      </div>
+          </CardBody>
+        </Card>
+      </section>
 
       {/* Section: Tools */}
-      <div style={{ marginBottom: SPACING.xxl }}>
+      <section>
         <SectionLabel text="Available tools" />
-        <div className="ct-card">
-          <div className="ct-placeholder">
+        <Card>
+          <CardBody className="text-sm text-content-muted">
             No tools provisioned.{" "}
-            <Link href="/tools" className="ct-link">Go to catalog →</Link>
-          </div>
-        </div>
-      </div>
+            <Link href="/tools" className="text-accent-strong hover:text-accent">
+              Go to catalog →
+            </Link>
+          </CardBody>
+        </Card>
+      </section>
 
       {/* Tenant model note */}
-      <div
-        className="ct-card"
-        style={{
-          background: "var(--ct-surface-2)",
-          borderColor: "var(--ct-border-soft)",
-          padding: `${SPACING.md}px ${SPACING.lx}px`,
-        }}
-      >
-        <span style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)" }}>
-          Tenant model: <strong>owner_id = auth.uid()</strong> — single workspace per user.
-          Templates (owner_id NULL, is_template=true) are globally visible.
+      <Card className="bg-surface-2">
+        <CardBody className="py-3 text-xs text-content-muted">
+          Tenant model: <strong className="text-content">owner_id = auth.uid()</strong> — single
+          workspace per user. Templates (owner_id NULL, is_template=true) are globally visible.
           Multi-workspace support is not yet implemented.
-        </span>
-      </div>
-    </>
+        </CardBody>
+      </Card>
+    </div>
   );
 }

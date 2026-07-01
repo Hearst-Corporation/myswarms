@@ -1,6 +1,7 @@
 /* Système de cartographie 2D — styles scopés (thème dark React Flow + panneau).
    Aucune modification du design system global : tout est préfixé .sm-* ou cible
-   les classes .react-flow__* uniquement à l'intérieur de .sm-canvas. */
+   les classes .react-flow__* uniquement à l'intérieur de .sm-canvas.
+   Couleurs sur les tokens du DS neuf (--color-*). */
 
 .sm-shell {
   width: 100%;
@@ -11,10 +12,10 @@
   width: 100%;
   height: min(78vh, 760px);
   min-height: 480px;
-  border: 1px solid var(--ct-border);
-  border-radius: 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: var(--ct-surface-1);
+  background: var(--color-surface);
 }
 
 .sm-canvas .react-flow {
@@ -28,38 +29,38 @@
   width: clamp(260px, 32vw, 350px);
   max-height: calc(100% - 24px);
   overflow: auto;
-  background: var(--ct-surface-2);
-  border: 1px solid var(--ct-border);
-  border-radius: 12px;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   z-index: 5;
 }
 
-/* React Flow controls / minimap / attribution → thème sombre cockpit */
+/* React Flow controls / minimap / attribution → thème sombre */
 .sm-canvas .react-flow__attribution {
   background: transparent;
 }
 .sm-canvas .react-flow__attribution a {
-  color: var(--ct-text-faint);
+  color: var(--color-content-faint);
 }
 .sm-canvas .react-flow__controls {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
 }
 .sm-canvas .react-flow__controls-button {
-  background: var(--ct-surface-3);
-  border-bottom: 1px solid var(--ct-border);
+  background: var(--color-surface-3);
+  border-bottom: 1px solid var(--color-line);
 }
 .sm-canvas .react-flow__controls-button:hover {
-  background: var(--ct-surface-2);
+  background: var(--color-surface-2);
 }
 .sm-canvas .react-flow__controls-button svg {
-  fill: var(--ct-text-primary);
+  fill: var(--color-content);
 }
 .sm-canvas .react-flow__minimap {
-  background: var(--ct-surface-1);
-  border: 1px solid var(--ct-border);
-  border-radius: 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
 }
 
 @media (max-width: 760px) {

@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
+import { Button } from "@/components/ui";
 
 // ── Markdown → HTML parser (pas de dépendance externe) ───────────────────────
 //
@@ -124,13 +124,13 @@ function markdownToHtml(md: string): string {
   return out.join("\n");
 }
 
-// ── Couleurs par recommandation ───────────────────────────────────────────────
+// ── Couleurs par recommandation (utilities du DS) ─────────────────────────────
 
-const REC_COLORS: Record<string, string> = {
-  APPELER: "var(--ct-state-ok)",
-  ATTENDRE: "var(--ct-accent-strong)",
-  ÉVITER: "var(--ct-alert-error-text)",
-  UNKNOWN: "var(--ct-text-primary)",
+const REC_COLOR_CLASS: Record<string, string> = {
+  APPELER: "text-ok",
+  ATTENDRE: "text-accent-strong",
+  ÉVITER: "text-danger",
+  UNKNOWN: "text-content-strong",
 };
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -146,7 +146,7 @@ export function MarkdownReport({ text, title }: MarkdownReportProps) {
   const html = useMemo(() => markdownToHtml(text), [text]);
   const rec = extractRecommendation(text);
   const hasRec = rec !== "UNKNOWN";
-  const recColor = REC_COLORS[rec] ?? "var(--ct-text-primary)";
+  const recColorClass = REC_COLOR_CLASS[rec] ?? "text-content-strong";
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -166,28 +166,14 @@ export function MarkdownReport({ text, title }: MarkdownReportProps) {
     <div>
       {/* Recommendation banner */}
       {hasRec && (
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: SPACING.md,
-            padding: `${SPACING.md}px ${SPACING.lx}px`,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.md,
-            border: `1px solid var(--ct-border)`,
-            marginBottom: SPACING.lg,
-          }}
-        >
-          <span style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+        <div className="mb-5 flex items-center gap-3 rounded-[var(--radius-md)] bg-surface-2 px-5 py-3 ring-1 ring-inset ring-line">
+          <span className="text-xs uppercase tracking-wider text-content-muted">
             Recommendation
           </span>
           <span
-            style={{
-              fontSize: FONT.lg,
-              fontWeight: FONT_WEIGHT.extrabold,
-              color: recColor,
-              letterSpacing: "0.04em",
-            }}
+            className={
+              "text-lg font-extrabold tracking-wide " + recColorClass
+            }
           >
             {rec}
           </span>
@@ -195,35 +181,18 @@ export function MarkdownReport({ text, title }: MarkdownReportProps) {
       )}
 
       {/* Action buttons */}
-      <div
-        style={{
-          display: "flex",
-          gap: SPACING.sm,
-          justifyContent: "flex-end",
-          marginBottom: SPACING.md,
-        }}
-      >
-        <button
-          type="button"
-          className="ct-seg-btn"
-          onClick={handleCopy}
-          style={{ fontSize: FONT.sm }}
-        >
+      <div className="mb-3 flex justify-end gap-2">
+        <Button variant="secondary" size="sm" onClick={handleCopy}>
           Copy
-        </button>
-        <button
-          type="button"
-          className="ct-seg-btn"
-          onClick={handleDownload}
-          style={{ fontSize: FONT.sm }}
-        >
+        </Button>
+        <Button variant="secondary" size="sm" onClick={handleDownload}>
           ↓ .md
-        </button>
+        </Button>
       </div>
 
       {/* Rendered Markdown */}
       <div
-        className="md-report"
+        className="md-report text-sm leading-relaxed text-content [&_a]:text-accent [&_code]:rounded [&_code]:bg-surface-2 [&_code]:px-1 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_h1]:mb-2 [&_h1]:mt-4 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:text-content-strong [&_h2]:mb-2 [&_h2]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-content-strong [&_h3]:mb-1 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:text-content-strong [&_hr]:my-4 [&_hr]:border-line [&_li]:ml-5 [&_li]:list-disc [&_ol_li]:list-decimal [&_p]:my-2 [&_strong]:text-content-strong [&_table]:my-3 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-line [&_td]:px-3 [&_td]:py-1.5 [&_th]:border [&_th]:border-line [&_th]:bg-surface-2 [&_th]:px-3 [&_th]:py-1.5 [&_th]:text-left [&_ul]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-line-strong [&_blockquote]:pl-3 [&_blockquote]:text-content-muted"
         // Text comes from our own LLM backend — not user input.
         // HTML is escaped inside markdownToHtml before tag injection.
         dangerouslySetInnerHTML={{ __html: html }}

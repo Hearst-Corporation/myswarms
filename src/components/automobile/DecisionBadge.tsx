@@ -1,18 +1,19 @@
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Badge } from "@/components/ui";
+import type { BadgeProps } from "@/components/ui/Badge";
 import {
   decisionLabel,
   type VehicleDecisionStatus,
 } from "@/lib/automobile/decisionStatus";
 
-// Couleur par statut (variables CSS du cockpit uniquement).
-const COLORS: Record<VehicleDecisionStatus, { fg: string; bg: string }> = {
-  a_decider: { fg: "var(--ct-text-muted)", bg: "var(--ct-surface-3)" },
-  appeler: { fg: "var(--ct-accent-strong)", bg: "var(--ct-accent-soft)" },
-  ignorer: { fg: "var(--ct-text-faint)", bg: "var(--ct-surface-3)" },
-  appele: { fg: "var(--ct-state-ok)", bg: "var(--ct-surface-3)" },
-  negociation: { fg: "var(--ct-accent-strong)", bg: "var(--ct-accent-soft)" },
-  achete: { fg: "var(--ct-state-ok)", bg: "var(--ct-surface-3)" },
-  perdu: { fg: "var(--ct-alert-error-text)", bg: "var(--ct-surface-3)" },
+// Ton du Badge par statut de décision humaine.
+const TONE_BY_STATUS: Record<VehicleDecisionStatus, BadgeProps["tone"]> = {
+  a_decider: "neutral",
+  appeler: "accent",
+  ignorer: "neutral",
+  appele: "ok",
+  negociation: "accent",
+  achete: "ok",
+  perdu: "danger",
 };
 
 /**
@@ -29,24 +30,9 @@ export function DecisionBadge({
 }) {
   if (!status) return null;
   if (muteDefault && status === "a_decider") return null;
-  const c = COLORS[status];
   return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: `${SPACING.hair}px ${SPACING.sm}px`,
-        borderRadius: RADIUS.full,
-        fontSize: FONT.xs,
-        fontWeight: FONT_WEIGHT.bold,
-        letterSpacing: LETTER_SPACING.tight,
-        textTransform: "uppercase",
-        color: c.fg,
-        background: c.bg,
-        border: `1px solid ${c.fg}`,
-        whiteSpace: "nowrap",
-      }}
-    >
+    <Badge tone={TONE_BY_STATUS[status]} className="uppercase tracking-tight">
       {decisionLabel(status)}
-    </span>
+    </Badge>
   );
 }

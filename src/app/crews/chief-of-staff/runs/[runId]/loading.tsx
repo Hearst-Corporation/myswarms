@@ -1,4 +1,4 @@
-import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
+import { Skeleton } from "@/components/ui";
 
 /**
  * Skeleton de chargement de la page détail d'un run Chief of Staff.
@@ -7,123 +7,39 @@ import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
 export default function ChiefRunLoading() {
   return (
     <>
-      {/* Breadcrumb skeleton */}
-      <div
-        style={{
-          width: 80,
-          height: SIZE.skeletonTitle,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.md,
-        }}
-      />
+      {/* Breadcrumb */}
+      <Skeleton className="mb-3 h-3.5 w-20" />
 
-      {/* Titre skeleton */}
-      <div
-        style={{
-          width: 180,
-          height: 28,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.sm,
-        }}
-      />
+      {/* Titre */}
+      <Skeleton className="mb-2 h-7 w-44" />
 
-      {/* StatusBadge + trigger skeleton */}
-      <div
-        style={{
-          display: "flex",
-          gap: SPACING.md,
-          alignItems: "center",
-          marginBottom: SPACING.xl,
-        }}
-      >
-        <div
-          style={{
-            width: 72,
-            height: 22,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.full,
-            opacity: OPACITY.skeletonStrong,
-          }}
-        />
-        <div
-          style={{
-            width: SIZE.dot,
-            height: SIZE.dot,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.full,
-            opacity: OPACITY.skeletonSoft,
-          }}
-        />
-        <div
-          style={{
-            width: 110,
-            height: SIZE.skeletonTitle,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            opacity: OPACITY.skeletonSoft,
-          }}
-        />
+      {/* StatusBadge + trigger */}
+      <div className="mb-6 flex items-center gap-3">
+        <Skeleton className="h-6 w-20 rounded-full" />
+        <Skeleton className="size-2 rounded-full" />
+        <Skeleton className="h-3.5 w-28" />
       </div>
 
-      {/* Dates grid skeleton — 2 cards */}
+      {/* Dates grid — 2 cards */}
       <div
         aria-busy="true"
         aria-live="polite"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: SPACING.lg,
-          marginBottom: SPACING.xl,
-        }}
+        className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2"
       >
         {Array.from({ length: 2 }).map((_, i) => (
-          <div
-            key={i}
-            className="ct-card"
-            style={{ marginBottom: 0, opacity: OPACITY.skeletonStrong, minHeight: 64 }}
-          />
+          <Skeleton key={i} className="h-16 rounded-[var(--radius-lg)]" />
         ))}
       </div>
 
-      {/* Résultat card skeleton */}
-      <div
-        className="ct-eyebrow"
-        style={{
-          width: 60,
-          height: SIZE.skeletonTitle,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.sm,
-        }}
-      />
-      <div
-        className="ct-card"
-        style={{ opacity: OPACITY.skeletonStrong, minHeight: 120, marginBottom: SPACING.xl }}
-      />
+      {/* Résultat card */}
+      <Skeleton className="mb-2 h-3.5 w-16" />
+      <Skeleton className="mb-6 h-32 rounded-[var(--radius-lg)]" />
 
-      {/* State card skeleton */}
-      <div
-        className="ct-eyebrow"
-        style={{
-          width: 50,
-          height: SIZE.skeletonTitle,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.sm,
-        }}
-      />
-      <div
-        className="ct-card"
-        style={{ opacity: OPACITY.skeleton, minHeight: 80 }}
-      />
+      {/* State card */}
+      <Skeleton className="mb-2 h-3.5 w-14" />
+      <Skeleton className="h-20 rounded-[var(--radius-lg)]" />
 
-      <p className="ct-sub">Loading run…</p>
+      <p className="mt-4 text-sm text-content-muted">Loading run…</p>
     </>
   );
 }

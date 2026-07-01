@@ -3,8 +3,7 @@ import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { getOwnerId } from "@/lib/auth/owner";
 import { parseInputSchema } from "@/lib/swarms/inputSchema";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
-import { PageTitle } from "@/components/ui/PageTitle";
-import { Chevron } from "@/components/ui/Chevron";
+import { PageTitle, Chevron } from "@/components/ui";
 import { SystemMap } from "@/components/system-map/SystemMap";
 import type {
   SystemMapData,
@@ -14,7 +13,6 @@ import type {
   MapStatus,
 } from "@/components/system-map/types";
 import type { SwarmRecord, SwarmRun } from "@/lib/forms/swarmSchemas";
-import { SPACING } from "@/lib/ui/tokens";
 
 export const dynamic = "force-dynamic";
 
@@ -93,19 +91,23 @@ export default async function SystemMapPage() {
   const data = buildData(swarm, lastRun, loadError);
 
   return (
-    <>
-      <div className="ct-eyebrow">
-        <Link href="/swarms" className="ct-breadcrumb-link">
-          <Chevron direction="left" />Swarms
-        </Link>
+    <div className="flex flex-col gap-4">
+      <Link
+        href="/swarms"
+        className="inline-flex w-fit items-center text-xs font-semibold uppercase tracking-wider text-content-muted transition-colors hover:text-content"
+      >
+        <Chevron direction="left" />
+        Swarms
+      </Link>
+      <div>
+        <PageTitle>System Map</PageTitle>
+        <p className="mt-1 text-sm text-content-muted">
+          Cartographie 2D de la plateforme et du template Automobile — branchée sur
+          le dernier run réel.
+        </p>
       </div>
-      <PageTitle>System Map</PageTitle>
-      <p className="ct-sub" style={{ marginBottom: SPACING.lg }}>
-        Cartographie 2D de la plateforme et du template Automobile — branchée sur
-        le dernier run réel.
-      </p>
       <SystemMap data={data} />
-    </>
+    </div>
   );
 }
 

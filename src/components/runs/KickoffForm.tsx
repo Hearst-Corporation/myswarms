@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useActionState } from "react";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Select, Button, Alert } from "@/components/ui";
 import { AlertDialog } from "@/components/ui/AlertDialog";
 
 export interface KickoffFormState {
@@ -26,35 +26,29 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: SPACING.sm }}>
-      <form
-        ref={formRef}
-        action={formAction}
-        style={{ display: "flex", alignItems: "center", gap: SPACING.sm }}
-      >
-        <select
-          name="trigger"
-          defaultValue="on_demand"
-          style={{ background: "var(--ct-surface-2)", border: "1px solid var(--ct-border)", borderRadius: RADIUS.md, padding: `${SPACING.sm}px ${SPACING.md}px`, color: "var(--ct-text-primary)", fontSize: FONT.base, fontFamily: "inherit" }}
-        >
-          <option value="on_demand">On-demand</option>
-          <option value="morning">Morning</option>
-          <option value="evening">Evening</option>
-          <option value="intraday">Intraday</option>
-        </select>
-        {/* Submit invisible — déclenché par requestSubmit() depuis onConfirm */}
-        <button type="submit" style={{ display: "none" }} aria-hidden="true" />
-      </form>
+    <div className="flex flex-col items-end gap-3">
+      <div className="flex items-center gap-2">
+        <form ref={formRef} action={formAction} className="flex items-center gap-2">
+          <Select name="trigger" defaultValue="on_demand" aria-label="Trigger" className="h-9 w-40">
+            <option value="on_demand">On-demand</option>
+            <option value="morning">Morning</option>
+            <option value="evening">Evening</option>
+            <option value="intraday">Intraday</option>
+          </Select>
+          {/* Submit invisible — déclenché par requestSubmit() depuis onConfirm */}
+          <button type="submit" className="hidden" aria-hidden="true" />
+        </form>
 
-      {/* Bouton visible — ouvre la dialog, pas un submit direct */}
-      <button
-        type="button"
-        className="ct-seg-btn primary"
-        disabled={isPending}
-        onClick={() => setConfirmOpen(true)}
-      >
-        {isPending ? "Running…" : "Run now"}
-      </button>
+        {/* Bouton visible — ouvre la dialog, pas un submit direct */}
+        <Button
+          type="button"
+          size="sm"
+          disabled={isPending}
+          onClick={() => setConfirmOpen(true)}
+        >
+          {isPending ? "Running…" : "Run now"}
+        </Button>
+      </div>
 
       <AlertDialog
         open={confirmOpen}
@@ -68,12 +62,9 @@ export function KickoffForm({ action }: { action: KickoffAction }) {
       />
 
       {state.error ? (
-        <p
-          role="alert"
-          style={{ borderRadius: RADIUS.md, border: "1px solid var(--ct-alert-error-border)", background: "var(--ct-alert-error-bg)", padding: `${SPACING.sm}px ${SPACING.md}px`, fontSize: FONT.xs, color: "var(--ct-alert-error-text)" }}
-        >
+        <Alert tone="error" role="alert">
           {state.error}
-        </p>
+        </Alert>
       ) : null}
     </div>
   );

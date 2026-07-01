@@ -9,7 +9,6 @@
  */
 
 import { useMemo, useState, useCallback } from "react";
-import { SPACING, FONT, FONT_WEIGHT } from "@/lib/ui/tokens";
 import type {
   BackendStatus,
   GovernanceActionState,
@@ -18,6 +17,8 @@ import type {
   SecurityGate,
   TenantStatus,
 } from "@/lib/platform-admin/types";
+import { Card, CardBody, Input, Button, Alert } from "@/components/ui";
+import { cn } from "@/lib/ui/cn";
 import { Overview } from "./Overview";
 import { TenantTable } from "./TenantTable";
 import { TenantDrawer } from "./TenantDrawer";
@@ -84,72 +85,56 @@ export function PlatformConsole({
   }, [tenants, query, statusFilter]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: SPACING.xl }}>
+    <div className="flex flex-col gap-6">
       {loadError && (
-        <div
-          style={{
-            color: "var(--ct-alert-error-text)",
-            background: "var(--ct-alert-error-bg)",
-            border: "1px solid var(--ct-alert-error-border)",
-            padding: SPACING.md,
-            borderRadius: 4,
-            fontSize: FONT.sm,
-          }}
-        >
-          {loadError}
-        </div>
+        <Alert tone="error" role="alert">{loadError}</Alert>
       )}
 
       <Overview overview={overview} backend={backend} gates={gates} />
 
-      <section className="ct-card" style={{ padding: SPACING.lx, display: "flex", flexDirection: "column", gap: SPACING.lg }}>
-        <div style={{ display: "flex", alignItems: "center", gap: SPACING.md, flexWrap: "wrap" }}>
-          <span style={{ fontSize: FONT.md, fontWeight: FONT_WEIGHT.medium, color: "var(--ct-text-strong)" }}>
-            Tenants — {filtered.length}
-          </span>
+      <Card>
+        <CardBody className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-content-strong">
+              Tenants — {filtered.length}
+            </span>
 
-          <div style={{ display: "flex", gap: SPACING.xxs, flexWrap: "wrap", marginLeft: SPACING.md }}>
-            {FILTERS.map((f) => (
-              <button
-                key={f}
-                type="button"
-                className="ct-seg-btn"
-                onClick={() => setStatusFilter(f)}
-                style={{
-                  fontSize: FONT.xxs,
-                  opacity: statusFilter === f ? 1 : 0.6,
-                  fontWeight: statusFilter === f ? FONT_WEIGHT.medium : FONT_WEIGHT.regular,
-                }}
-              >
-                {f}
-              </button>
-            ))}
+            <div className="flex flex-wrap gap-1">
+              {FILTERS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => setStatusFilter(f)}
+                  className={cn(
+                    "rounded-[var(--radius-sm)] px-2.5 py-1 text-xs font-medium transition-colors",
+                    statusFilter === f
+                      ? "bg-accent/15 text-accent-strong ring-1 ring-inset ring-accent/30"
+                      : "text-content-muted hover:bg-surface-2 hover:text-content",
+                  )}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+
+            <div className="ml-auto flex items-center gap-2">
+              <Input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Filtrer (owner id, label…)"
+                aria-label="Filtrer les tenants"
+                className="h-8 w-52 text-xs"
+              />
+              <Button variant="secondary" size="sm" onClick={refresh} disabled={refreshing}>
+                {refreshing ? "…" : "Actualiser"}
+              </Button>
+            </div>
           </div>
 
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filtrer (owner id, label…)"
-            style={{
-              marginLeft: "auto",
-              fontSize: FONT.xs,
-              padding: `${SPACING.xs}px ${SPACING.sm}px`,
-              background: "var(--ct-overlay-dark)",
-              border: "1px solid var(--ct-border-soft)",
-              borderRadius: 6,
-              color: "var(--ct-text-body)",
-              minWidth: 200,
-            }}
-          />
-
-          <button type="button" className="ct-seg-btn" onClick={refresh} disabled={refreshing} style={{ fontSize: FONT.xs }}>
-            {refreshing ? "…" : "Actualiser"}
-          </button>
-        </div>
-
-        <TenantTable tenants={filtered} selectedOwnerId={selected} onSelect={setSelected} />
-      </section>
+          <TenantTable tenants={filtered} selectedOwnerId={selected} onSelect={setSelected} />
+        </CardBody>
+      </Card>
 
       {selected && (
         <TenantDrawer

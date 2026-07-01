@@ -1,24 +1,23 @@
 "use client";
 
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import { SPACING, RADIUS, FONT, FONT_WEIGHT, LINE_HEIGHT, LETTER_SPACING, SIZE } from "@/lib/ui/tokens";
 import type { MapNode, MapNodeData, NodeKind, MapStatus } from "./types";
 
 export function statusColor(status?: MapStatus): string {
   switch (status) {
     case "completed":
-      return "var(--ct-state-ok)";
+      return "var(--color-ok)";
     case "running":
-      return "var(--ct-accent-strong)";
+      return "var(--color-accent-strong)";
     case "failed":
-      return "var(--ct-alert-error-text)";
+      return "var(--color-danger)";
     case "template":
     case "report":
-      return "var(--ct-accent-strong)";
+      return "var(--color-accent-strong)";
     case "data":
-      return "var(--ct-text-muted)";
+      return "var(--color-content-muted)";
     default:
-      return "var(--ct-text-faint)";
+      return "var(--color-content-faint)";
   }
 }
 
@@ -29,13 +28,13 @@ export function kindColor(kind: NodeKind): string {
     case "dashboard":
     case "report":
     case "agent":
-      return "var(--ct-accent-strong)";
+      return "var(--color-accent-strong)";
     case "backend":
-      return "var(--ct-state-ok)";
+      return "var(--color-ok)";
     case "table":
-      return "var(--ct-text-faint)";
+      return "var(--color-content-faint)";
     default:
-      return "var(--ct-text-muted)"; // user, data, input
+      return "var(--color-content-muted)"; // user, data, input
   }
 }
 
@@ -53,21 +52,21 @@ export const KIND_LABEL: Record<NodeKind, string> = {
 };
 
 const handleStyle = {
-  width: SIZE.dotSm,
-  height: SIZE.dotSm,
-  background: "var(--ct-border-strong)",
+  width: 6,
+  height: 6,
+  background: "var(--color-line-strong)",
   border: "none",
 } as const;
 
 function MapNodeView({ data, selected }: NodeProps<MapNode>) {
   const accent = data.status ? statusColor(data.status) : kindColor(data.kind);
-  const edgeColor = selected ? accent : "var(--ct-border)";
+  const edgeColor = selected ? accent : "var(--color-line)";
   return (
     <div
       style={{
-        minWidth: SIZE.nodeMinW,
-        maxWidth: SIZE.nodeMaxW,
-        background: "var(--ct-surface-2)",
+        minWidth: 150,
+        maxWidth: 230,
+        background: "var(--color-surface-2)",
         borderStyle: "solid",
         borderTopWidth: 1,
         borderRightWidth: 1,
@@ -77,61 +76,35 @@ function MapNodeView({ data, selected }: NodeProps<MapNode>) {
         borderRightColor: edgeColor,
         borderBottomColor: edgeColor,
         borderLeftColor: accent,
-        borderRadius: RADIUS.nav,
-        padding: `${SPACING.sm}px ${SPACING.md}px`,
+        borderRadius: "var(--radius-md)",
+        padding: "8px 12px",
         boxShadow: selected
-          ? `0 0 0 2px color-mix(in srgb, ${accent} 45%, transparent), 0 8px 22px var(--ct-overlay-dark-strong)`
-          : "0 2px 8px var(--ct-overlay-dark)",
+          ? `0 0 0 2px color-mix(in srgb, ${accent} 45%, transparent), 0 8px 22px rgba(0,0,0,0.45)`
+          : "0 2px 8px rgba(0,0,0,0.30)",
         cursor: "pointer",
       }}
     >
       <Handle type="target" position={Position.Left} style={handleStyle} />
-      <div style={{ display: "flex", alignItems: "center", gap: SPACING.xxs, marginBottom: SPACING.hair }}>
+      <div className="mb-0.5 flex items-center gap-1">
         <span
+          className="size-2 shrink-0 rounded-full"
           style={{
-            width: SIZE.dot,
-            height: SIZE.dot,
-            borderRadius: "50%",
             background: accent,
-            flexShrink: 0,
             boxShadow: data.status === "running" ? `0 0 6px ${accent}` : "none",
           }}
         />
-        <span
-          style={{
-            fontSize: FONT.micro,
-            letterSpacing: LETTER_SPACING.mid,
-            textTransform: "uppercase",
-            color: "var(--ct-text-faint)",
-          }}
-        >
+        <span className="text-[10px] uppercase tracking-wider text-content-faint">
           {KIND_LABEL[data.kind]}
         </span>
       </div>
-      <div
-        style={{
-          fontSize: FONT.sm,
-          fontWeight: FONT_WEIGHT.semibold,
-          color: "var(--ct-text-strong)",
-          lineHeight: LINE_HEIGHT.snug,
-        }}
-      >
+      <div className="text-sm font-semibold leading-snug text-content-strong">
         {data.label}
       </div>
       {data.sub ? (
-        <div style={{ fontSize: FONT.xs, color: "var(--ct-text-muted)", marginTop: SPACING.hair }}>
-          {data.sub}
-        </div>
+        <div className="mt-0.5 text-xs text-content-muted">{data.sub}</div>
       ) : null}
       {data.desc ? (
-        <div
-          style={{
-            fontSize: FONT.nano,
-            color: "var(--ct-text-faint)",
-            marginTop: SPACING.hair,
-            lineHeight: LINE_HEIGHT.cozy,
-          }}
-        >
+        <div className="mt-0.5 text-[10px] leading-relaxed text-content-faint">
           {data.desc}
         </div>
       ) : null}

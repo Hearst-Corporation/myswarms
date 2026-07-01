@@ -46,11 +46,11 @@ export function SystemMapCanvas({
       elementsSelectable
       proOptions={{ hideAttribution: false }}
     >
-      <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="var(--ct-border)" />
+      <Background variant={BackgroundVariant.Dots} gap={22} size={1} color="var(--color-line-strong)" />
       <MiniMap
         pannable
         zoomable
-        maskColor="var(--ct-overlay-dark-strong)"
+        maskColor="rgba(0,0,0,0.6)"
         nodeColor={(n) => nodeColor(n.data as MapNodeData)}
         nodeStrokeWidth={0}
       />

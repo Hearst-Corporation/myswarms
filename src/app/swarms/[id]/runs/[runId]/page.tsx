@@ -9,6 +9,7 @@
 // Cf reviewer Stage 4 — dette acceptée pour V1 (pas de fix code immédiat).
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { ReactNode } from "react";
 import { swarmsClient, SwarmEngineError } from "@/lib/crewai/swarms";
 import { getOwnerId } from "@/lib/auth/owner";
 import { isValidUuid } from "@/lib/utils/uuid";
@@ -19,14 +20,23 @@ import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { MarkdownReport } from "@/components/swarms/MarkdownReport";
 import { isMarkdown } from "@/lib/swarms/markdown";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
-import { Chevron } from "@/components/ui/Chevron";
-import { PageTitle } from "@/components/ui/PageTitle";
-import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import {
+  Chevron,
+  PageTitle,
+  ErrorLayout,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardBody,
+  SectionLabel,
+} from "@/components/ui";
 import { LiveIndicator } from "@/components/runs/LiveIndicator";
 import { isRunningStatus } from "@/lib/crewai/runStatus";
 
 export const dynamic = "force-dynamic";
+
+const BREADCRUMB =
+  "inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content";
 
 interface PageProps {
   params: Promise<{ id: string; runId: string }>;
@@ -65,69 +75,41 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
   } catch (err) {
     if (err instanceof SwarmEngineError && err.status === 404) notFound();
     return (
-      <>
-        <div className="ct-eyebrow">
-          <Link
-            href={`/swarms/${id}`}
-            className="ct-breadcrumb-link"
-          >
-            <Chevron direction="left" />Swarm
-          </Link>
-        </div>
+      <div className="flex flex-col gap-6">
+        <Link href={`/swarms/${id}`} className={BREADCRUMB}>
+          <Chevron direction="left" />Swarm
+        </Link>
         <ErrorLayout
           title="Run not found"
           message={err instanceof Error ? err.message : "Unknown error"}
         />
-      </>
+      </div>
     );
   }
 
   const isRunning = isRunningStatus(run.status);
 
   return (
-    <>
+    <div className="flex flex-col gap-6">
       <AutoRefresh active={isRunning} seconds={5} />
-      <div className="ct-eyebrow">
-        <Link
-          href={`/swarms/${id}`}
-          style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}
-        >
-          <Chevron direction="left" />{swarmName ?? "Swarm"}
-        </Link>
-      </div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: SPACING.lg,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          {swarmName && (
-            <div style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.xs }}>
-              {swarmName}
-            </div>
+      <Link href={`/swarms/${id}`} className={BREADCRUMB}>
+        <Chevron direction="left" />
+        {swarmName ?? "Swarm"}
+      </Link>
+
+      <div className="border-b border-line pb-5">
+        {swarmName && (
+          <div className="mb-1 text-sm text-content-muted">{swarmName}</div>
+        )}
+        <PageTitle variant="mono">Run {runId.slice(0, 8)}…</PageTitle>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <StatusBadge status={run.status} size="md" />
+          <span className="text-sm text-content-muted">
+            trigger : {run.trigger}
+          </span>
+          {isRunning && run.status !== "paused_hitl" && (
+            <LiveIndicator intervalSeconds={5} />
           )}
-          <PageTitle variant="mono">
-            Run {runId.slice(0, 8)}…
-          </PageTitle>
-          <div
-            style={{
-              display: "flex",
-              gap: SPACING.md,
-              alignItems: "center",
-              marginBottom: SPACING.xl,
-              flexWrap: "wrap",
-            }}
-          >
-            <StatusBadge status={run.status} size="md" />
-            <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>
-              trigger : {run.trigger}
-            </span>
-            {isRunning && run.status !== "paused_hitl" && <LiveIndicator intervalSeconds={5} />}
-          </div>
         </div>
       </div>
 
@@ -146,23 +128,19 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
         ]}
       />
 
-      <div className="ct-card">
-        <div className="ct-card-title">Metadata</div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: SPACING.lg,
-          }}
-        >
-          <Field
+      <Card>
+        <CardHeader>
+          <CardTitle>Metadata</CardTitle>
+        </CardHeader>
+        <CardBody className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <MetaField
             label="Started"
             value={formatDate(run.started_at, {
               withSeconds: true,
               withYear: true,
             })}
           />
-          <Field
+          <MetaField
             label="Finished"
             value={
               run.finished_at
@@ -174,96 +152,68 @@ export default async function SwarmRunDetailPage({ params }: PageProps) {
             }
           />
           {run.langfuse_trace_id ? (
-            <Field label="Langfuse trace" value={run.langfuse_trace_id} mono />
+            <MetaField label="Langfuse trace" value={run.langfuse_trace_id} mono />
           ) : null}
-        </div>
-      </div>
+        </CardBody>
+      </Card>
 
       {run.error_text != null && run.error_text !== "" ? (
-        <div
-          className="ct-card"
-          style={{
-            borderColor: "var(--ct-border-accent)",
-            background: "var(--ct-accent-soft)",
-          }}
-        >
-          <div className="ct-card-title">Error</div>
-          <pre
-            style={{
-              fontSize: FONT.sm,
-              fontFamily: "var(--font-mono)",
-              color: "var(--ct-text-primary)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {run.error_text}
-          </pre>
-        </div>
+        <Card className="ring-[color-mix(in_oklab,var(--color-danger)_30%,transparent)]">
+          <CardHeader>
+            <CardTitle className="text-danger">Error</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <pre className="whitespace-pre-wrap break-words font-mono text-sm text-content">
+              {run.error_text}
+            </pre>
+          </CardBody>
+        </Card>
       ) : null}
 
       {run.result_text != null ? (
-        <div className="ct-card">
-          <div className="ct-card-title">Result</div>
-          {isMarkdown(run.result_text) ? (
-            <MarkdownReport
-              text={run.result_text}
-              title={`run-${runId.slice(0, 8)}`}
-            />
-          ) : (
-            <pre
-              style={{
-                background: "var(--ct-surface-2)",
-                border: "1px solid var(--ct-border)",
-                borderRadius: RADIUS.md,
-                padding: SPACING.md,
-                fontSize: FONT.sm,
-                color: "var(--ct-text-primary)",
-                fontFamily: "var(--font-mono)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                overflow: "auto",
-                maxHeight: "var(--ct-result-max-h)",
-              }}
-            >
-              {prettyJsonOrRaw(run.result_text)}
-            </pre>
-          )}
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Result</CardTitle>
+          </CardHeader>
+          <CardBody>
+            {isMarkdown(run.result_text) ? (
+              <MarkdownReport
+                text={run.result_text}
+                title={`run-${runId.slice(0, 8)}`}
+              />
+            ) : (
+              <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-surface-2 p-3 font-mono text-sm text-content ring-1 ring-inset ring-line">
+                {prettyJsonOrRaw(run.result_text)}
+              </pre>
+            )}
+          </CardBody>
+        </Card>
       ) : null}
 
-      <div
-        className="ct-eyebrow"
-        style={{ margin: `${SPACING.xl}px 0 ${SPACING.md}px` }}
-      >
-        Timeline ({run.steps.length} steps)
+      <div>
+        <SectionLabel text={`Timeline (${run.steps.length} steps)`} />
+        <RunTimeline steps={run.steps} status={run.status} />
       </div>
-      <RunTimeline steps={run.steps} status={run.status} />
-    </>
+    </div>
   );
 }
 
-function Field({
+function MetaField({
   label,
   value,
   mono = false,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   mono?: boolean;
 }) {
   return (
     <div>
-      <div className="ct-eyebrow" style={{ marginBottom: SPACING.xs }}>
-        {label}
-      </div>
+      <SectionLabel text={label} />
       <div
-        style={{
-          fontSize: FONT.base,
-          color: "var(--ct-text-primary)",
-          fontFamily: mono ? "var(--font-mono)" : "inherit",
-          wordBreak: "break-all",
-        }}
+        className={
+          "break-all text-sm text-content " + (mono ? "font-mono" : "")
+        }
       >
         {value}
       </div>

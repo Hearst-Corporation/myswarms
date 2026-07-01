@@ -10,11 +10,9 @@ import { KPIDashboard } from "@/components/swarms/KPIDashboard";
 import { RunTimeline } from "@/components/swarms/RunTimeline";
 import { MarkdownReport } from "@/components/swarms/MarkdownReport";
 import { isMarkdown } from "@/lib/swarms/markdown";
-import { FONT, RADIUS, SPACING } from "@/lib/ui/tokens";
 import { fmtPrice } from "@/lib/utils/format";
-import { Chevron } from "@/components/ui/Chevron";
-import { PageTitle } from "@/components/ui/PageTitle";
-import { ErrorLayout } from "@/components/ui/ErrorLayout";
+import { Chevron, PageTitle, ErrorLayout, Card, CardBody } from "@/components/ui";
+import { LinkButton } from "@/components/automobile/LinkButton";
 import { LiveIndicator } from "@/components/runs/LiveIndicator";
 import { isRunningStatus } from "@/lib/crewai/runStatus";
 import { extractRecommendation } from "@/lib/swarms/recommendation";
@@ -35,14 +33,11 @@ interface PageProps {
 function Field({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
     <div>
-      <div className="ct-eyebrow" style={{ marginBottom: SPACING.xs }}>{label}</div>
+      <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-content-muted">
+        {label}
+      </div>
       <div
-        style={{
-          fontSize: FONT.base,
-          color: "var(--ct-text-primary)",
-          fontFamily: mono ? "var(--font-mono)" : "inherit",
-          wordBreak: "break-all",
-        }}
+        className={`break-all text-content ${mono ? "font-[family-name:var(--font-mono)]" : ""}`}
       >
         {value}
       </div>
@@ -89,11 +84,12 @@ export default async function AutomobileRunPage({ params }: PageProps) {
     if (err instanceof SwarmEngineError && err.status === 404) notFound();
     return (
       <>
-        <div className="ct-eyebrow">
-          <Link href="/automobile" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-            <Chevron direction="left" />Automobile
-          </Link>
-        </div>
+        <Link
+          href="/automobile"
+          className="mb-4 inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content"
+        >
+          <Chevron direction="left" />Automobile
+        </Link>
         <ErrorLayout
           title="Analyse introuvable"
           message={err instanceof Error ? err.message : "Erreur inconnue"}
@@ -118,199 +114,149 @@ export default async function AutomobileRunPage({ params }: PageProps) {
       <AutoRefresh active={isRunning} seconds={5} />
 
       {/* Breadcrumb */}
-      <div className="ct-eyebrow">
-        <Link href="/automobile" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-          <Chevron direction="left" />Automobile
-        </Link>
-      </div>
+      <Link
+        href="/automobile"
+        className="mb-4 inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content"
+      >
+        <Chevron direction="left" />Automobile
+      </Link>
 
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: SPACING.lg,
-          flexWrap: "wrap",
-          marginBottom: SPACING.xl,
-        }}
-      >
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-6">
         <div>
-          <div style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)", marginBottom: SPACING.xs }}>
-            Analyse véhicule
-          </div>
+          <div className="mb-1 text-sm text-content-muted">Analyse véhicule</div>
           <PageTitle>{vehicleLabel}</PageTitle>
-          <div
-            style={{
-              display: "flex",
-              gap: SPACING.md,
-              alignItems: "center",
-              marginTop: SPACING.sm,
-              flexWrap: "wrap",
-            }}
-          >
+          <div className="mt-2 flex flex-wrap items-center gap-4">
             <StatusBadge status={run.status} size="md" />
-            <span style={{ color: "var(--ct-text-muted)", fontSize: FONT.base }}>
-              {run.trigger}
-            </span>
+            <span className="text-content-muted">{run.trigger}</span>
             {isRunning && run.status !== "paused_hitl" && <LiveIndicator intervalSeconds={5} />}
           </div>
         </div>
 
         {/* Nav buttons */}
-        <div style={{ display: "flex", gap: SPACING.sm, flexWrap: "wrap" }}>
-          <Link
-            href="/automobile/nouvelle"
-            className="ct-seg-btn"
-            style={{ fontSize: FONT.sm }}
-          >
+        <div className="flex flex-wrap gap-2">
+          <LinkButton href="/automobile/nouvelle" variant="secondary">
             Nouvelle analyse
-          </Link>
-          <Link
-            href="/automobile/historique"
-            className="ct-seg-btn"
-            style={{ fontSize: FONT.sm }}
-          >
+          </LinkButton>
+          <LinkButton href="/automobile/historique" variant="secondary">
             Historique
-          </Link>
+          </LinkButton>
         </div>
       </div>
 
       {/* Recommandation badge — affiché uniquement si run terminé et résultat présent */}
       {!isRunning && run.result_text && recommendation !== "UNKNOWN" && (
-        <div className="ct-card" style={{ marginBottom: SPACING.lg }}>
-          <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>Recommandation</div>
-          <RecommendationBadge rec={recommendation} size="md" />
-        </div>
+        <Card className="mb-6">
+          <CardBody>
+            <h3 className="mb-4 text-sm font-semibold text-content-strong">Recommandation</h3>
+            <RecommendationBadge rec={recommendation} size="md" />
+          </CardBody>
+        </Card>
       )}
 
       {/* Décision humaine */}
-      <div className="ct-card" style={{ marginBottom: SPACING.lg }}>
-        <div className="ct-card-title" style={{ marginBottom: SPACING.md }}>Décision</div>
-        <VehicleDecisionControl runId={runId} initial={decision} />
-      </div>
+      <Card className="mb-6">
+        <CardBody>
+          <h3 className="mb-4 text-sm font-semibold text-content-strong">Décision</h3>
+          <VehicleDecisionControl runId={runId} initial={decision} />
+        </CardBody>
+      </Card>
 
       {/* KPIs */}
-      <KPIDashboard
-        kpis={[
-          {
-            label: "Tokens in",
-            value: run.total_tokens_in.toLocaleString("en-US"),
-            accent: true,
-          },
-          {
-            label: "Tokens out",
-            value: run.total_tokens_out.toLocaleString("en-US"),
-          },
-          { label: "Steps", value: run.steps.length },
-        ]}
-      />
+      <div className="mb-6">
+        <KPIDashboard
+          kpis={[
+            {
+              label: "Tokens in",
+              value: run.total_tokens_in.toLocaleString("en-US"),
+              accent: true,
+            },
+            {
+              label: "Tokens out",
+              value: run.total_tokens_out.toLocaleString("en-US"),
+            },
+            { label: "Steps", value: run.steps.length },
+          ]}
+        />
+      </div>
 
       {/* Metadata */}
-      <div className="ct-card">
-        <div className="ct-card-title">Détails</div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: SPACING.lg,
-          }}
-        >
-          <Field
-            label="Démarré"
-            value={formatDate(run.started_at, { withSeconds: true, withYear: true })}
-          />
-          <Field
-            label="Terminé"
-            value={
-              run.finished_at
-                ? formatDate(run.finished_at, { withSeconds: true, withYear: true })
-                : "—"
-            }
-          />
-          {priceEur != null ? (
-            <Field label="Prix" value={fmtPrice(priceEur)} />
-          ) : null}
-          {sourceUrl ? (
-            <div>
-              <div className="ct-eyebrow" style={{ marginBottom: SPACING.xs }}>Source</div>
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ct-link"
-                style={{ fontSize: FONT.base, wordBreak: "break-all" }}
-              >
-                Voir l&apos;annonce ↗
-              </a>
-            </div>
-          ) : null}
-          {run.langfuse_trace_id ? (
-            <Field label="Langfuse trace" value={run.langfuse_trace_id} mono />
-          ) : null}
-        </div>
-      </div>
+      <Card className="mb-6">
+        <CardBody>
+          <h3 className="mb-4 text-sm font-semibold text-content-strong">Détails</h3>
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-6">
+            <Field
+              label="Démarré"
+              value={formatDate(run.started_at, { withSeconds: true, withYear: true })}
+            />
+            <Field
+              label="Terminé"
+              value={
+                run.finished_at
+                  ? formatDate(run.finished_at, { withSeconds: true, withYear: true })
+                  : "—"
+              }
+            />
+            {priceEur != null ? (
+              <Field label="Prix" value={fmtPrice(priceEur)} />
+            ) : null}
+            {sourceUrl ? (
+              <div>
+                <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-content-muted">
+                  Source
+                </div>
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="break-all text-accent hover:text-accent-strong"
+                >
+                  Voir l&apos;annonce ↗
+                </a>
+              </div>
+            ) : null}
+            {run.langfuse_trace_id ? (
+              <Field label="Langfuse trace" value={run.langfuse_trace_id} mono />
+            ) : null}
+          </div>
+        </CardBody>
+      </Card>
 
       {/* Erreur */}
       {run.error_text != null && run.error_text !== "" ? (
-        <div
-          className="ct-card"
-          style={{
-            borderColor: "var(--ct-border-accent)",
-            background: "var(--ct-accent-soft)",
-          }}
-        >
-          <div className="ct-card-title">Erreur</div>
-          <pre
-            style={{
-              fontSize: FONT.sm,
-              fontFamily: "var(--font-mono)",
-              color: "var(--ct-text-primary)",
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {run.error_text}
-          </pre>
-        </div>
+        <Card className="mb-6 bg-accent/10 ring-accent/40">
+          <CardBody>
+            <h3 className="mb-4 text-sm font-semibold text-content-strong">Erreur</h3>
+            <pre className="whitespace-pre-wrap break-words font-[family-name:var(--font-mono)] text-sm text-content">
+              {run.error_text}
+            </pre>
+          </CardBody>
+        </Card>
       ) : null}
 
       {/* Rapport */}
       {run.result_text != null ? (
-        <div className="ct-card">
-          <div className="ct-card-title">Rapport d&apos;analyse</div>
-          {isMarkdown(run.result_text) ? (
-            <MarkdownReport
-              text={run.result_text}
-              title={`analyse-${vehicleLabel.replace(/\s+/g, "-").toLowerCase()}`}
-            />
-          ) : (
-            <pre
-              style={{
-                background: "var(--ct-surface-2)",
-                border: "1px solid var(--ct-border)",
-                borderRadius: RADIUS.md,
-                padding: SPACING.md,
-                fontSize: FONT.sm,
-                color: "var(--ct-text-primary)",
-                fontFamily: "var(--font-mono)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-                overflow: "auto",
-                maxHeight: "var(--ct-result-max-h)",
-              }}
-            >
-              {prettyJsonOrRaw(run.result_text)}
-            </pre>
-          )}
-        </div>
+        <Card className="mb-6">
+          <CardBody>
+            <h3 className="mb-4 text-sm font-semibold text-content-strong">
+              Rapport d&apos;analyse
+            </h3>
+            {isMarkdown(run.result_text) ? (
+              <MarkdownReport
+                text={run.result_text}
+                title={`analyse-${vehicleLabel.replace(/\s+/g, "-").toLowerCase()}`}
+              />
+            ) : (
+              <pre className="max-h-[600px] overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-surface-2 p-4 font-[family-name:var(--font-mono)] text-sm text-content ring-1 ring-inset ring-line">
+                {prettyJsonOrRaw(run.result_text)}
+              </pre>
+            )}
+          </CardBody>
+        </Card>
       ) : null}
 
       {/* Timeline */}
-      <div
-        className="ct-eyebrow"
-        style={{ margin: `${SPACING.xl}px 0 ${SPACING.md}px` }}
-      >
+      <div className="mb-4 mt-8 text-xs font-semibold uppercase tracking-wider text-content-muted">
         Timeline ({run.steps.length} steps)
       </div>
       <RunTimeline steps={run.steps} status={run.status} />

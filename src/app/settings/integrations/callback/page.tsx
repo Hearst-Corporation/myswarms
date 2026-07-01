@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
-import { SPACING, RADIUS } from "@/lib/ui/tokens";
 import Link from "next/link";
+import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
+import { CheckCircleIcon, XCircleIcon } from "@heroicons/react/24/outline";
+import { Button } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Connexion intégration — MySwarms" };
@@ -29,42 +30,26 @@ export default async function ComposioCallbackPage({ searchParams }: PageProps) 
   const error = params.error;
 
   return (
-    <div style={{
-      minHeight: "60vh",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: SPACING.xl,
-      padding: SPACING.xxl,
-      textAlign: "center",
-    }}>
-      <div style={{
-        fontSize: 48,
-        lineHeight: 1,
-      }}>
-        {success ? "✅" : "❌"}
-      </div>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-6 px-6 py-16 text-center">
+      {success ? (
+        <CheckCircleIcon className="size-14 text-[var(--color-ok)]" aria-hidden="true" />
+      ) : (
+        <XCircleIcon className="size-14 text-[var(--color-danger)]" aria-hidden="true" />
+      )}
 
       <div>
-        <h1 className="ct-title" style={{ marginBottom: SPACING.sm }}>
-          {success
-            ? `${appName} connecté`
-            : "Connexion échouée"}
+        <h1 className="text-xl font-semibold tracking-tight text-content-strong">
+          {success ? `${appName} connecté` : "Connexion échouée"}
         </h1>
-        <p className="ct-sub">
+        <p className="mt-1 text-sm text-content-muted">
           {success
             ? `Ton compte ${appName} est maintenant disponible pour les agents.`
             : error ?? "Une erreur s'est produite lors de la connexion."}
         </p>
       </div>
 
-      <Link
-        href="/settings?tab=integrations"
-        className="ct-seg-btn primary"
-        style={{ padding: `${SPACING.sm}px ${SPACING.xl}px`, borderRadius: RADIUS.full }}
-      >
-        ← Retour aux intégrations
+      <Link href="/settings?tab=integrations">
+        <Button variant="secondary">← Retour aux intégrations</Button>
       </Link>
     </div>
   );

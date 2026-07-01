@@ -1,4 +1,4 @@
-import { SPACING, RADIUS, OPACITY, SIZE } from "@/lib/ui/tokens";
+import { Skeleton } from "@/components/ui";
 
 /**
  * Skeleton de chargement de l'historique Chief of Staff — affiché pendant
@@ -8,82 +8,21 @@ export default function HistoryLoading() {
   return (
     <>
       {/* Breadcrumb skeleton */}
-      <div
-        style={{
-          width: 80,
-          height: SIZE.skeletonTitle,
-          background: "var(--ct-surface-2)",
-          borderRadius: RADIUS.sm,
-          opacity: OPACITY.skeletonStrong,
-          marginBottom: SPACING.sm,
-        }}
-      />
+      <Skeleton className="mb-2 h-3.5 w-20" />
 
       {/* Titre + sous-titre */}
-      <div style={{ marginTop: SPACING.sm, marginBottom: SPACING.xl }}>
-        <div
-          style={{
-            width: 220,
-            height: 28,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            opacity: OPACITY.skeletonStrong,
-            marginBottom: SPACING.xs,
-          }}
-        />
-        <div
-          style={{
-            width: 260,
-            height: SIZE.skeletonTitle,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            opacity: OPACITY.skeletonSoft,
-          }}
-        />
+      <div className="mb-6 mt-2 space-y-1.5">
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="h-3.5 w-64" />
       </div>
 
       {/* Section runs skeleton */}
-      <section aria-busy="true" aria-live="polite">
-        <div
-          style={{
-            width: 100,
-            height: SIZE.skeletonLine,
-            background: "var(--ct-surface-2)",
-            borderRadius: RADIUS.sm,
-            opacity: OPACITY.skeletonStrong,
-            marginBottom: SPACING.md,
-          }}
-        />
-
-        {/* Tableau runs skeleton */}
-        <div className="ct-card" style={{ padding: 0, overflow: "hidden" }}>
-          {/* En-tête */}
-          <div
-            style={{
-              height: 40,
-              background: "var(--ct-surface-2)",
-              opacity: OPACITY.skeletonStrong,
-              borderBottom: "1px solid var(--ct-border-soft)",
-            }}
-          />
-          {/* Lignes */}
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              style={{
-                height: 48,
-                background: "var(--ct-surface-2)",
-                opacity: i % 2 === 0 ? OPACITY.skeleton : OPACITY.skeletonFaint,
-                borderBottom: "1px solid var(--ct-border-soft)",
-              }}
-            />
-          ))}
-        </div>
+      <section aria-busy="true" aria-live="polite" className="space-y-3">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-60 rounded-[var(--radius-lg)]" />
       </section>
 
-      <p className="ct-sub" style={{ marginTop: SPACING.md }}>
-        Loading…
-      </p>
+      <p className="mt-3 text-sm text-content-muted">Loading…</p>
     </>
   );
 }

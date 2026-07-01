@@ -4,9 +4,19 @@ import { requireOwnerId, OwnerAuthError } from "@/lib/auth/owner";
 import { searchAutoScout } from "@/lib/apify/autoscout";
 import { SourcingSearchForm } from "@/components/automobile/SourcingSearchForm";
 import { BrandLogo } from "@/components/automobile/BrandLogo";
-import { Chevron } from "@/components/ui/Chevron";
-import { FONT, FONT_WEIGHT, SPACING, RADIUS, LETTER_SPACING } from "@/lib/ui/tokens";
-import { thStyle, tdStyle } from "@/lib/ui/tableStyles";
+import { LinkButton } from "@/components/automobile/LinkButton";
+import {
+  Chevron,
+  Card,
+  CardBody,
+  PageHeader,
+  Table,
+  THead,
+  TBody,
+  TR,
+  TH,
+  TD,
+} from "@/components/ui";
 import { fmtPrice, fmtKm } from "@/lib/utils/format";
 import { listingToPrefillHref } from "@/lib/automobile/prefill";
 import type { AutoScoutListing } from "@/lib/apify/types";
@@ -70,242 +80,193 @@ export default async function SourcingPage({ searchParams }: PageProps) {
 
   return (
     <>
-      <div className="ct-eyebrow">
-        <Link href="/automobile" style={{ color: "var(--ct-text-muted)", textDecoration: "none" }}>
-          <Chevron direction="left" />Automobile
-        </Link>
-      </div>
+      <Link
+        href="/automobile"
+        className="mb-4 inline-flex items-center text-xs font-semibold uppercase tracking-wider text-content-muted hover:text-content"
+      >
+        <Chevron direction="left" />Automobile
+      </Link>
 
-      <div style={{ marginBottom: SPACING.xl }}>
-        <h1 className="ct-title">Sourcing</h1>
-        <p className="ct-sub">
-          Recherche d&apos;annonces AutoScout24 en temps réel — 8 marchés européens.
-        </p>
-      </div>
-
-      {/* Formulaire pleine largeur (full expansive) */}
-      <div className="ct-card" style={{ padding: `${SPACING.lx}px`, marginBottom: SPACING.xl }}>
-        <SourcingSearchForm
-          defaultMake={make}
-          defaultModel={model}
-          defaultMarket={market}
-          defaultPriceMin={priceMinStr}
-          defaultPriceMax={priceMaxStr}
+      <div className="mb-8">
+        <PageHeader
+          title="Sourcing"
+          subtitle="Recherche d'annonces AutoScout24 en temps réel — 8 marchés européens."
         />
       </div>
 
+      {/* Formulaire pleine largeur (full expansive) */}
+      <Card className="mb-8">
+        <CardBody>
+          <SourcingSearchForm
+            defaultMake={make}
+            defaultModel={model}
+            defaultMarket={market}
+            defaultPriceMin={priceMinStr}
+            defaultPriceMax={priceMaxStr}
+          />
+        </CardBody>
+      </Card>
+
       {/* État : erreur Apify */}
       {searchError && (
-        <div
-          className="ct-card"
-          style={{
-            background: "var(--ct-alert-error-bg)",
-            borderColor: "var(--ct-alert-error-border)",
-          }}
-        >
-          <div className="ct-card-title" style={{ color: "var(--ct-alert-error-text)" }}>
-            Erreur lors de la recherche
-          </div>
-          <div className="ct-card-body">
-            <code>{searchError}</code>
-          </div>
-        </div>
+        <Card className="bg-danger/10 ring-danger/25">
+          <CardBody>
+            <h3 className="mb-2 text-sm font-semibold text-danger">
+              Erreur lors de la recherche
+            </h3>
+            <code className="text-sm text-content-muted">{searchError}</code>
+          </CardBody>
+        </Card>
       )}
 
       {/* État : résultats vides (query lancée mais rien trouvé) */}
       {hasQuery && !searchError && listings.length === 0 && (
-        <div className="ct-card">
-          <div className="ct-card-title">Aucun résultat</div>
-          <p className="ct-card-body">
-            Aucune annonce trouvée pour{" "}
-            <strong>
-              {make}
-              {model ? ` ${model}` : ""}
-            </strong>{" "}
-            sur le marché{" "}
-            <strong>{market.toUpperCase()}</strong>
-            {priceMinStr || priceMaxStr
-              ? ` (${priceMinStr ? fmtPrice(Number(priceMinStr)) : "—"} – ${priceMaxStr ? fmtPrice(Number(priceMaxStr)) : "—"})`
-              : ""}
-            . Essayez sans filtre de prix ou sur un autre marché.
-          </p>
-        </div>
+        <Card>
+          <CardBody>
+            <h3 className="mb-2 text-sm font-semibold text-content-strong">Aucun résultat</h3>
+            <p className="text-sm text-content-muted">
+              Aucune annonce trouvée pour{" "}
+              <strong className="text-content">
+                {make}
+                {model ? ` ${model}` : ""}
+              </strong>{" "}
+              sur le marché <strong className="text-content">{market.toUpperCase()}</strong>
+              {priceMinStr || priceMaxStr
+                ? ` (${priceMinStr ? fmtPrice(Number(priceMinStr)) : "—"} – ${priceMaxStr ? fmtPrice(Number(priceMaxStr)) : "—"})`
+                : ""}
+              . Essayez sans filtre de prix ou sur un autre marché.
+            </p>
+          </CardBody>
+        </Card>
       )}
 
       {/* État : pas encore cherché */}
       {!hasQuery && (
-        <div className="ct-card">
-          <div className="ct-placeholder">
-            Entrez une marque pour lancer la recherche sur AutoScout24.
-          </div>
-        </div>
+        <Card>
+          <CardBody>
+            <p className="text-sm text-content-faint">
+              Entrez une marque pour lancer la recherche sur AutoScout24.
+            </p>
+          </CardBody>
+        </Card>
       )}
 
       {/* État : résultats — tableau pleine largeur */}
       {listings.length > 0 && (
-        <div style={{ width: "100%" }}>
-          <div
-            style={{
-              fontSize: FONT.xs,
-              fontWeight: FONT_WEIGHT.bold,
-              letterSpacing: LETTER_SPACING.wide,
-              textTransform: "uppercase",
-              color: "var(--ct-text-muted)",
-              marginBottom: SPACING.lg,
-            }}
-          >
+        <div className="w-full">
+          <div className="mb-6 text-xs font-bold uppercase tracking-wider text-content-muted">
             {listings.length} annonce{listings.length > 1 ? "s" : ""} —{" "}
             {make}
             {model ? ` ${model}` : ""} · {market.toUpperCase()}
           </div>
 
-          <div className="ct-card" style={{ padding: 0, overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: FONT.sm }}>
-              <thead>
-                <tr>
-                  <th style={thStyle}>Vignette</th>
-                  <th style={thStyle}>Marque</th>
-                  <th style={thStyle}>Titre</th>
-                  <th style={{ ...thStyle, textAlign: "right" as const }}>Prix</th>
-                  <th style={thStyle}>Année</th>
-                  <th style={thStyle}>KM</th>
-                  <th style={thStyle}>Carburant</th>
-                  <th style={thStyle}>Boîte</th>
-                  <th style={thStyle}>Vendeur</th>
-                  <th style={thStyle}>Localisation</th>
-                  <th style={{ ...thStyle, textAlign: "right" as const }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {listings.map((listing) => (
-                  <tr key={listing.id} className="ct-tr">
-                    {/* Vignette */}
-                    <td className="ct-td" style={tdStyle}>
-                      {listing.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={listing.imageUrl}
-                          alt={listing.title || "Annonce"}
-                          loading="lazy"
-                          style={{
-                            width: THUMB_W,
-                            height: THUMB_H,
-                            objectFit: "cover",
-                            display: "block",
-                            borderRadius: RADIUS.sm,
-                            border: "1px solid var(--ct-border)",
-                          }}
-                        />
-                      ) : (
-                        <div
-                          aria-hidden
-                          style={{
-                            width: THUMB_W,
-                            height: THUMB_H,
-                            borderRadius: RADIUS.sm,
-                            background: "var(--ct-surface-2)",
-                            border: "1px solid var(--ct-border)",
-                          }}
-                        />
-                      )}
-                    </td>
+          <Table>
+            <THead>
+              <TR>
+                <TH>Vignette</TH>
+                <TH>Marque</TH>
+                <TH>Titre</TH>
+                <TH className="text-right">Prix</TH>
+                <TH>Année</TH>
+                <TH>KM</TH>
+                <TH>Carburant</TH>
+                <TH>Boîte</TH>
+                <TH>Vendeur</TH>
+                <TH>Localisation</TH>
+                <TH className="text-right" />
+              </TR>
+            </THead>
+            <TBody>
+              {listings.map((listing) => (
+                <TR key={listing.id}>
+                  {/* Vignette */}
+                  <TD>
+                    {listing.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={listing.imageUrl}
+                        alt={listing.title || "Annonce"}
+                        loading="lazy"
+                        className="block rounded-[var(--radius-sm)] border border-line object-cover"
+                        style={{ width: THUMB_W, height: THUMB_H }}
+                      />
+                    ) : (
+                      <div
+                        aria-hidden
+                        className="rounded-[var(--radius-sm)] border border-line bg-surface-2"
+                        style={{ width: THUMB_W, height: THUMB_H }}
+                      />
+                    )}
+                  </TD>
 
-                    {/* Marque */}
-                    <td className="ct-td" style={tdStyle}>
-                      <BrandLogo brand={make} size={ROW_LOGO_SIZE} />
-                    </td>
+                  {/* Marque */}
+                  <TD>
+                    <BrandLogo brand={make} size={ROW_LOGO_SIZE} />
+                  </TD>
 
-                    {/* Titre */}
-                    <td className="ct-td" style={{ ...tdStyle, fontWeight: FONT_WEIGHT.semibold, minWidth: 220 }}>
+                  {/* Titre */}
+                  <TD className="min-w-[220px] font-semibold">
+                    <a
+                      href={listing.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-content-strong hover:text-accent"
+                    >
+                      {listing.title || "Annonce sans titre"}
+                    </a>
+                  </TD>
+
+                  {/* Prix */}
+                  <TD className="whitespace-nowrap text-right text-base font-extrabold text-accent-strong">
+                    {listing.price != null ? fmtPrice(listing.price) : "—"}
+                  </TD>
+
+                  {/* Année */}
+                  <TD className="text-content-muted">
+                    {listing.year != null ? listing.year : "—"}
+                  </TD>
+
+                  {/* KM */}
+                  <TD className="whitespace-nowrap text-content-muted">
+                    {listing.mileage != null ? fmtKm(listing.mileage) : "—"}
+                  </TD>
+
+                  {/* Carburant */}
+                  <TD className="text-content-muted">{listing.fuel || "—"}</TD>
+
+                  {/* Boîte */}
+                  <TD className="text-content-muted">{listing.gearbox || "—"}</TD>
+
+                  {/* Vendeur */}
+                  <TD className="text-content-muted">{listing.dealer || "—"}</TD>
+
+                  {/* Localisation */}
+                  <TD className="text-content-muted">{listing.location || "—"}</TD>
+
+                  {/* Actions : analyser (pousse vers le run) + voir l'annonce */}
+                  <TD className="text-right">
+                    <div className="flex items-center justify-end gap-2">
+                      <LinkButton
+                        href={listingToPrefillHref(listing, { make, model, market })}
+                        variant="primary"
+                        className="h-8 px-3 text-xs"
+                      >
+                        Analyser
+                      </LinkButton>
                       <a
                         href={listing.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="ct-link"
-                        style={{ color: "var(--ct-text-strong)", textDecoration: "none" }}
+                        className="whitespace-nowrap text-xs font-medium text-accent hover:text-accent-strong"
                       >
-                        {listing.title || "Annonce sans titre"}
+                        Voir ↗
                       </a>
-                    </td>
-
-                    {/* Prix */}
-                    <td
-                      className="ct-td"
-                      style={{
-                        ...tdStyle,
-                        textAlign: "right",
-                        fontWeight: FONT_WEIGHT.extrabold,
-                        fontSize: FONT.md,
-                        color: "var(--ct-accent-strong)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {listing.price != null ? fmtPrice(listing.price) : "—"}
-                    </td>
-
-                    {/* Année */}
-                    <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                      {listing.year != null ? listing.year : "—"}
-                    </td>
-
-                    {/* KM */}
-                    <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)", whiteSpace: "nowrap" }}>
-                      {listing.mileage != null ? fmtKm(listing.mileage) : "—"}
-                    </td>
-
-                    {/* Carburant */}
-                    <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                      {listing.fuel || "—"}
-                    </td>
-
-                    {/* Boîte */}
-                    <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                      {listing.gearbox || "—"}
-                    </td>
-
-                    {/* Vendeur */}
-                    <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                      {listing.dealer || "—"}
-                    </td>
-
-                    {/* Localisation */}
-                    <td className="ct-td" style={{ ...tdStyle, color: "var(--ct-text-muted)" }}>
-                      {listing.location || "—"}
-                    </td>
-
-                    {/* Actions : analyser (pousse vers le run) + voir l'annonce */}
-                    <td className="ct-td" style={{ ...tdStyle, textAlign: "right" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: SPACING.sm,
-                          justifyContent: "flex-end",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Link
-                          href={listingToPrefillHref(listing, { make, model, market })}
-                          className="ct-seg-btn primary"
-                          style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
-                        >
-                          Analyser
-                        </Link>
-                        <a
-                          href={listing.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="ct-link"
-                          style={{ fontSize: FONT.xs, whiteSpace: "nowrap" }}
-                        >
-                          Voir ↗
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         </div>
       )}
     </>

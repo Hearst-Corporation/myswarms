@@ -19,8 +19,19 @@ import { BuilderTasksTab } from "./BuilderTasksTab";
 import { BuilderToolsTab } from "./BuilderToolsTab";
 import { ArchitectModal } from "./ArchitectModal";
 import { isValidUuid } from "@/lib/utils/uuid";
-import { FONT, FONT_WEIGHT, LETTER_SPACING, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
 import { type BuilderTabId, parseBuilderTab } from "@/lib/swarms/builderTabs";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardBody,
+  Field,
+  Input,
+  Textarea,
+  Button,
+  Alert,
+} from "@/components/ui";
+import { SparklesIcon } from "@heroicons/react/24/outline";
 
 type BuilderMode = "create" | "edit";
 
@@ -243,28 +254,19 @@ export function SwarmBuilder({
   }, [agents, tasks, toolBindings, getValues]);
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: SPACING.md,
-          flexWrap: "wrap",
-          marginBottom: SPACING.xl,
-        }}
-      >
-        <button
-          type="button"
-          className="ct-seg-btn primary"
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <Button
+          variant="primary"
           onClick={() => {
             setArchitectKey((k) => k + 1);
             setArchitectOpen(true);
           }}
           disabled={submitting}
         >
-          ✨ Generate with AI
-        </button>
+          <SparklesIcon className="size-4" />
+          Generate with AI
+        </Button>
       </div>
 
       <ArchitectModal
@@ -275,65 +277,51 @@ export function SwarmBuilder({
       />
 
       {activeTab === "overview" && (
-        <div
+        <Card
           role="tabpanel"
           id="swarm-panel-overview"
           aria-labelledby="swarm-tab-overview"
           tabIndex={0}
-          className="ct-card"
         >
-          <div className="ct-card-title">Identity</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: SPACING.lg }}>
-            <label style={labelStyle}>
-              <span style={labelText}>Swarm name</span>
-              <input
-                {...register("name")}
-                style={inputStyle}
-                placeholder="e.g. Daily Inbox Triage"
-              />
-              {errors.name ? (
-                <span style={errorStyle}>{errors.name.message}</span>
-              ) : null}
-            </label>
+          <CardHeader>
+            <CardTitle>Identity</CardTitle>
+          </CardHeader>
+          <CardBody className="flex flex-col gap-5">
+            <Field
+              label="Swarm name"
+              error={errors.name?.message}
+            >
+              <Input {...register("name")} placeholder="e.g. Daily Inbox Triage" />
+            </Field>
 
-            <label style={labelStyle}>
-              <span style={labelText}>Description</span>
-              <textarea
+            <Field label="Description">
+              <Textarea
                 {...register("description")}
                 rows={4}
-                style={{ ...inputStyle, resize: "vertical" }}
                 placeholder="What is this swarm for?"
               />
-            </label>
+            </Field>
 
-            <div style={{ display: "flex", gap: SPACING.lg, flexWrap: "wrap" }}>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: SPACING.sm,
-                  fontSize: FONT.base,
-                  color: "var(--ct-text-primary)",
-                }}
-              >
-                <input type="checkbox" {...register("is_active")} />
+            <div className="flex flex-wrap gap-5">
+              <label className="flex items-center gap-2 text-sm text-content">
+                <input
+                  type="checkbox"
+                  className="accent-[var(--color-accent)]"
+                  {...register("is_active")}
+                />
                 Active (triggerable)
               </label>
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: SPACING.sm,
-                  fontSize: FONT.base,
-                  color: "var(--ct-text-primary)",
-                }}
-              >
-                <input type="checkbox" {...register("is_template")} />
+              <label className="flex items-center gap-2 text-sm text-content">
+                <input
+                  type="checkbox"
+                  className="accent-[var(--color-accent)]"
+                  {...register("is_template")}
+                />
                 Template
               </label>
             </div>
-          </div>
-        </div>
+          </CardBody>
+        </Card>
       )}
 
       {activeTab === "agents" && (
@@ -386,102 +374,45 @@ export function SwarmBuilder({
       )}
 
       {activeTab === "preview" && (
-        <div
+        <Card
           role="tabpanel"
           id="swarm-panel-preview"
           aria-labelledby="swarm-tab-preview"
           tabIndex={0}
-          className="ct-card"
         >
-          <div className="ct-card-title">JSON Preview</div>
-          <pre
-            style={{
-              background: "var(--ct-surface-2)",
-              border: "1px solid var(--ct-border)",
-              borderRadius: RADIUS.md,
-              padding: SPACING.md,
-              fontSize: FONT.sm,
-              color: "var(--ct-text-primary)",
-              fontFamily: "var(--font-mono)",
-              overflow: "auto",
-              maxHeight: SIZE.previewMaxH,
-            }}
-          >
-            {previewJson}
-          </pre>
-        </div>
+          <CardHeader>
+            <CardTitle>JSON Preview</CardTitle>
+          </CardHeader>
+          <CardBody>
+            <pre className="max-h-[480px] overflow-auto rounded-[var(--radius-md)] bg-surface-2 p-3 font-mono text-sm text-content ring-1 ring-inset ring-line">
+              {previewJson}
+            </pre>
+          </CardBody>
+        </Card>
       )}
 
       {submitError ? (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="ct-card"
-          style={{
-            borderColor: "var(--ct-border-accent)",
-            background: "var(--ct-accent-soft)",
-          }}
-        >
-          <div className="ct-card-title">Error</div>
-          <p className="ct-card-body">{submitError}</p>
-        </div>
+        <Alert tone="error" role="alert" title="Error">
+          {submitError}
+        </Alert>
       ) : null}
 
-      <div
-        style={{
-          display: "flex",
-          gap: SPACING.sm,
-          justifyContent: "flex-end",
-          marginTop: SPACING.xl,
-        }}
-      >
-        <button
-          type="button"
-          className="ct-seg-btn"
+      <div className="flex justify-end gap-2">
+        <Button
+          variant="secondary"
           onClick={() => router.push("/swarms")}
           disabled={submitting}
         >
           Cancel
-        </button>
-        <button
-          type="submit"
-          className="ct-seg-btn primary"
-          disabled={submitting}
-        >
+        </Button>
+        <Button type="submit" variant="primary" disabled={submitting}>
           {submitting
             ? "Saving…"
             : mode === "create"
               ? "Create swarm"
               : "Save"}
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: SPACING.xxs,
-};
-const labelText: React.CSSProperties = {
-  fontSize: FONT.xs,
-  fontWeight: FONT_WEIGHT.semibold,
-  letterSpacing: LETTER_SPACING.tight,
-  textTransform: "uppercase",
-  color: "var(--ct-text-muted)",
-};
-const inputStyle: React.CSSProperties = {
-  background: "var(--ct-surface-2)",
-  border: "1px solid var(--ct-border)",
-  borderRadius: RADIUS.md,
-  padding: `${SPACING.s}px ${SPACING.md}px`,
-  color: "var(--ct-text-primary)",
-  fontSize: FONT.base,
-  fontFamily: "inherit",
-  outline: "none",
-};
-const errorStyle: React.CSSProperties = {
-  fontSize: FONT.xs,
-  color: "var(--ct-accent-strong)",
-};

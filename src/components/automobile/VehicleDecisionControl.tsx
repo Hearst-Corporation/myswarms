@@ -2,12 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { setVehicleDecision } from "@/app/automobile/[runId]/actions";
+import { Button } from "@/components/ui";
 import {
   VEHICLE_DECISION_STATUSES,
   DEFAULT_DECISION_STATUS,
   type VehicleDecisionStatus,
 } from "@/lib/automobile/decisionStatus";
-import { FONT, SPACING } from "@/lib/ui/tokens";
 
 /**
  * Contrôle de décision humaine sur un run. Boutons de statut (optimiste +
@@ -42,31 +42,32 @@ export function VehicleDecisionControl({
 
   return (
     <div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: SPACING.sm }}>
+      <div className="flex flex-wrap gap-2">
         {VEHICLE_DECISION_STATUSES.map((s) => {
           const active = s.value === status;
           return (
-            <button
+            <Button
               key={s.value}
               type="button"
+              size="sm"
+              variant={active ? "primary" : "secondary"}
               onClick={() => choose(s.value)}
               disabled={pending}
               aria-pressed={active}
-              className={`ct-seg-btn${active ? " primary" : ""}`}
-              style={{ fontSize: FONT.sm, opacity: pending && !active ? 0.6 : 1 }}
+              className={pending && !active ? "opacity-60" : undefined}
             >
               {s.label}
-            </button>
+            </Button>
           );
         })}
       </div>
-      <div style={{ marginTop: SPACING.sm, fontSize: FONT.xs, minHeight: 16 }}>
+      <div className="mt-2 min-h-4 text-xs">
         {pending ? (
-          <span style={{ color: "var(--ct-text-faint)" }}>Enregistrement…</span>
+          <span className="text-content-faint">Enregistrement…</span>
         ) : error ? (
-          <span style={{ color: "var(--ct-alert-error-text)" }}>{error}</span>
+          <span className="text-danger">{error}</span>
         ) : (
-          <span style={{ color: "var(--ct-text-faint)" }}>
+          <span className="text-content-faint">
             Décision enregistrée pour ce véhicule.
           </span>
         )}

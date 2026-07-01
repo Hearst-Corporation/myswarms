@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { SwarmAgentForm } from "./SwarmAgentForm";
 import type { AgentInput } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, RADIUS, SPACING } from "@/lib/ui/tokens";
+import { Card, CardHeader, CardTitle, CardBody, Button } from "@/components/ui";
 
 /**
  * G8 fix : tab "Agents" extrait de SwarmBuilder.
@@ -37,98 +37,74 @@ export function BuilderAgentsTab({
   };
 
   return (
-    <div className="ct-card">
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginBottom: SPACING.lg,
-        }}
-      >
-        <div className="ct-card-title" style={{ marginBottom: 0 }}>
-          Agents ({agents.length})
-        </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Agents ({agents.length})</CardTitle>
         {!showForm && editingIdx === null ? (
-          <button
-            type="button"
-            className="ct-seg-btn primary"
-            onClick={() => setShowForm(true)}
-          >
+          <Button variant="primary" size="sm" onClick={() => setShowForm(true)}>
             + Add
-          </button>
+          </Button>
         ) : null}
-      </div>
+      </CardHeader>
+      <CardBody>
+        {showForm ? (
+          <SwarmAgentForm onSubmit={handleAdd} onCancel={() => setShowForm(false)} />
+        ) : null}
 
-      {showForm ? (
-        <SwarmAgentForm
-          onSubmit={handleAdd}
-          onCancel={() => setShowForm(false)}
-        />
-      ) : null}
+        {editingIdx !== null && agents[editingIdx] ? (
+          <SwarmAgentForm
+            initialAgent={agents[editingIdx]}
+            onSubmit={(a) => handleUpdate(editingIdx, a)}
+            onCancel={() => setEditingIdx(null)}
+          />
+        ) : null}
 
-      {editingIdx !== null && agents[editingIdx] ? (
-        <SwarmAgentForm
-          initialAgent={agents[editingIdx]}
-          onSubmit={(a) => handleUpdate(editingIdx, a)}
-          onCancel={() => setEditingIdx(null)}
-        />
-      ) : null}
-
-      {agents.length > 0 && !showForm && editingIdx === null ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: SPACING.sm }}>
-          {agents.map((a, idx) => (
-            <div
-              key={a.id ?? idx}
-              style={{
-                background: "var(--ct-surface-2)",
-                border: "1px solid var(--ct-border)",
-                borderRadius: RADIUS.md,
-                padding: SPACING.md,
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: SPACING.md,
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: FONT_WEIGHT.semibold }}>{a.name}</div>
-                <div style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}>
-                  {a.role} · {a.model_provider}/{a.model_name}
+        {agents.length > 0 && !showForm && editingIdx === null ? (
+          <div className="flex flex-col gap-2">
+            {agents.map((a, idx) => (
+              <div
+                key={a.id ?? idx}
+                className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] bg-surface-2 p-3 ring-1 ring-inset ring-line"
+              >
+                <div className="min-w-0">
+                  <div className="font-semibold text-content-strong">{a.name}</div>
+                  <div className="text-sm text-content-muted">
+                    {a.role} · {a.model_provider}/{a.model_name}
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    aria-label={`Edit agent ${a.name}`}
+                    onClick={() => setEditingIdx(idx)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    aria-label={`Delete agent ${a.name}`}
+                    onClick={() => {
+                      if (window.confirm(`Delete agent "${a.name}"?`)) {
+                        onRemove(idx);
+                      }
+                    }}
+                  >
+                    Delete
+                  </Button>
                 </div>
               </div>
-              <div style={{ display: "flex", gap: SPACING.xxs }}>
-                <button
-                  type="button"
-                  className="ct-seg-btn"
-                  aria-label={`Edit agent ${a.name}`}
-                  onClick={() => setEditingIdx(idx)}
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  className="ct-seg-btn"
-                  aria-label={`Delete agent ${a.name}`}
-                  onClick={() => {
-                    if (window.confirm(`Delete agent "${a.name}"?`)) {
-                      onRemove(idx);
-                    }
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        ) : null}
 
-      {agents.length === 0 && !showForm ? (
-        <p className="ct-placeholder">
-          No agent yet. Add at least one coordinator to start.
-        </p>
-      ) : null}
-    </div>
+        {agents.length === 0 && !showForm ? (
+          <p className="text-sm text-content-faint">
+            No agent yet. Add at least one coordinator to start.
+          </p>
+        ) : null}
+      </CardBody>
+    </Card>
   );
 }

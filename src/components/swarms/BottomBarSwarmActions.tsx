@@ -2,19 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FONT, SPACING } from "@/lib/ui/tokens";
+import { Button } from "@/components/ui";
 
 interface BottomBarSwarmActionsProps {
   swarmId: string;
 }
 
 /**
- * Actions contextuelles affichées dans la BottomBar sur la route /swarms/[id].
- * Pour l'instant : bouton "Run" qui kickoff le swarm en mode on_demand puis
- * redirige vers la page run créée.
+ * Action "Run" contextuelle pour la page /swarms/[id] (barre d'actions du
+ * PageHeader). Kickoff le swarm en mode on_demand puis redirige vers la page
+ * run créée.
  *
- * Découplé de BottomBar pour ne pas mélanger logique de navigation (Link)
- * et logique async (fetch + push) dans le même composant.
+ * Découplé pour ne pas mélanger logique de navigation (Link) et logique async
+ * (fetch + push) dans le même composant.
  */
 export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
   const router = useRouter();
@@ -44,29 +44,23 @@ export function BottomBarSwarmActions({ swarmId }: BottomBarSwarmActionsProps) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: SPACING.xs }}>
-      <button
-        type="button"
-        className="ct-seg-btn primary"
+    <div className="flex flex-col items-end gap-1">
+      <Button
+        variant="primary"
         onClick={handleRun}
         disabled={busy}
         aria-disabled={busy}
         title="Trigger an on_demand run"
       >
         {busy ? "Run…" : "Run"}
-      </button>
+      </Button>
       {error && (
-        <div
+        <p
           role="alert"
-          style={{
-            fontSize: FONT.xxs,
-            color: "var(--ct-alert-error-text)",
-            maxWidth: 240,
-            textAlign: "right",
-          }}
+          className="max-w-60 text-right text-[10px] text-danger"
         >
           {error}
-        </div>
+        </p>
       )}
     </div>
   );

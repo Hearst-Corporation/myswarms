@@ -1,8 +1,7 @@
 import { StatusBadge } from "@/components/runs/StatusBadge";
 import { formatDate } from "@/lib/utils/format";
 import type { SwarmRunStep } from "@/lib/forms/swarmSchemas";
-import { FONT, FONT_WEIGHT, RADIUS, SIZE, SPACING } from "@/lib/ui/tokens";
-import { Chevron } from "@/components/ui/Chevron";
+import { Chevron } from "@/components/ui";
 
 interface StepCardProps {
   step: SwarmRunStep;
@@ -11,40 +10,19 @@ interface StepCardProps {
 export function StepCard({ step }: StepCardProps) {
   const totalTokens = step.tokens_in + step.tokens_out;
   return (
-    <div className="ct-card" style={{ marginBottom: SPACING.md }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: SPACING.sm,
-          flexWrap: "wrap",
-          gap: SPACING.sm,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: SPACING.md,
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: FONT.xs,
-              color: "var(--ct-text-muted)",
-            }}
-          >
+    <div className="mb-3 rounded-[var(--radius-md)] bg-surface-2 p-4 ring-1 ring-inset ring-line">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="font-mono text-xs text-content-muted">
             #{String(step.step_number).padStart(3, "0")}
           </span>
-          <span style={{ fontWeight: FONT_WEIGHT.semibold, color: "var(--ct-text-strong)" }}>
+          <span className="font-semibold text-content-strong">
             {step.agent_name ?? "agent inconnu"}
           </span>
           {step.task_name ? (
-            <span style={{ fontSize: FONT.sm, color: "var(--ct-text-muted)" }}>
-              <Chevron direction="right" />{step.task_name}
+            <span className="inline-flex items-center text-sm text-content-muted">
+              <Chevron direction="right" />
+              {step.task_name}
             </span>
           ) : null}
         </div>
@@ -52,59 +30,32 @@ export function StepCard({ step }: StepCardProps) {
       </div>
 
       <div
-        style={{
-          display: "flex",
-          gap: SPACING.lg,
-          flexWrap: "wrap",
-          fontSize: FONT.xs,
-          color: "var(--ct-text-muted)",
-          marginBottom: step.output_text || step.error_text ? SPACING.md : 0,
-        }}
+        className={cnRow(step.output_text != null || step.error_text != null)}
       >
         <span>tokens: {totalTokens}</span>
         {step.latency_ms ? <span>latency: {step.latency_ms}ms</span> : null}
         <span>start: {formatDate(step.created_at, { withSeconds: true })}</span>
         {step.finished_at ? (
-          <span>
-            end: {formatDate(step.finished_at, { withSeconds: true })}
-          </span>
+          <span>end: {formatDate(step.finished_at, { withSeconds: true })}</span>
         ) : null}
       </div>
 
       {step.error_text != null && step.error_text !== "" ? (
-        <pre
-          style={{
-            background: "var(--ct-accent-soft)",
-            border: "1px solid var(--ct-border-accent)",
-            borderRadius: RADIUS.md,
-            padding: SPACING.md,
-            fontSize: FONT.sm,
-            color: "var(--ct-text-primary)",
-            overflow: "auto",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
-        >
+        <pre className="overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-[color-mix(in_oklab,var(--color-danger)_10%,transparent)] p-3 text-sm text-content ring-1 ring-inset ring-[color-mix(in_oklab,var(--color-danger)_30%,transparent)]">
           {step.error_text}
         </pre>
       ) : step.output_text != null ? (
-        <pre
-          style={{
-            background: "var(--ct-surface-2)",
-            border: "1px solid var(--ct-border)",
-            borderRadius: RADIUS.md,
-            padding: SPACING.md,
-            fontSize: FONT.sm,
-            color: "var(--ct-text-primary)",
-            overflow: "auto",
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            maxHeight: SIZE.outputMaxH,
-          }}
-        >
+        <pre className="max-h-[32rem] overflow-auto whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-surface p-3 text-sm text-content ring-1 ring-inset ring-line">
           {step.output_text}
         </pre>
       ) : null}
     </div>
+  );
+}
+
+function cnRow(hasBody: boolean): string {
+  return (
+    "flex flex-wrap gap-5 text-xs text-content-muted " +
+    (hasBody ? "mb-3" : "")
   );
 }
