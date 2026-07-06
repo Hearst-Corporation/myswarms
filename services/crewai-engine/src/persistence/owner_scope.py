@@ -131,6 +131,16 @@ class ScopedSwarmStore:
         forced = {**payload, "owner_id": self._scope.owner_id}
         return swarm_store.create_swarm(forced)
 
+    def create_tool(self, payload: dict[str, Any]) -> dict[str, Any] | None:
+        """Crée un tool en FORÇANT owner_id=scope (jamais l'owner_id du body).
+
+        Les tools GLOBAUX (owner_id NULL, partagés) sont réservés aux migrations
+        DB — un owner_id NULL/absent dans le payload est écrasé par le scope, de
+        sorte qu'un user ne peut jamais insérer un tool global via l'API.
+        """
+        forced = {**payload, "owner_id": self._scope.owner_id}
+        return swarm_store.create_tool(forced)
+
     def update_swarm(self, swarm_id: str, fields: dict[str, Any]) -> bool | None:
         if not self._owns_swarm_strict(swarm_id):
             return None
