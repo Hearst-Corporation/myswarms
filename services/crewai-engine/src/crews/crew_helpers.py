@@ -152,6 +152,22 @@ def _resolve_llm(agent_row: dict[str, Any]) -> LLM:
     return get_llm("balanced")
 
 
+def _is_http_endpoint(endpoint_url: Any) -> bool:
+    """Vrai si `endpoint_url` désigne un endpoint HTTP exécutable par le tool T1.
+
+    On accepte un path relatif (`/api/market/prices`, préfixé par
+    STRATEGY_PLATFORM_URL à l'exécution) OU une URL absolue http(s). Toute autre
+    valeur (None, vide, chaîne sans schéma ni slash initial) est refusée — elle
+    ne peut pas être transformée en requête GET.
+    """
+    if not isinstance(endpoint_url, str):
+        return False
+    candidate = endpoint_url.strip()
+    if not candidate:
+        return False
+    return candidate.startswith(("/", "http://", "https://"))
+
+
 def _resolve_tools_for_agent(
     agent_id: str,
     tool_bindings: list[dict[str, Any]],
@@ -159,12 +175,19 @@ def _resolve_tools_for_agent(
 ) -> list:
     """Renvoie la liste de tools CrewAI pour un agent donné.
 
-    Aujourd'hui :
-    - category="api_call" + tool.name ∈ _COMPOSIO_TOOLKITS → Composio bridge.
-    - Les autres bindings sont ignorés (log debug). Extensible plus tard
-      (webhook/custom-python/etc.).
+    Deux familles de tools sont câblées :
+    - category="api_call" + tool.name ∈ _COMPOSIO_TOOLKITS → Composio bridge
+      (chemin INCHANGÉ — normalisation d'alias, dédup, `get_composio_tools_for_toolkits`).
+    - category ∈ {"api_call", "search"} + `endpoint_url` HTTP (path/URL) +
+      name ∉ _COMPOSIO_TOOLKITS → tool HTTP générique construit depuis la row
+      via l'exécuteur T1 (`build_http_tool_from_row`, import LAZY pour éviter un
+      cycle crew_helpers ↔ tools).
+
+    Les autres bindings restent ignorés (log debug) — extensible plus tard
+    (webhook/custom-python/etc.). Retourne la CONCATÉNATION [Composio] + [HTTP].
     """
     composio_toolkits: list[str] = []
+    http_tools: list = []
     for binding in tool_bindings:
         if binding.get("agent_id") != agent_id:
             continue
@@ -178,15 +201,36 @@ def _resolve_tools_for_agent(
             slug = "googlecalendar" if name in {"googlecalendar", "google_calendar"} else name
             if slug not in composio_toolkits:
                 composio_toolkits.append(slug)
+        elif (
+            category in {"api_call", "search"}
+            and name not in _COMPOSIO_TOOLKITS
+            and _is_http_endpoint(tool.get("endpoint_url"))
+        ):
+            # Import LAZY (à l'appel, pas au chargement du module) : le module
+            # http_api_call pourra importer crew_helpers un jour sans cycle.
+            from ..tools.http_api_call import build_http_tool_from_row  # noqa: PLC0415
+
+            try:
+                http_tools.append(build_http_tool_from_row(tool))
+            except Exception as exc:  # noqa: BLE001
+                # Fail-soft : une row pathologique ne doit pas casser la
+                # construction de l'agent (cohérent avec le fail-soft T1).
+                logger.warning(
+                    "Failed to build HTTP tool (agent=%s, name=%s): %s",
+                    agent_id, name, exc,
+                )
         else:
             logger.debug(
                 "Tool binding ignored (agent=%s, category=%s, name=%s) — not yet supported",
                 agent_id, category, name,
             )
 
-    if not composio_toolkits:
-        return []
-    return get_composio_tools_for_toolkits(composio_toolkits, owner_id=owner_id)
+    composio_tools = (
+        get_composio_tools_for_toolkits(composio_toolkits, owner_id=owner_id)
+        if composio_toolkits
+        else []
+    )
+    return list(composio_tools) + http_tools
 
 
 def instantiate_agents(swarm_config: dict[str, Any], owner_id: str | None = None) -> dict[str, Agent]:
