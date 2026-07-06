@@ -88,6 +88,13 @@ class Settings(BaseSettings):
     CORTEX_URL: str = ""
     CORTEX_API_KEY: str = ""
 
+    # Strategy Platform — API internes client (prod GPU1). Base URL des endpoints
+    # que l'engine appelle côté strategy-platform ; overridable via env.
+    STRATEGY_PLATFORM_URL: str = "https://strategy.hearst.app"
+    # Bearer optionnel engine → strategy-platform. Vide par défaut : aucun header
+    # Authorization n'est envoyé (fail-soft — l'appel reste possible sans token).
+    STRATEGY_PLATFORM_TOKEN: str = ""
+
     # Browserbase — scrape annonces immobilières (endpoint /v1/listings, HORS swarm).
     # Session headless distante (CDP) pilotée via Playwright connect_over_cdp.
     # Aucune valeur hardcodée — injectée via env (.env.local en dev, Railway en prod).
